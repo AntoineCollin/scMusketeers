@@ -1,0 +1,57 @@
+---
+workflow_ID: 1348
+dataset:
+  dataset_name: htap
+  class_key: celltype
+dataset_normalize:
+  filter_min_counts: True
+  normalize_size_factors: True
+  scale_input: False
+  logtrans_input: False
+model_spec:
+  model_name: scanvi
+  ae_type: None
+  hidden_size: 0
+  hidden_dropout: None
+  batchnorm: None
+  activation: None
+  init: None
+model_training_spec:
+  epochs: None
+  reduce_lr: None
+  early_stop: None
+  batch_size: None
+  optimizer: None
+  verbose: None
+  threads: None
+  learning_rate: None
+  n_perm: 1
+  permute: None
+  change_perm: None
+  semi_sup: semi_sup
+  unlabeled_category: nan
+  save_zinb_param: None
+  use_raw_as_output: None
+  contrastive_margin : contrastive_margin
+  same_class_pct : same_class_pct
+dataset_train_split:
+  mode: fixed_number
+  pct_split: None
+  obs_key: celltype
+  n_keep: 100
+  keep_obs: None
+  train_test_random_seed: 42
+  use_TEST : False
+  obs_subsample: None
+dataset_fake_annotation:
+  make_fake: False
+  true_celltype: None
+  false_celltype: None
+  pct_false: None
+predictor_spec:
+  predictor_model: MLP
+  predict_key: celltype
+  predictor_hidden_sizes: 64
+  predictor_epochs: 50
+  predictor_batch_size: 32
+  predictor_activation: softmax

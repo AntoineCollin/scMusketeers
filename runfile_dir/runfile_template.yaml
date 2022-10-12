@@ -1,0 +1,57 @@
+---
+workflow_ID: {{workflow_ID}}
+dataset:
+  dataset_name: {{dataset_name}}
+  class_key: {{class_key}}
+dataset_normalize:
+  filter_min_counts: {{filter_min_counts}}
+  normalize_size_factors: {{normalize_size_factors}}
+  scale_input: {{scale_input}}
+  logtrans_input: {{logtrans_input}}
+model_spec:
+  model_name: {{model_name}}
+  ae_type: {{ae_type}}
+  hidden_size: {{hidden_size}}
+  hidden_dropout: {{hidden_dropout}}
+  batchnorm: {{batchnorm}}
+  activation: {{activation}}
+  init: {{init}}
+model_training_spec:
+  epochs: {{epochs}}
+  reduce_lr: {{reduce_lr}}
+  early_stop: {{early_stop}}
+  batch_size: {{batch_size}}
+  optimizer: {{optimizer}}
+  verbose: {{verbose}}
+  threads: {{threads}}
+  learning_rate: {{learning_rate}}
+  n_perm: {{n_perm}}
+  permute: {{permute}}
+  change_perm: {{change_perm}}
+  semi_sup: {{semi_sup}}
+  unlabeled_category: {{unlabeled_category}}
+  save_zinb_param: {{save_zinb_param}}
+  use_raw_as_output: {{use_raw_as_output}}
+  contrastive_margin : {{contrastive_margin}}
+  same_class_pct : {{same_class_pct}}
+dataset_train_split:
+  mode: {{mode}}
+  pct_split: {{pct_split}}
+  obs_key: {{obs_key}}
+  n_keep: {{n_keep}}
+  keep_obs: {{keep_obs}}
+  train_test_random_seed: {{train_test_random_seed}}
+  use_TEST : {{use_TEST}}
+  obs_subsample: {{obs_subsample}}
+dataset_fake_annotation:
+  make_fake: {{make_fake}}
+  true_celltype: {{true_celltype}}
+  false_celltype: {{false_celltype}}
+  pct_false: {{pct_false}}
+predictor_spec:
+  predictor_model: {{predictor_model}}
+  predict_key: {{predict_key}}
+  predictor_hidden_sizes: {{predictor_hidden_sizes}}
+  predictor_epochs: {{predictor_epochs}}
+  predictor_batch_size: {{predictor_batch_size}}
+  predictor_activation: {{predictor_activation}}

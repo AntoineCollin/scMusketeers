@@ -1,0 +1,57 @@
+---
+workflow_ID: 60
+dataset:
+  dataset_name: pbmc3k_processed
+  class_key: louvain
+dataset_normalize:
+  filter_min_counts: True
+  normalize_size_factors: True
+  scale_input: True
+  logtrans_input: True
+model_spec:
+  model_name: dca_permuted
+  ae_type: zinb-conddisp
+  hidden_size: 64
+  hidden_dropout: 0
+  batchnorm: True
+  activation: relu
+  init: glorot_uniform
+model_training_spec:
+  epochs: 100
+  reduce_lr: 10
+  early_stop: 5
+  batch_size: 32
+  optimizer: RMSprop
+  verbose: True
+  threads: None
+  learning_rate: None
+  n_perm: 1
+  permute: True
+  change_perm: False
+  semi_sup: semi_sup
+  unlabeled_category: nan
+  save_zinb_param: NA
+  use_raw_as_output: False
+  contrastive_margin : contrastive_margin
+  same_class_pct : same_class_pct
+dataset_train_split:
+  mode: percentage
+  pct_split: 0.9
+  obs_key: None
+  n_keep: None
+  keep_obs: None
+  train_test_random_seed: None
+  use_TEST : False
+  obs_subsample: None
+dataset_fake_annotation:
+  make_fake: False
+  true_celltype: None
+  false_celltype: None
+  pct_false: None
+predictor_spec:
+  predictor_model: MLP
+  predict_key: louvain
+  predictor_hidden_sizes: 16
+  predictor_epochs: 50
+  predictor_batch_size: 32
+  predictor_activation: sigmoid
