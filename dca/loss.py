@@ -169,6 +169,7 @@ class ContrastiveLoss(tf.keras.losses.Loss):
 
         D = tf.square(X_perm - X_pred)
         max_D =  tf.square(tf.maximum(0.0,self.margin - D))
-        l = (1.0 - self.similarity) * D + (self.similarity) * max_D
+        l = self.similarity * D + (1 - self.similarity) * max_D
         return l
-###### Added Antoine Collin ######            
+        
+###### Ended Added Antoine Collin ######            

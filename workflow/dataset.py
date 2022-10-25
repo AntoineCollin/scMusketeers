@@ -14,7 +14,7 @@ class Dataset:
     def __init__(self, dataset_dir,dataset_name,class_key,filter_min_counts,normalize_size_factors,scale_input,logtrans_input, n_perm, semi_sup,unlabeled_category):
         self.dataset_name = dataset_name
         self.adata = anndata.AnnData()
-        self.adata_TRAIN = anndata.AnnData()
+        self.adata_train_extended = anndata.AnnData()
         self.adata_train = anndata.AnnData()
         self.adata_val = anndata.AnnData()
         self.adata_test = anndata.AnnData()
@@ -87,23 +87,23 @@ class Dataset:
             sc.pp.scale(self.adata)
         
         self.adata_test = self.adata[self.adata.obs['TRAIN_TEST_split'] == 'test']
-        self.adata_TRAIN = self.adata[self.adata.obs['TRAIN_TEST_split'] == 'train']
+        self.adata_train_extended = self.adata[self.adata.obs['TRAIN_TEST_split'] == 'train']
         print('right after loading')
         print(self.adata)
         print(self.adata_test)
-        print(self.adata_TRAIN)
-        print(self.adata_TRAIN.obs[self.class_key].value_counts())
-        self.adata_train = self.adata_TRAIN.copy()
+        print(self.adata_train_extended)
+        print(self.adata_train_extended.obs[self.class_key].value_counts())
+        self.adata_train = self.adata_train_extended.copy()
 
         
     
     def train_test_split(self):
-        train_idx, val_idx = train_test_split(np.arange(self.adata_TRAIN.n_obs), train_size=self.train_size, random_state=self.train_test_random_seed)
+        train_idx, val_idx = train_test_split(np.arange(self.adata_train_extended.n_obs), train_size=self.train_size, random_state=self.train_test_random_seed)
         spl = pd.Series(['train'] * self.adata.n_obs, index = self.adata.obs.index)
         spl.iloc[val_idx] = 'val'
         self.adata.obs['train_split'] = spl.values
-        self.adata_train = self.adata_TRAIN[self.adata_TRAIN.obs['train_split'] == 'train'].copy()
-        self.adata_val = self.adata_TRAIN[self.adata_TRAIN.obs['train_split'] == 'val'].copy()
+        self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'train'].copy()
+        self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
         
     
     def train_split(self,mode=None, pct_split=None, obs_key=None, n_keep=None, keep_obs = None,obs_subsample=None,train_test_random_seed=None):
@@ -126,63 +126,64 @@ class Dataset:
         self.train_test_random_seed = train_test_random_seed
         if mode == 'percentage':
             self.pct_split = pct_split
-            print(self.adata_TRAIN.obs[self.class_key].value_counts())
-            train_idx, val_idx = train_test_split(np.arange(self.adata_TRAIN.n_obs), train_size=self.pct_split, stratify =self.adata_TRAIN.obs[self.class_key], random_state=self.train_test_random_seed)
-            spl = pd.Series(['train'] * self.adata_TRAIN.n_obs, index = self.adata_TRAIN.obs.index)
+            print(self.adata_train_extended.obs[self.class_key].value_counts())
+            train_idx, val_idx = train_test_split(np.arange(self.adata_train_extended.n_obs), train_size=self.pct_split, stratify =self.adata_train_extended.obs[self.class_key], random_state=self.train_test_random_seed)
+            spl = pd.Series(['train'] * self.adata_train_extended.n_obs, index = self.adata_train_extended.obs.index)
             spl.iloc[val_idx] = 'val'
             print(len(spl))
-            print(self.adata_TRAIN)
-            print(self.adata_TRAIN.obs[self.class_key].value_counts())
-            self.adata_TRAIN.obs['train_split'] = spl.values
-        if mode == 'entire_condition':
+            print(self.adata_train_extended)
+            print(self.adata_train_extended.obs[self.class_key].value_counts())
+            self.adata_train_extended.obs['train_split'] = spl.values
+        elif mode == 'entire_condition':
             self.obs_key = obs_key
             self.keep_obs = keep_obs
-            keep_idx = self.adata_TRAIN.obs[obs_key].isin(self.keep_obs)
-            to_keep = pd.Series(['val'] * self.adata_TRAIN.n_obs, index = self.adata_TRAIN.obs.index)
+            keep_idx = self.adata_train_extended.obs[obs_key].isin(self.keep_obs)
+            to_keep = pd.Series(['val'] * self.adata_train_extended.n_obs, index = self.adata_train_extended.obs.index)
             to_keep[keep_idx] = 'train'
-            self.adata_TRAIN.obs['train_split'] = to_keep
-        if mode == 'fixed_number':
+            self.adata_train_extended.obs['train_split'] = to_keep
+        elif mode == 'fixed_number':
             self.obs_key=obs_key
             self.n_keep=n_keep
             keep_idx=[]
-            for obs_class in self.adata_TRAIN.obs[self.obs_key].unique():
-                n_keep = min(self.adata_TRAIN.obs[self.class_key].value_counts()[obs_class], self.n_keep) # For celltypes with nb of cells < n_keep, we keep every cells
-                keep_idx += list(self.adata_TRAIN[self.adata_TRAIN.obs[self.obs_key]==obs_class].obs.sample(n_keep, random_state=self.train_test_random_seed).index)
-            to_keep = pd.Series(['val'] * self.adata_TRAIN.n_obs, index = self.adata_TRAIN.obs.index)
+            for obs_class in self.adata_train_extended.obs[self.obs_key].unique():
+                n_keep = min(self.adata_train_extended.obs[self.class_key].value_counts()[obs_class], self.n_keep) # For celltypes with nb of cells < n_keep, we keep every cells
+                keep_idx += list(self.adata_train_extended[self.adata_train_extended.obs[self.obs_key]==obs_class].obs.sample(n_keep, random_state=self.train_test_random_seed).index)
+            to_keep = pd.Series(['val'] * self.adata_train_extended.n_obs, index = self.adata_train_extended.obs.index)
             to_keep[keep_idx] = 'train'
-            self.adata_TRAIN.obs['train_split'] = to_keep
-        if mode == 'Asymetrical_subsampling':
+            self.adata_train_extended.obs['train_split'] = to_keep
+        elif mode == 'Asymetrical_subsampling':
             self.obs_key=obs_key
             self.obs_subsample=obs_subsample
             self.n_keep=n_keep
-            n_remove = self.adata_TRAIN[self.adata_TRAIN.obs[self.obs_key]==self.obs_subsample].n_obs - self.n_keep
-            remove_idx = self.adata_TRAIN[self.adata_TRAIN.obs[self.obs_key]==self.obs_subsample].obs.sample(n_remove, random_state=self.train_test_random_seed).index
-            to_keep = pd.Series(['train'] * self.adata_TRAIN.n_obs, index = self.adata_TRAIN.obs.index)
+            n_remove = self.adata_train_extended[self.adata_train_extended.obs[self.obs_key]==self.obs_subsample].n_obs - self.n_keep
+            remove_idx = self.adata_train_extended[self.adata_train_extended.obs[self.obs_key]==self.obs_subsample].obs.sample(n_remove, random_state=self.train_test_random_seed).index
+            to_keep = pd.Series(['train'] * self.adata_train_extended.n_obs, index = self.adata_train_extended.obs.index)
             to_keep[remove_idx] = 'val'
-            self.adata_TRAIN.obs['train_split'] = to_keep
+            self.adata_train_extended.obs['train_split'] = to_keep
         # removing unnanotated cells
         if not self.semi_sup:
-            to_keep = self.adata_TRAIN.obs['train_split']
-            UNK_cells = self.adata_TRAIN.obs[self.class_key] == self.unlabeled_category
+            to_keep = self.adata_train_extended.obs['train_split']
+            UNK_cells = self.adata_train_extended.obs[self.class_key] == self.unlabeled_category
             to_keep[UNK_cells] = 'val'
-            self.adata_TRAIN.obs['train_split'] = to_keep
-            self.adata_train = self.adata_TRAIN[self.adata_TRAIN.obs['train_split'] == 'train'].copy()
-            self.adata_val = self.adata_TRAIN[self.adata_TRAIN.obs['train_split'] == 'val'].copy()
+            self.adata_train_extended.obs['train_split'] = to_keep
+            self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'train'].copy()
+            self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
             train_split = self.adata.obs['TRAIN_TEST_split'].astype('str')
-            train_split[self.adata_TRAIN.obs_names] = self.adata_TRAIN.obs['train_split']
+            train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
             self.adata.obs['train_split'] = train_split
-
             print(f'train split, train : {self.adata_train}')
-            print(self.adata_train[self.class_key].value_counts())
+            print(self.adata_train.obs[self.class_key].value_counts())
         elif self.semi_sup:
-            obs = self.adata_TRAIN.obs[self.class_key].astype('str')
-            obs[self.adata_TRAIN.obs['train_split'] == 'val'] = self.unlabeled_category
-            self.adata_TRAIN.obs[self.class_key] = obs
-            self.adata_train = self.adata_TRAIN[self.adata_TRAIN.obs['train_split'] == 'train'].copy()
-            self.adata_val = self.adata_TRAIN[self.adata_TRAIN.obs['train_split'] == 'val'].copy()
+            obs = self.adata_train_extended.obs[self.class_key].astype('str')
+            obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category
+            self.adata_train_extended.obs[self.class_key] = obs
+            self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'].isin(['train', 'val'])].copy() #we keep the validation data as unsupervised training cells
+            self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
             print(f'train split, train : {self.adata_train}')
-            print(self.adata_train[self.class_key].value_counts())
-        
+            print(self.adata_train.obs[self.class_key].value_counts())
+            train_split = self.adata.obs['TRAIN_TEST_split'].astype('str')
+            train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
+            self.adata.obs['train_split'] = train_split
 
         
     def fake_annotation(self,true_celltype,false_celltype,pct_false, train_test_random_seed=None):

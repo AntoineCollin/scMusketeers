@@ -103,7 +103,6 @@ class MLP_Predictor:
         self.adata_test = self.adata[self.adata.obs['train_split'] == 'test', : ].copy()
         self.adata_val = self.adata[self.adata.obs['train_split'] == 'val', : ].copy()
 
-        
         self.train_index = self.adata_train.obs.index
         self.test_index = self.adata_test.obs.index
         self.val_index = self.adata_val.obs.index
@@ -205,7 +204,7 @@ class MLP_Predictor:
                                             validation_split=0.2)
         self.is_trained = True
         
-    def predict_on_ (self):
+    def predict_on_test (self):
         self.y_pred_raw = self.model.predict(self.X_array)
         self.y_pred = pd.Series(self.encoder.inverse_transform(np.argmax(self.y_pred_raw, axis = 1)), index = self.y.index)
         self.prediction_table = pd.DataFrame({'y_true' :self.y, 'y_pred':self.y_pred, 'is_test':self.y.index.isin(self.test_index)}, index=self.y.index)

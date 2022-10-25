@@ -141,7 +141,8 @@ class RunFile:
         self.runfile_template_name = 'runfile_template.yaml'
         self.runfile_csv_path = self.runfile_dir + '/runfile_list.csv'
         self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index')
-        
+        self.metric_results_path = self.working_dir + '/results/metric_results.csv'
+        self.metric_results_df = pd.read_csv(self.metric_results_path, index_col = 'index')        
         self.run_file_path = self.runfile_dir + f"/runfile_ID_{self.runfile_dict['workflow_ID']}.yaml"
         
     def make_runfile(self):
@@ -191,6 +192,7 @@ class RunFile:
         
     def add_entry_csv(self):
         self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index')
+        self.metric_results_df = pd.read_csv(self.metric_results_path, index_col = 'index')
         dict_to_pandas = {}
         for key, value in self.runfile_dict.items():
             dict_to_pandas[key] = [value]
@@ -198,7 +200,9 @@ class RunFile:
         df_entry.index = [self.runfile_dict['workflow_ID']]
         df_entry.index.name = 'index'
         self.runfile_df = pd.concat([self.runfile_df, df_entry])
+        self.metric_results_df = pd.concat([self.metric_results_df, df_entry])
         self.runfile_df.to_csv(self.runfile_csv_path)
+        self.metric_results_df.to_csv(self.metric_results_path)
         
     def create_runfile(self, overwrite = False):
         if overwrite :
@@ -365,6 +369,9 @@ class run_file_handler:
         self.runfile_template_name = 'runfile_template.yaml'
         self.runfile_csv_path = self.working_dir + '/runfile_dir/runfile_list.csv'
         self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index')        
+        self.metric_results_path = self.working_dir + '/results/metric_results.csv'
+        self.metric_results_df = pd.read_csv(self.metric_results_path, index_col = 'index')        
+
         
     def generate_runfiles(self,
                           dataset = [None],
@@ -440,7 +447,9 @@ class run_file_handler:
         for params in arg_list:
             rf = RunFile(self.working_dir, **params)
             rf.create_runfile()
-            self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index')        
+            self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index')
+            self.metric_results_df = pd.read_csv(self.metric_results_path, index_col = 'index')
+
             
             
     def query_yaml(self,**kwargs):
@@ -462,39 +471,74 @@ class run_file_handler:
         print(f'The IDs corresponding to this query are {", ".join([str(ID) for ID in queried_ID]) }')
         return queried_ID
 
-    def remove_experiment(self, IDs_to_delete):
-        for ID in IDs_to_delete:
-            rf_file = self.runfile_dir + f"/runfile_ID_{ID}.yaml"
-            if os.path.exists(rf_file):
-                # removing the file using the os.workflow_ID() method
-                os.remove(rf_file)
-            results_path = self.working_dir + f'/results/result_ID_{ID}'
-            if os.path.exists(results_path):
-                # checking whether the folder is empty or not
-                shutil.rmtree(results_path)
-            run_log_dir = self.working_dir + '/logs/run'
-            run_log_path = run_log_dir + f'/workflow_ID_{ID}_DONE.txt'
-            predicts_log_dir = self.working_dir + '/logs/predicts'
-            predicts_log_path = predicts_log_dir + f'/workflow_ID_{ID}_DONE.txt'
-            umap_log_dir = self.working_dir + '/logs/umap'
-            umap_log_path = umap_log_dir + f'/workflow_ID_{ID}_DONE.txt'
-            if os.path.exists(run_log_path):
-                # removing the file using the os.remove() method
-                os.remove(run_log_path)
-            if os.path.exists(predicts_log_path):
-                # removing the file using the os.remove() method
-                os.remove(predicts_log_path)
-            if os.path.exists(umap_log_path):
-                # removing the file using the os.remove() method
-                os.remove(umap_log_path)
-            self.runfile_df = self.runfile_df[self.runfile_df.workflow_ID != int(ID)]
-            self.runfile_df.to_csv(self.runfile_csv_path)
+    def remove_experiment(self, IDs_to_delete) -> None:
+        if input('Please confirm your action (y)') == 'y':
+            for ID in IDs_to_delete:
+                rf_file = self.runfile_dir + f"/runfile_ID_{ID}.yaml"
+                if os.path.exists(rf_file):
+                    # removing the file using the os.workflow_ID() method
+                    os.remove(rf_file)
+                results_path = self.working_dir + f'/results/result_ID_{ID}'
+                if os.path.exists(results_path):
+                    # checking whether the folder is empty or not
+                    shutil.rmtree(results_path)
+                run_log_dir = self.working_dir + '/logs/run'
+                run_log_path = run_log_dir + f'/workflow_ID_{ID}_DONE.txt'
+                predicts_log_dir = self.working_dir + '/logs/predicts'
+                predicts_log_path = predicts_log_dir + f'/workflow_ID_{ID}_DONE.txt'
+                umap_log_dir = self.working_dir + '/logs/umap'
+                umap_log_path = umap_log_dir + f'/workflow_ID_{ID}_DONE.txt'
+                if os.path.exists(run_log_path):
+                    # removing the file using the os.remove() method
+                    os.remove(run_log_path)
+                if os.path.exists(predicts_log_path):
+                    # removing the file using the os.remove() method
+                    os.remove(predicts_log_path)
+                if os.path.exists(umap_log_path):
+                    # removing the file using the os.remove() method
+                    os.remove(umap_log_path)
+                self.runfile_df = self.runfile_df[self.runfile_df.workflow_ID != int(ID)]
+                self.runfile_df.to_csv(self.runfile_csv_path)
+                self.metric_results_df = self.metric_results_df[self.metric_results_df.workflow_ID != int(ID)]
+                self.metric_results_df.to_csv(self.metric_results_path)
+
             
+    def rerun_experiment(self, IDs_to_rerun):
+        '''
+        Only deletes the output of the workflow, keeps the runfile. Use to relaunch an experiment after changing the code.
+        '''
+        if input('Please confirm your action (y)') == 'y':
+            for ID in IDs_to_rerun:
+                results_path = self.working_dir + f'/results/result_ID_{ID}'
+                if os.path.exists(results_path):
+                    # checking whether the folder is empty or not
+                    shutil.rmtree(results_path)
+                run_log_dir = self.working_dir + '/logs/run'
+                run_log_path = run_log_dir + f'/workflow_ID_{ID}_DONE.txt'
+                predicts_log_dir = self.working_dir + '/logs/predicts'
+                predicts_log_path = predicts_log_dir + f'/workflow_ID_{ID}_DONE.txt'
+                umap_log_dir = self.working_dir + '/logs/umap'
+                umap_log_path = umap_log_dir + f'/workflow_ID_{ID}_DONE.txt'
+                if os.path.exists(run_log_path):
+                    # removing the file using the os.remove() method
+                    os.remove(run_log_path)
+                if os.path.exists(predicts_log_path):
+                    # removing the file using the os.remove() method
+                    os.remove(predicts_log_path)
+                if os.path.exists(umap_log_path):
+                    # removing the file using the os.remove() method
+                    os.remove(umap_log_path)
+                self.metric_results_df.loc[ID,:] = self.runfile_df.loc[ID,:]
+                self.metric_results_df.to_csv(self.metric_results_path)
             
+
     def add_argument_runfile(self, argument, value = 'NA'):
         # Adding new argument to csv 
         self.runfile_df[argument] = value
         self.runfile_df.to_csv(self.runfile_csv_path)
+        self.metric_results_df[argument] = value
+        self.metric_results_df.to_csv(self.metric_results_path)
+
         # Adding new argument = NA for existing runfiles
         for wf_id in self.runfile_df['workflow_ID']:
             runfile_kwargs = read_from_ID(self.working_dir, wf_id)

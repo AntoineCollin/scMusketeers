@@ -1,0 +1,57 @@
+---
+workflow_ID: 2080
+dataset:
+  dataset_name: ajrccm
+  class_key: celltype
+dataset_normalize:
+  filter_min_counts: True
+  normalize_size_factors: True
+  scale_input: False
+  logtrans_input: False
+model_spec:
+  model_name: dca_permuted
+  ae_type: normal
+  hidden_size: 128
+  hidden_dropout: 0
+  batchnorm: True
+  activation: relu
+  init: glorot_uniform
+model_training_spec:
+  epochs: 100
+  reduce_lr: 10
+  early_stop: 15
+  batch_size: 32
+  optimizer: RMSprop
+  verbose: True
+  threads: None
+  learning_rate: None
+  n_perm: 1
+  permute: True
+  change_perm: True
+  semi_sup: False
+  unlabeled_category: nan
+  save_zinb_param: False
+  use_raw_as_output: False
+  contrastive_margin : None
+  same_class_pct : None
+dataset_train_split:
+  mode: percentage
+  pct_split: 0.99
+  obs_key: None
+  n_keep: None
+  keep_obs: None
+  train_test_random_seed: 1
+  use_TEST : None
+  obs_subsample: None
+dataset_fake_annotation:
+  make_fake: False
+  true_celltype: None
+  false_celltype: None
+  pct_false: None
+predictor_spec:
+  predictor_model: MLP
+  predict_key: celltype
+  predictor_hidden_sizes: 64
+  predictor_epochs: 100
+  predictor_batch_size: 32
+  predictor_activation: softmax

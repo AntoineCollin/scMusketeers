@@ -1,7 +1,7 @@
 ---
 workflow_ID: 1196
 dataset:
-  dataset_name: htap
+  dataset_name: htap_ajrccm
   class_key: celltype
 dataset_normalize:
   filter_min_counts: True
@@ -10,7 +10,7 @@ dataset_normalize:
   logtrans_input: False
 model_spec:
   model_name: dca_permuted
-  ae_type: normal
+  ae_type: contrastive
   hidden_size: 128
   hidden_dropout: 0
   batchnorm: True
@@ -19,7 +19,7 @@ model_spec:
 model_training_spec:
   epochs: 100
   reduce_lr: 10
-  early_stop: 20
+  early_stop: 5
   batch_size: 32
   optimizer: RMSprop
   verbose: True
@@ -32,26 +32,26 @@ model_training_spec:
   unlabeled_category: None
   save_zinb_param: False
   use_raw_as_output: False
-  contrastive_margin : None
-  same_class_pct : None
+  contrastive_margin : 1
+  same_class_pct : 0.8
 dataset_train_split:
-  mode: percentage
-  pct_split: 0.8
-  obs_key: None
+  mode: entire_condition
+  pct_split: None
+  obs_key: dataset
   n_keep: None
-  keep_obs: None
-  train_test_random_seed: 100
+  keep_obs: ['htap']
+  train_test_random_seed: 35
   use_TEST : True
   obs_subsample: None
 dataset_fake_annotation:
-  make_fake: True
-  true_celltype: Basal
-  false_celltype: Basal
-  pct_false: 0.2
+  make_fake: False
+  true_celltype: None
+  false_celltype: None
+  pct_false: None
 predictor_spec:
   predictor_model: MLP
   predict_key: celltype
   predictor_hidden_sizes: 64
   predictor_epochs: 100
   predictor_batch_size: 32
-  predictor_activation: sigmoid
+  predictor_activation: softmax

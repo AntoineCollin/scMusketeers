@@ -1,17 +1,17 @@
 ---
 workflow_ID: 23
 dataset:
-  dataset_name: htap
-  class_key: celltype
+  dataset_name: pbmc3k_processed
+  class_key: louvain
 dataset_normalize:
   filter_min_counts: True
   normalize_size_factors: True
-  scale_input: True
-  logtrans_input: True
+  scale_input: False
+  logtrans_input: False
 model_spec:
   model_name: dca_permuted
-  ae_type: zinb-conddisp
-  hidden_size: 128
+  ae_type: contrastive
+  hidden_size: 64
   hidden_dropout: 0
   batchnorm: True
   activation: relu
@@ -19,7 +19,7 @@ model_spec:
 model_training_spec:
   epochs: 100
   reduce_lr: 10
-  early_stop: 5
+  early_stop: 10
   batch_size: 32
   optimizer: RMSprop
   verbose: True
@@ -27,31 +27,31 @@ model_training_spec:
   learning_rate: None
   n_perm: 1
   permute: True
-  change_perm: False
-  semi_sup: semi_sup
-  unlabeled_category: None
-  save_zinb_param: NA
+  change_perm: True
+  semi_sup: True
+  unlabeled_category: nan
+  save_zinb_param: False
   use_raw_as_output: False
-  contrastive_margin : contrastive_margin
-  same_class_pct : same_class_pct
+  contrastive_margin : 1
+  same_class_pct : 0.8
 dataset_train_split:
   mode: percentage
-  pct_split: 0.8
+  pct_split: 0.9
   obs_key: None
   n_keep: None
   keep_obs: None
-  train_test_random_seed: 71
-  use_TEST : False
+  train_test_random_seed: 5
+  use_TEST : True
   obs_subsample: None
 dataset_fake_annotation:
-  make_fake: True
-  true_celltype: Basal
-  false_celltype: AT2
-  pct_false: 0.05
+  make_fake: False
+  true_celltype: None
+  false_celltype: None
+  pct_false: None
 predictor_spec:
   predictor_model: MLP
-  predict_key: celltype
-  predictor_hidden_sizes: 64
-  predictor_epochs: 50
+  predict_key: louvain
+  predictor_hidden_sizes: 16
+  predictor_epochs: 100
   predictor_batch_size: 32
-  predictor_activation: sigmoid
+  predictor_activation: softmax

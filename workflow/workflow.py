@@ -9,6 +9,7 @@ except ImportError:
     from predictor import MLP_Predictor
     from model import DCA_Permuted,Scanvi
 
+import time
 import yaml
 import pickle
 import anndata
@@ -84,65 +85,65 @@ predictor_activation = 'predictor_activation'
 
 class Workflow:
     def __init__(self, yaml_name, working_dir):
-        run_file = load_runfile(yaml_name)
-        self.workflow_ID = run_file[workflow_ID]
+        self.run_file = load_runfile(yaml_name)
+        self.workflow_ID = self.run_file[workflow_ID]
         # dataset identifiers
-        self.dataset_name = run_file[dataset][dataset_name]
-        self.class_key = run_file[dataset][class_key]
+        self.dataset_name = self.run_file[dataset][dataset_name]
+        self.class_key = self.run_file[dataset][class_key]
         # normalization parameters
-        self.filter_min_counts = run_file[dataset_normalize][filter_min_counts]
-        self.normalize_size_factors = run_file[dataset_normalize][normalize_size_factors]
-        self.scale_input = run_file[dataset_normalize][scale_input]
-        self.logtrans_input = run_file[dataset_normalize][logtrans_input]
+        self.filter_min_counts = self.run_file[dataset_normalize][filter_min_counts]
+        self.normalize_size_factors = self.run_file[dataset_normalize][normalize_size_factors]
+        self.scale_input = self.run_file[dataset_normalize][scale_input]
+        self.logtrans_input = self.run_file[dataset_normalize][logtrans_input]
         # model parameters
-        self.model_name = run_file[model_spec][model_name]
-        self.ae_type = run_file[model_spec][ae_type]
-        self.hidden_size = run_file[model_spec][hidden_size]
+        self.model_name = self.run_file[model_spec][model_name]
+        self.ae_type = self.run_file[model_spec][ae_type]
+        self.hidden_size = self.run_file[model_spec][hidden_size]
         self.hidden_size = (2*self.hidden_size, self.hidden_size, 2*self.hidden_size)
-        self.hidden_dropout = run_file[model_spec][hidden_dropout]
-        self.batchnorm = run_file[model_spec][batchnorm]
-        self.activation = run_file[model_spec][activation]
-        self.init = run_file[model_spec][init]
+        self.hidden_dropout = self.run_file[model_spec][hidden_dropout]
+        self.batchnorm = self.run_file[model_spec][batchnorm]
+        self.activation = self.run_file[model_spec][activation]
+        self.init = self.run_file[model_spec][init]
         # model training parameters
-        self.epochs = run_file[model_training_spec][epochs]
-        self.reduce_lr = run_file[model_training_spec][reduce_lr]
-        self.early_stop = run_file[model_training_spec][early_stop]
-        self.batch_size = run_file[model_training_spec][batch_size]
-        self.optimizer = run_file[model_training_spec][optimizer]
-        self.verbose = run_file[model_training_spec][verbose]
-        self.threads = run_file[model_training_spec][threads]
-        self.learning_rate = run_file[model_training_spec][learning_rate]
-        self.n_perm = run_file[model_training_spec][n_perm]
-        self.permute = run_file[model_training_spec][permute]
-        self.change_perm = run_file[model_training_spec][change_perm]
-        self.semi_sup = run_file[model_training_spec][semi_sup]
-        self.unlabeled_category = run_file[model_training_spec][unlabeled_category]
-        self.save_zinb_param = run_file[model_training_spec][save_zinb_param]
-        self.use_raw_as_output = run_file[model_training_spec][use_raw_as_output]
-        self.contrastive_margin =run_file[model_training_spec][contrastive_margin]
-        self.same_class_pct=run_file[model_training_spec][same_class_pct]
+        self.epochs = self.run_file[model_training_spec][epochs]
+        self.reduce_lr = self.run_file[model_training_spec][reduce_lr]
+        self.early_stop = self.run_file[model_training_spec][early_stop]
+        self.batch_size = self.run_file[model_training_spec][batch_size]
+        self.optimizer = self.run_file[model_training_spec][optimizer]
+        self.verbose = self.run_file[model_training_spec][verbose]
+        self.threads = self.run_file[model_training_spec][threads]
+        self.learning_rate = self.run_file[model_training_spec][learning_rate]
+        self.n_perm = self.run_file[model_training_spec][n_perm]
+        self.permute = self.run_file[model_training_spec][permute]
+        self.change_perm = self.run_file[model_training_spec][change_perm]
+        self.semi_sup = self.run_file[model_training_spec][semi_sup]
+        self.unlabeled_category = self.run_file[model_training_spec][unlabeled_category]
+        self.save_zinb_param = self.run_file[model_training_spec][save_zinb_param]
+        self.use_raw_as_output = self.run_file[model_training_spec][use_raw_as_output]
+        self.contrastive_margin =self.run_file[model_training_spec][contrastive_margin]
+        self.same_class_pct=self.run_file[model_training_spec][same_class_pct]
 
         # train test split
-        self.mode = run_file[dataset_train_split][mode]
-        self.pct_split = run_file[dataset_train_split][pct_split]
-        self.obs_key = run_file[dataset_train_split][obs_key]
-        self.n_keep = run_file[dataset_train_split][n_keep]
-        self.keep_obs = run_file[dataset_train_split][keep_obs]
-        self.train_test_random_seed = run_file[dataset_train_split][train_test_random_seed]
-        self.use_TEST = run_file[dataset_train_split][use_TEST]
-        self.obs_subsample = run_file[dataset_train_split][obs_subsample]
+        self.mode = self.run_file[dataset_train_split][mode]
+        self.pct_split = self.run_file[dataset_train_split][pct_split]
+        self.obs_key = self.run_file[dataset_train_split][obs_key]
+        self.n_keep = self.run_file[dataset_train_split][n_keep]
+        self.keep_obs = self.run_file[dataset_train_split][keep_obs]
+        self.train_test_random_seed = self.run_file[dataset_train_split][train_test_random_seed]
+        self.use_TEST = self.run_file[dataset_train_split][use_TEST]
+        self.obs_subsample = self.run_file[dataset_train_split][obs_subsample]
         # Create fake annotations
-        self.make_fake = run_file[dataset_fake_annotation][make_fake]
-        self.true_celltype = run_file[dataset_fake_annotation][true_celltype]
-        self.false_celltype = run_file[dataset_fake_annotation][false_celltype]
-        self.pct_false = run_file[dataset_fake_annotation][pct_false]
+        self.make_fake = self.run_file[dataset_fake_annotation][make_fake]
+        self.true_celltype = self.run_file[dataset_fake_annotation][true_celltype]
+        self.false_celltype = self.run_file[dataset_fake_annotation][false_celltype]
+        self.pct_false = self.run_file[dataset_fake_annotation][pct_false]
         # predictor parameters
-        self.predictor_model = run_file[predictor_spec][predictor_model]
-        self.predict_key = run_file[predictor_spec][predict_key]
-        self.predictor_hidden_sizes = run_file[predictor_spec][predictor_hidden_sizes]
-        self.predictor_epochs = run_file[predictor_spec][predictor_epochs]
-        self.predictor_batch_size = run_file[predictor_spec][predictor_batch_size]
-        self.predictor_activation = run_file[predictor_spec][predictor_activation]
+        self.predictor_model = self.run_file[predictor_spec][predictor_model]
+        self.predict_key = self.run_file[predictor_spec][predict_key]
+        self.predictor_hidden_sizes = self.run_file[predictor_spec][predictor_hidden_sizes]
+        self.predictor_epochs = self.run_file[predictor_spec][predictor_epochs]
+        self.predictor_batch_size = self.run_file[predictor_spec][predictor_batch_size]
+        self.predictor_activation = self.run_file[predictor_spec][predictor_activation]
         
         self.latent_space = anndata.AnnData()
         self.corrected_count = anndata.AnnData()
@@ -163,6 +164,7 @@ class Workflow:
         self.adata_path = self.result_path + '/latent.h5ad'
         self.corrected_count_path = self.result_path + '/corrected_counts.h5ad'
         self.scarches_combined_emb_path = self.result_path + '/combined_emb.h5ad'
+        self.metric_path = self.result_path + '/metrics.csv'
         
         self.run_log_dir = working_dir + '/logs/run'
         self.run_log_path = self.run_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt'
@@ -170,8 +172,10 @@ class Workflow:
         self.predict_log_path = self.predict_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt'
         self.umap_log_dir = working_dir + '/logs/umap'
         self.umap_log_path = self.umap_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt'
+        self.start_time = time.time()
+        self.stop_time = time.time()
+        self.runtime_path = self.result_path + '/runtime.txt'
 
-        
         self.run_done = False
         self.predict_done = False
         self.umap_done = False
@@ -320,7 +324,10 @@ class Workflow:
 #             self.pred_hist = self.predictor.train_history
 #             self.predicted_class = self.predictor.y_pred
 #             self.latent_space.obs[f'{self.class_key}_pred'] = self.predicted_class
+        self.latent_space.uns['runfile_dict'] = self.run_file
         self.run_done = True
+        self.stop_time = time.time()
+
     
     def compute_prediction_only(self):
         self.latent_space = sc.read_h5ad(self.adata_path)
@@ -357,6 +364,8 @@ class Workflow:
     def save_results(self):
         if not os.path.isdir(self.result_path):
             os.makedirs(self.result_path)
+        with open(self.runtime_path, 'w') as f:
+            f.write(self.stop_time - self.start_time)
         self.latent_space.write(self.adata_path)
 #         self.model.save_net(self.DR_model_path)
 #         if self.predictor_model:
@@ -379,6 +388,8 @@ class Workflow:
             self.write_predict_log()
         if self.umap_done:
             self.write_umap_log()
+        metric_series = pd.DataFrame(index = [self.workflow_ID], data={'workflow_ID':pd.Series([self.workflow_ID], index = [self.workflow_ID])})
+        metric_series.to_csv(self.metric_path)
 
 
     def load_results(self):

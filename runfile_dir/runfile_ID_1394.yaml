@@ -1,8 +1,8 @@
 ---
 workflow_ID: 1394
 dataset:
-  dataset_name: ajrccm
-  class_key: celltype
+  dataset_name: pbmc3k_processed
+  class_key: louvain
 dataset_normalize:
   filter_min_counts: True
   normalize_size_factors: True
@@ -11,7 +11,7 @@ dataset_normalize:
 model_spec:
   model_name: dca_permuted
   ae_type: normal
-  hidden_size: 128
+  hidden_size: 64
   hidden_dropout: 0
   batchnorm: True
   activation: relu
@@ -35,12 +35,13 @@ model_training_spec:
   contrastive_margin : None
   same_class_pct : None
 dataset_train_split:
-  mode: percentage
-  pct_split: 0.99
-  obs_key: None
-  n_keep: None
+  mode: fixed_number
+  pct_split: None
+  obs_key: louvain
+  n_keep: 5
   keep_obs: None
-  train_test_random_seed: 2
+  train_test_random_seed: 46
+  use_TEST : True
   obs_subsample: None
 dataset_fake_annotation:
   make_fake: False
@@ -49,8 +50,8 @@ dataset_fake_annotation:
   pct_false: None
 predictor_spec:
   predictor_model: MLP
-  predict_key: celltype
-  predictor_hidden_sizes: 64
-  predictor_epochs: 50
+  predict_key: louvain
+  predictor_hidden_sizes: 16
+  predictor_epochs: 100
   predictor_batch_size: 32
   predictor_activation: softmax

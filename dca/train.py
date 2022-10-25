@@ -97,7 +97,8 @@ def train(adata, network, class_key, output_dir=None, optimizer='adam', learning
                          callbacks=callbacks,
                          verbose=verbose,
                          **kwds)
-##### Addded Antoine Collin ######
+                         
+##### End Addded Antoine Collin ######
                   
     else:
         inputs = {'count': adata.X, 'size_factors': adata.obs.size_factors}

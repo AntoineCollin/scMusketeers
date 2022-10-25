@@ -263,7 +263,7 @@ class ContrastiveAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-##### Addded Antoine Collin ######
+##### Ended Addded Antoine Collin ######
 
 
 class PoissonAutoencoder(Autoencoder):
