@@ -11,6 +11,6 @@ do
     NUMBER=$(echo $runfile_path | grep -o -E '[0-9]+')
     log_file=$umap_log_dir"/workflow_ID_"$NUMBER"_DONE.txt"
     if [ ! -f $log_file ]; then
-        sbatch $bash_script_dir'/dca_umap.sh' $working_dir $runfile_path
+        sbatch --job-name=$NUMBER"_umap" $bash_script_dir'/dca_umap.sh' $working_dir $runfile_path
     fi
 done

@@ -21,7 +21,7 @@ import os
 import random
 
 from . import io
-from .network import AE_types
+from .network import AE_types,BatchRemovalAutoencoder
 from .hyper import hyper
 from .permutation import batch_generator_training_permuted
 
@@ -41,7 +41,7 @@ def train(adata, network, class_key, output_dir=None, optimizer='adam', learning
           epochs=300, reduce_lr=10, output_subset=None, use_raw_as_output=True,
           early_stop=15, batch_size=32, clip_grad=5., save_weights=False,
           validation_split=0.1, tensorboard=False, verbose=True, threads=None, 
-          same_class_pct=None, permute = False,change_perm = True,n_perm = 1,unlabeled_category = 'UNK',
+          same_class_pct=None, batch_key = None, permute = False,change_perm = True,n_perm = 1,unlabeled_category = 'UNK', ### Added Antoine Collin
           **kwds):
     print("entering_train")
     K.set_session(tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=threads, inter_op_parallelism_threads=threads)))
@@ -56,7 +56,15 @@ def train(adata, network, class_key, output_dir=None, optimizer='adam', learning
         optimizer = opt.__dict__[optimizer](lr=learning_rate, clipvalue=clip_grad)
 
     print(model, loss, optimizer)
-    model.compile(loss=loss, optimizer=optimizer)
+    print(type(network))
+    if type(network == BatchRemovalAutoencoder) : # We compile the model differently with the combined loss
+        model.compile(loss = {'batch_removal': network.batch_removal_loss,
+                              'reconstruction': network.reconstruction_loss},
+                      loss_weights = {'batch_removal': - network.batch_removal_weight, # we take the opposite because we need to maximize this loss
+                                      'reconstruction' : 1 - network.batch_removal_weight},
+                      optimizer = optimizer) 
+    else:
+        model.compile(loss=loss, optimizer=optimizer)
 
     # Callbacks
     callbacks = []
@@ -89,6 +97,7 @@ def train(adata, network, class_key, output_dir=None, optimizer='adam', learning
                                                            batch_size = batch_size, 
                                                            n_perm = n_perm,
                                                            same_class_pct=same_class_pct,
+                                                           batch_key = batch_key,
                                                            change_perm = change_perm,
                                                            use_raw_as_output = use_raw_as_output, 
                                                            unlabeled_category=unlabeled_category),

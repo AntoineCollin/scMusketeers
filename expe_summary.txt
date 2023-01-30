@@ -1,0 +1,36 @@
+Expe make fake htap
+deux expe : une avec seed = 71 & lr = 5, l'autre avec seed = 75, lr = 20
+
+expe de base : pred de AJRCCM, HTAP, PBMC. random seed 42 43 44 45 46 47 (3 dernier pbmc only)
+en croisant: 
+ae_type = [contrastive, normal]
+semi_sup = [False, True],
+--
+mode = 'fixed_number',
+n_keep = [5,10,50,100],
+--
+mode = 'percentage':
+pct_split = [0.1, 0.5,0.9],
+
+adding 
+split_strategy = ['avg_marker_ranking', 'sum_marker_score'] for PBMC & HTAP for fixed_number only
+
+
+Expe integration Discovair & everything else
+random seed 150
+5 layers autoencoder with a (2000,128,64) as well as (128,64) to be comparable to scanvi 50
+trying 80% and 99.9% (observe semi_sup setup, True & False) => 8 combination per dataset
+disco-htap :  (4379-4386) scanvi (4791 4792)
+disco-ajrccm : (4387-4394) scanvi (4789 4790)
+disco-htap-ajrccm : (4371-4378), scanvi (4787 4788 (80% and 99.9%))
+
+
+
+Expe fake prediction HTAP
+random seed 76
+adding 5 layers autoencoder with a (2000,128,64) as well as (128,64) to be comparable to scanvi 50 (4395 - 4786)
+
+
+Expe prediction metrics :
+
+test hidden size (2000,128,64,128,64,2000) vs 64 on ajrccm for contrastive (4793-4840) and normal (4841 - 4888) with every config but only random seed 42. Adding 43, 44 for a bit of significance

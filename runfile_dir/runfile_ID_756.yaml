@@ -16,6 +16,7 @@ model_spec:
   batchnorm: True
   activation: relu
   init: glorot_uniform
+  batch_removal_weight: None
 model_training_spec:
   epochs: 100
   reduce_lr: 10
@@ -39,6 +40,7 @@ dataset_train_split:
   pct_split: 0.9
   obs_key: None
   n_keep: None
+  split_strategy: random
   keep_obs: None
   train_test_random_seed: 46
   use_TEST : False

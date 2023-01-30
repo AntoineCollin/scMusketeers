@@ -16,6 +16,7 @@ model_spec:
   batchnorm: None
   activation: None
   init: None
+  batch_removal_weight: None
 model_training_spec:
   epochs: None
   reduce_lr: None
@@ -39,6 +40,7 @@ dataset_train_split:
   pct_split: None
   obs_key: celltype
   n_keep: 5
+  split_strategy: random
   keep_obs: None
   train_test_random_seed: 44
   use_TEST : False

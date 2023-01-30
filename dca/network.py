@@ -25,7 +25,7 @@ import keras
 from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, Lambda
 from keras.models import Model
 from keras.regularizers import l1_l2
-from keras.objectives import mean_squared_error
+from keras.objectives import mean_squared_error,categorical_crossentropy
 from keras.initializers import Constant
 from tensorflow.compat.v1.keras import backend as K
 
@@ -129,6 +129,7 @@ class Autoencoder():
             last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
                                 kernel_regularizer=l1_l2(l1, l2),
                                 name=layer_name)(last_hidden)
+
             if self.batchnorm:
                 last_hidden = BatchNormalization(center=True, scale=False)(last_hidden)
 
@@ -141,6 +142,13 @@ class Autoencoder():
 
             if hid_drop > 0.0:
                 last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
+            
+            ### Added Antoine Collin
+            if i == center_idx:
+                self.bottleneck_layer = last_hidden # We keep the bottleneck layer in memory.
+            
+            ### Added Antoine Collin
+
 
         self.decoder_output = last_hidden
         self.build_output()
@@ -255,13 +263,61 @@ class ContrastiveAutoencoder(Autoencoder):
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
         output = ColwiseMultLayer([mean, self.sf_layer])
-
         # keep unscaled output as an extra model
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
         self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
         self.model = Model(inputs=[self.input_layer, self.sf_layer, self.similarity], outputs=output)
 
         self.encoder = self.get_encoder()
+
+
+class BatchRemovalAutoencoder(Autoencoder):
+    def __init__(self, n_batches, batch_removal_weight = 0.2, br_layers = None, br_activation = None, **kwargs):
+        '''
+        Adds a branching classifier on the bottleneck layer to predict the batch. The loss of this classifier is added negatively to the total loss of the model
+        br_layers : tuple with the sizes of the hidden layers for the batch removal predictor. Defaults to the mean between the bottleneck layer size and the number of batches
+        br_activation : tuple with the activations of the hidden layers for the batch removal predictor. Defaults to relu
+        '''
+        super().__init__(**kwargs)
+        self.br_layers = br_layers
+        self.br_activation = br_activation
+        self.batch_removal_weight = batch_removal_weight
+        self.n_batches = n_batches
+
+    def build_output(self):
+
+        # Output of the autoencoder ie reconstruction
+        mean = Dense(self.output_size, kernel_initializer=self.init,
+                     kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                     name='mean')(self.decoder_output)
+        output_AE = ColwiseMultLayer([mean, self.sf_layer])
+        print(type(output_AE))
+        print(output_AE.name)
+        
+        
+        # Output of the batch predictor ie batch_removal
+        if self.br_layers == None:
+            self.br_layers = tuple([(self.hidden_size[int(np.floor(len(self.hidden_size) / 2.0))] + self.n_batches)/2]) # mean between the bottleneck layer size and the number of batches
+            self.br_activation = tuple(['relu'])
+        classifier = self.bottleneck_layer
+        for i, (hid_size, hid_act) in enumerate(zip(self.br_layers,self.br_activation)):
+            layer_name = f'predictor_layer_{i}'
+            classifier = Dense(hid_size, activation=hid_act, kernel_initializer=self.init,
+                                kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                                name=layer_name)(classifier)
+
+        output_batch_removal = Dense(self.n_batches, activation='softmax', name='batch_removal')(classifier)
+
+        self.reconstruction_loss = mean_squared_error
+        self.batch_removal_loss = categorical_crossentropy
+
+        # keep unscaled output as an extra model
+        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
+        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=[output_AE, output_batch_removal])
+
+        self.encoder = self.get_encoder()
+        
 
 ##### Ended Addded Antoine Collin ######
 
@@ -795,7 +851,8 @@ class NBForkAutoencoder(NBAutoencoder):
         self.encoder = self.get_encoder()
 
 
-AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,'contrastive': ContrastiveAutoencoder,
+AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,
+            'contrastive': ContrastiveAutoencoder, 'batch_removal' : BatchRemovalAutoencoder, ### Added Antoine Collin ###
             'nb': NBConstantDispAutoencoder, 'nb-conddisp': NBAutoencoder,
             'nb-shared': NBSharedAutoencoder, 'nb-fork': NBForkAutoencoder,
             'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder,

@@ -9,39 +9,41 @@ dataset_normalize:
   scale_input: False
   logtrans_input: False
 model_spec:
-  model_name: scarches_scanvi_LCA
-  ae_type: None
-  hidden_size: 0
-  hidden_dropout: None
-  batchnorm: None
-  activation: None
-  init: None
+  model_name: dca_permuted
+  ae_type: contrastive
+  hidden_size: 128
+  hidden_dropout: 0
+  batchnorm: True
+  activation: relu
+  init: glorot_uniform
+  batch_removal_weight: None
 model_training_spec:
-  epochs: None
-  reduce_lr: None
-  early_stop: None
-  batch_size: None
-  optimizer: None
-  verbose: None
+  epochs: 100
+  reduce_lr: 10
+  early_stop: 20
+  batch_size: 32
+  optimizer: RMSprop
+  verbose: True
   threads: None
   learning_rate: None
   n_perm: 1
-  permute: None
-  change_perm: None
+  permute: True
+  change_perm: True
   semi_sup: semi_sup
   unlabeled_category: nan
-  save_zinb_param: None
-  use_raw_as_output: None
+  save_zinb_param: False
+  use_raw_as_output: False
   contrastive_margin : contrastive_margin
   same_class_pct : same_class_pct
 dataset_train_split:
-  mode: percentage
-  pct_split: 0.9
-  obs_key: None
-  n_keep: None
+  mode: fixed_number
+  pct_split: None
+  obs_key: celltype
+  n_keep: 10
+  split_strategy: avg_marker_ranking
   keep_obs: None
-  train_test_random_seed: 100
-  use_TEST : False
+  train_test_random_seed: 44
+  use_TEST : True
   obs_subsample: None
 dataset_fake_annotation:
   make_fake: False
@@ -52,6 +54,6 @@ predictor_spec:
   predictor_model: MLP
   predict_key: celltype
   predictor_hidden_sizes: 64
-  predictor_epochs: 50
+  predictor_epochs: 100
   predictor_batch_size: 32
   predictor_activation: softmax

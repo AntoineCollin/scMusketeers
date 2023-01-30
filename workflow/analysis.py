@@ -24,6 +24,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scanpy as sc
+import os
 
 metrics_list = ["balanced_accuracy_scores",
 "balanced_accuracy_scores_test",
@@ -37,7 +38,8 @@ metrics_list = ["balanced_accuracy_scores",
 #"silhouette_pred",
 "davies_bouldin_true",
 "davies_bouldin_pred",
-"nmi"]
+"nmi",
+"batch_entropy_mixing"]
 
 class AnalysisWorkflow:
     def __init__(self, working_dir, id_list):
@@ -54,13 +56,36 @@ class AnalysisWorkflow:
         self.balanced_accuracy_scores = dict()
         self.accuracy_scores = dict()
         
-        self.runfile_csv_path = self.working_dir + '/runfile_dir/runfile_list.csv'
-        self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index').loc[self.id_list,:]
-           
+        
+        
         self.metric_results_path = self.working_dir + '/results/metric_results.csv'
         self.metric_results_df = pd.read_csv(self.metric_results_path, index_col = 'index')
 
+        self.runfile_csv_path = self.working_dir + '/runfile_dir/runfile_list.csv'
+        print(self.id_list)
+        print(self.runfile_csv_path)
+        self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index').loc[self.id_list,:]
+        
+        self.metrics_computed_solo = []
+        self.metrics_computed_solo_df = pd.DataFrame()
+
         self.metrics_table = self.metric_results_df.copy().loc[self.id_list,:]             
+
+    def load_metrics(self):
+        '''
+        Loads the metrics from the result folder
+        '''
+        self.metrics_computed_solo = [pd.read_csv(wf.metric_path, index_col = 0) for wf in self.workflow_list.values()] # The metrics as saved in the result folder
+        self.metrics_computed_solo_df = pd.concat(self.metrics_computed_solo) # Merge them into a dataframe
+        self.metrics_computed_solo_df.index.name = 'index'
+    
+    def update_metrics(self):
+        '''
+        Updates the metrics in the metrics table
+        '''
+        self.metric_results_df.update(self.metrics_computed_solo_df)
+        self.metric_results_df.to_csv(self.metric_results_path)
+        self.metrics_table = self.metric_results_df.copy().loc[self.id_list,:]
         
     def load_corrected_counts(self):
         for workflow in self.workflow_list.values():
@@ -76,13 +101,15 @@ class AnalysisWorkflow:
         for ID,workflow in self.workflow_list.items():
             verbose_print(f'workflow {ID} loaded')
             workflow.load_results()
+            
             try : 
                 self.true_class[ID] = workflow.latent_space.obs[f'true_{workflow.class_key}']
             except :
                 failed_ID.append(ID)
         if failed_ID:
             failed_ID = [str(i) for i in failed_ID]
-            raise Exception(f'The following ID didnt have a true_class_key obs : {"_".join(failed_ID)}')
+            print(Exception(f'The following ID didnt have a true_class_key obs : {"_".join(failed_ID)}'))
+            return failed_ID # returns th wrong ids
 
         self .pred_class = {wf_id: workflow.latent_space.obs[f'{workflow.class_key}_pred'] for wf_id, workflow in self.workflow_list.items()}
         self.latent_spaces = {wf_id: workflow.latent_space for wf_id, workflow in self.workflow_list.items()}
@@ -156,17 +183,159 @@ class AnalysisWorkflow:
             assert latent_space.obs.shape[0] == metadata.shape[0], "metadata doesn't have the same number of cell as the latent spaces"
             latent_space.obs = pd.concat([latent_space.obs, metadata], axis=1)
         
-    def load_metrics(self):
-        self.metrics_table = self.metric_results_df.copy().loc[self.id_list,:]
+    
+    def compute_metrics_solo(self, ID, add_to_csv = True, save_adata = True):
+        """
+        computes the metrics of interest for one sample and returns them in a pd.Series object.
+        It is then stored as a 1 row dataframe (for convenience when merging with metrics_table) in the uns['metrics'] section of the adata.
 
-    def compute_metrics(self):
+        ID : ID of the adata to compute the metric on
+        add_to_csv : wether to add it to the metrics_table csv
+        save_adata : wether to save the new adata object created        
+        """
+        wf = self.workflow_list[ID]
+        latent_space = self.latent_spaces[ID]
+        if os.path.exists(wf.metric_path):
+            metric_series = pd.read_csv(wf.metric_path, index_col = 0)
+        else:
+            try :
+                metric_series = latent_space.uns['metrics']
+            except :
+                metric_series = pd.Series(index = metrics_list, name = ID)
+            metric_series = pd.DataFrame([metric_series.values], index = [ID], columns = metric_series.index)
+        # metric_series = pd.read_csv(wf.metric_path, index_col = 0)
+        metric_clone = metric_series.copy()
+        print(f'computing ID {ID}')
+        for metric in metrics_list:
+            if (metric not in metric_series.columns) or (metric_series.isna().loc[ID,metric]) or (metric_series.loc[ID,metric] == 'NC') :
+                print(f'computing metric : {metric}')
+                if metric == 'balanced_accuracy_scores':
+                    try :
+                        metric_series.loc[ID,metric] = balanced_accuracy(adata=latent_space, 
+                                                                    partition_key=f'{wf.class_key}_pred',
+                                                                    reference=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'balanced_accuracy_scores_test':
+                    try :
+                        metric_series.loc[ID,metric] = balanced_accuracy(adata=latent_space[latent_space.obs['train_split'] == 'test'], 
+                                                                    partition_key=f'{wf.class_key}_pred',
+                                                                    reference=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'balanced_accuracy_scores_val':
+                    try :
+                        metric_series.loc[ID,metric] = balanced_accuracy(adata=latent_space[latent_space.obs['train_split'] == 'val'], 
+                                                                    partition_key=f'{wf.class_key}_pred',
+                                                                    reference=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'balanced_accuracy_scores_train':
+                    try :
+                        metric_series.loc[ID,metric] = balanced_accuracy(adata=latent_space[latent_space.obs['train_split'] == 'train'], 
+                                                                    partition_key=f'{wf.class_key}_pred',
+                                                                    reference=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+                
+                elif metric == 'accuracy_scores':
+                    try :
+                        metric_series.loc[ID,metric] = accuracy(adata=latent_space, 
+                                                                    partition_key=f'{wf.class_key}_pred',
+                                                                    reference=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'accuracy_scores_test':
+                    try :
+                        metric_series.loc[ID,metric] = accuracy(adata=latent_space[latent_space.obs['train_split'] == 'test'], 
+                                                                    partition_key=f'{wf.class_key}_pred',
+                                                                    reference=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'accuracy_scores_val':
+                    try :
+                        metric_series.loc[ID,metric] = accuracy(adata=latent_space[latent_space.obs['train_split'] == 'val'], 
+                                                                    partition_key=f'{wf.class_key}_pred',
+                                                                    reference=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'accuracy_scores_train':
+                    try :
+                        metric_series.loc[ID,metric] = accuracy(adata=latent_space[latent_space.obs['train_split'] == 'train'], 
+                                                                    partition_key=f'{wf.class_key}_pred',
+                                                                    reference=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'silhouette_true':
+                    try :
+                        metric_series.loc[ID,metric] = silhouette(adata=latent_space, partition_key=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'silhouette_pred':
+                    try :
+                        metric_series.loc[ID,metric] = silhouette(adata=latent_space, partition_key=f'{wf.class_key}_pred')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'silhouette_true':
+                    try :
+                        metric_series.loc[ID,metric] = davies_bouldin(adata=latent_space, partition_key=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'silhouette_pred':
+                    try :
+                        metric_series.loc[ID,metric] = davies_bouldin(adata=latent_space, partition_key=f'{wf.class_key}_pred')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'nmi':
+                    try :
+                        metric_series.loc[ID,metric] = nmi(adata=latent_space, partition_key=f'{wf.class_key}_pred',reference=f'true_{wf.class_key}')
+                    except : 
+                        metric_series.loc[ID,metric] = 'NC'
+
+                elif metric == 'batch_entropy_mixing':
+                    for b_k in ['manip', 'sample']:
+                        if b_k in latent_space.obs.columns:
+                            batch_key = b_k
+                    try :
+                        metric_series.loc[ID,metric] = batch_entropy_mixing(adata=latent_space, batch_key=batch_key)
+                    except :
+                        metric_series.loc[ID,metric] = 'NC'
+        
+        if not metric_series.equals(metric_clone):
+            metric_series.to_csv(wf.metric_path)
+            print(f'metric_series saved for ID {ID}')
+        
+        if add_to_csv:
+            self.metric_results_df.update(metric_series)
+            self.metric_results_df.to_csv(self.metric_results_path)
+            self.metrics_table = self.metric_results_df.copy().loc[self.id_list,:]
+        
+        if save_adata:
+            latent_space.uns['metrics'] = metric_series
+            latent_space.write(wf.adata_path)
+
+        return metric_series
+
+    def compute_metrics_csv(self):
         for ID, wf in self.workflow_list.items():
             metric_series = self.metric_results_df.loc[ID,metrics_list].copy()
+            metric_series = pd.DataFrame([metric_series.values], index = [ID], columns = metric_series.index)
             # metric_series = pd.read_csv(wf.metric_path, index_col = 0)
             metric_clone = metric_series.copy()
             print(f'computing ID {ID}')
             for metric in metrics_list:
-                if (metric not in metric_series.index) or (self.metric_results_df.isna().loc[ID,metric]):
+                if (metric not in metric_series.columns) or (metric_series.isna().loc[ID,metric]):
                     print('computing metric')
                     if metric == 'balanced_accuracy_scores':
                         try :
@@ -443,7 +612,6 @@ class AnalysisWorkflow:
             plt.title('average conf matrix, split by ' +  " ".join([f'{sp}={s}' for sp, s in zip(split_by, split_title)]))
 
 
-
     def plot_confusion_matrices_multiple(self, IDs_to_plot = 'all', params = ['dataset_name']):
         '''
         This plots confusion matrices 
@@ -458,7 +626,6 @@ class AnalysisWorkflow:
             self.plot_prediction_results_single(workflow_ID = wf_id, test_only = False, ax=axes[i,0], normalize = 'true')
             axes[i,0].set_title([f'{param} = {getattr(self.workflow_list[wf_id], param)}' for param in params])
             axes[i,0].set_xlabel(f'worflow_{wf_id}, acc={round(self.accuracy_scores[wf_id],2)}, weighted_acc={round(self.balanced_accuracy_scores[wf_id],2)}')
-            
             self.plot_prediction_results_single(workflow_ID = wf_id, test_only = True, ax=axes[i,1], normalize = 'true')
             axes[i,1].set_xlabel(f'worflow_{wf_id}_test_only, acc={round(self.accuracy_scores[wf_id],2)}, weighted_acc={round(self.balanced_accuracy_scores[wf_id],2)}')
             i+=1
@@ -589,7 +756,13 @@ class AnalysisWorkflow:
             i+=1
 
 
-    def plot_loss(self, split_by , params=None):
+    def plot_history(self, split_by , DR_or_pred, value, params=None):
+        '''
+        Plots various train history information. 
+        split_by : parameter to split the plots by
+        value : one of 'loss', 'lr' (DR only), 'acc' , 'val_acc', 'val_loss' (pred only)
+        params : parameters to put in the legend
+        '''
         metrics_to_plot = self.metrics_table.copy()
 
         if type(split_by) == list:
@@ -616,14 +789,44 @@ class AnalysisWorkflow:
                 for col in cols_to_leg : 
                     legend += col + '_' + sub_metrics[col].astype(str) + '_' 
             for ID in IDs :
-                file_path = f'/home/acollin/dca_permuted_workflow/results/result_ID_{str(int(ID))}/DR_hist.pkl'
-                try:
-                    with open(file_path, 'rb') as f:
-                        data = pickle.load(f)
-                        plt.plot(data['loss'])
-                except FileNotFoundError:
-                    print(f'DR hist was not found for ID {ID}')
+                DR_hist_path = self.workflow_list[ID].DR_history_path
+                pred_hist_path = self.workflow_list[ID].pred_history_path
+                if DR_or_pred == 'DR':
+                    try:
+                        with open(DR_hist_path, 'rb') as f:
+                            data = pickle.load(f)
+                    except FileNotFoundError:
+                        print(f'DR hist was not found for ID {ID}')
+                elif DR_or_pred == 'pred':
+                    try:
+                        with open(pred_hist_path, 'rb') as f:
+                            data = pickle.load(f)
+                    except FileNotFoundError:
+                        print(f'pred hist was not found for ID {ID}')
+                plt.plot(data[value])
             plt.title(split)
             plt.tight_layout()
             plt.legend(legend,loc='center left', bbox_to_anchor=(1, 0.5))
-            plt.tight_layout
+
+    def plot_single_pred_hist(self, IDs_to_plot=None, params = None):
+        metrics_to_plot = self.metrics_table.copy()
+        if not IDs_to_plot :
+            IDs_to_plot = metrics_to_plot['workflow_ID']
+        for ID in IDs_to_plot :
+            plt.figure()
+            pred_hist_path = self.workflow_list[ID].pred_history_path
+            try:
+                with open(pred_hist_path, 'rb') as f:
+                    data = pickle.load(f)
+            except FileNotFoundError:
+                print(f'pred hist was not found for ID {ID}')
+            pd.DataFrame(data).plot(figsize=(8,5))
+            if params:
+                title = ''
+                for param in params : 
+                    title += param + '_' + metrics_to_plot.loc[ID, param].astype(str) + '_' 
+                
+            else:
+                title = 'worklow_ID_' +  str(metrics_to_plot.loc[ID, 'workflow_ID'])
+            plt.title(title)
+            plt.tight_layout()

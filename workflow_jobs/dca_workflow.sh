@@ -18,5 +18,6 @@ working_dir=$1
 singularity_working_dir=$2
 runfile_ID=$(basename $3 .yaml)
 singularity_path=$4
+echo 'launching_sbatch'
 
-singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python $working_dir/run_workflow.py $singularity_working_dir $3 &> log/log_workflow_$runfile_ID.txt
+singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python $working_dir/run_workflow.py $singularity_working_dir $3 &> log/run/log_workflow_$runfile_ID.txt

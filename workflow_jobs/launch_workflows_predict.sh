@@ -11,6 +11,6 @@ do
     NUMBER=$(echo $runfile_path | grep -o -E '[0-9]+')
     log_file=$predict_log_dir"/workflow_ID_"$NUMBER"_DONE.txt"
     if [ ! -f $log_file ]; then
-        sbatch $bash_script_dir'/dca_predict.sh' $working_dir $singularity_working_dir $runfile_path
+        sbatch --job-name=$NUMBER"_predict" $bash_script_dir'/dca_predict.sh' $working_dir $singularity_working_dir $runfile_path
     fi
 done

@@ -51,5 +51,7 @@ def load_runfile(runfile_path):
             for ki in parsed_yml[key].keys():
                 if parsed_yml[key][ki] == 'None':
                     parsed_yml[key][ki] = None
+                if type(parsed_yml[key][ki]) == str and '(' in parsed_yml[key][ki]: # Tuples are parsed as string, we convert them back to tuples
+                    parsed_yml[key][ki] = tuple([int(i) for i in parsed_yml[key][ki].strip('(').strip(')').replace(' ', '').split(',')])
     return parsed_yml
 

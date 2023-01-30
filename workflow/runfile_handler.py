@@ -30,6 +30,7 @@ class RunFile:
                        batchnorm = None,
                        activation = None,
                        init = None,
+                       batch_removal_weight = None,
                        model_training_spec = 'model_training_spec',
                        epochs = None,
                        reduce_lr = None,
@@ -54,6 +55,7 @@ class RunFile:
                        pct_split = None,
                        obs_key = None,
                        n_keep = None,
+                       split_strategy = None,
                        keep_obs = None,
                        train_test_random_seed = None,
                        obs_subsample = None,
@@ -96,6 +98,7 @@ class RunFile:
         self.batchnorm = batchnorm
         self.activation = activation
         self.init = init
+        self.batch_removal_weight = batch_removal_weight
         self.model_training_spec = model_training_spec
         self.epochs = epochs
         self.reduce_lr = reduce_lr
@@ -120,6 +123,7 @@ class RunFile:
         self.pct_split = pct_split
         self.obs_key = obs_key
         self.n_keep = n_keep
+        self.split_strategy = split_strategy
         self.keep_obs = keep_obs
         self.train_test_random_seed = train_test_random_seed
         self.obs_subsample = obs_subsample
@@ -191,6 +195,9 @@ class RunFile:
             return 
         
     def add_entry_csv(self):
+        ''' 
+        Adds the runfile being created as a new line in the runfile csv
+        '''
         self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index')
         self.metric_results_df = pd.read_csv(self.metric_results_path, index_col = 'index')
         dict_to_pandas = {}
@@ -256,6 +263,7 @@ def read_from_ID(working_dir, workflow_ID):
         batchnorm = 'batchnorm'
         activation = 'activation'
         init = 'init'
+        batch_removal_weight = 'batch_removal_weight'
 
         model_training_spec = 'model_training_spec'
         epochs = 'epochs'
@@ -281,6 +289,7 @@ def read_from_ID(working_dir, workflow_ID):
         pct_split = 'pct_split'
         obs_key = 'obs_key'
         n_keep = 'n_keep'
+        split_strategy = 'split_strategy'
         keep_obs = 'keep_obs'
         train_test_random_seed = 'train_test_random_seed'
         use_TEST = 'use_TEST'
@@ -317,6 +326,7 @@ def read_from_ID(working_dir, workflow_ID):
         batchnorm = run_file[model_spec][batchnorm]
         activation = run_file[model_spec][activation]
         init = run_file[model_spec][init]
+        batch_removal_weight = run_file[model_spec][batch_removal_weight]
         # model training parameters
         epochs = run_file[model_training_spec][epochs]
         reduce_lr = run_file[model_training_spec][reduce_lr]
@@ -337,6 +347,7 @@ def read_from_ID(working_dir, workflow_ID):
         pct_split = run_file[dataset_train_split][pct_split]
         obs_key = run_file[dataset_train_split][obs_key]
         n_keep = run_file[dataset_train_split][n_keep]
+        split_strategy = run_file[dataset_train_split][split_strategy]
         keep_obs = run_file[dataset_train_split][keep_obs]
         train_test_random_seed = run_file[dataset_train_split][train_test_random_seed]
         use_TEST = run_file[dataset_train_split][use_TEST]
@@ -390,6 +401,7 @@ class run_file_handler:
                           batchnorm = [None],
                           activation = [None],
                           init = [None],
+                          batch_removal_weight = [None],
                           model_training_spec = [None],
                           epochs = [None],
                           reduce_lr = [None],
@@ -413,6 +425,7 @@ class run_file_handler:
                           pct_split = [None],
                           obs_key = [None],
                           n_keep = [None],
+                          split_strategy = [None],
                           keep_obs = [None],
                           train_test_random_seed = [None],
                           use_TEST = [None],
@@ -438,14 +451,14 @@ class run_file_handler:
         keys = list(arg_dict)
         for key, value in arg_dict.items():
             if type(value) != list:
-                arg_dict[key] = [value]
+                arg_dict[key] = [value] # Transform each non list value into a list for the following step.
         arg_list = []
         for value in itertools.product(*map(arg_dict.get, keys)):
             param_dico = dict(zip(keys, value))
             param_dico['workflow_ID'] = None
-            arg_list.append(param_dico)
-        for params in arg_list:
-            rf = RunFile(self.working_dir, **params)
+            arg_list.append(param_dico) #params to be passed to the RunFile builder
+        for params in arg_list: 
+            rf = RunFile(self.working_dir, **params) # Creates the runfile
             rf.create_runfile()
             self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index')
             self.metric_results_df = pd.read_csv(self.metric_results_path, index_col = 'index')
@@ -519,39 +532,36 @@ class run_file_handler:
                 predicts_log_path = predicts_log_dir + f'/workflow_ID_{ID}_DONE.txt'
                 umap_log_dir = self.working_dir + '/logs/umap'
                 umap_log_path = umap_log_dir + f'/workflow_ID_{ID}_DONE.txt'
+                metrics_log_dir = self.working_dir + '/logs/metrics'
+                metrics_log_path = metrics_log_dir + f'/workflow_ID_{ID}_DONE.txt'
                 if os.path.exists(run_log_path):
-                    # removing the file using the os.remove() method
                     os.remove(run_log_path)
                 if os.path.exists(predicts_log_path):
-                    # removing the file using the os.remove() method
                     os.remove(predicts_log_path)
                 if os.path.exists(umap_log_path):
-                    # removing the file using the os.remove() method
                     os.remove(umap_log_path)
+                if os.path.exists(metrics_log_path):
+                    os.remove(metrics_log_path)
                 self.metric_results_df.loc[ID,:] = self.runfile_df.loc[ID,:]
                 self.metric_results_df.to_csv(self.metric_results_path)
             
 
-    def add_argument_runfile(self, argument, value = 'NA'):
+    def add_argument_runfile(self, argument, value = 'NA') -> None:
         # Adding new argument to csv 
-        self.runfile_df[argument] = value
-        self.runfile_df.to_csv(self.runfile_csv_path)
-        self.metric_results_df[argument] = value
-        self.metric_results_df.to_csv(self.metric_results_path)
-
-        # Adding new argument = NA for existing runfiles
+        self.runfile_df[argument] = value # Create blank column
         for wf_id in self.runfile_df['workflow_ID']:
             runfile_kwargs = read_from_ID(self.working_dir, wf_id)
-            runfile_kwargs[argument] = value
-            rf = RunFile(**runfile_kwargs)
-            rf.create_runfile(overwrite=True)
-            
-#     def add_entry_csv(self,)
-        
-        
-    
+            try :
+                runfile_kwargs[argument]
+            except KeyError: # If the runfile doesn't have the argument, we add it with the value value
+                runfile_kwargs[argument] = value
+                rf = RunFile(**runfile_kwargs)
+                rf.create_runfile(overwrite=True) # And we recreate the corresponding runfile
+            self.runfile_df.loc[self.runfile_df['workflow_ID'] == wf_id, argument] = runfile_kwargs[argument] # add the corresponding value to runfile df
+        self.runfile_df.to_csv(self.runfile_csv_path)
+        self.metric_results_df[argument] = self.runfile_df[argument] # Also modify the metrics df
+        self.metric_results_df.to_csv(self.metric_results_path)
 
-
-#     def parse_runfile(self)
-        
-        
+    def update_metrics_table(self):
+          
+        self.metric_results_df

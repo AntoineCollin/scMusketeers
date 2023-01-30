@@ -18,6 +18,7 @@ import scanpy as sc
 import anndata
 import numpy as np 
 import os
+import sys
 
 workflow_ID = 'workflow_ID'
 
@@ -39,6 +40,7 @@ hidden_dropout = 'hidden_dropout'
 batchnorm = 'batchnorm'
 activation = 'activation'
 init = 'init'
+batch_removal_weight = 'batch_removal_weight'
 
 model_training_spec = 'model_training_spec'
 epochs = 'epochs'
@@ -64,6 +66,7 @@ mode = 'mode'
 pct_split = 'pct_split'
 obs_key = 'obs_key'
 n_keep = 'n_keep'
+split_strategy = 'split_strategy'
 keep_obs = 'keep_obs'
 train_test_random_seed = 'train_test_random_seed'
 use_TEST = 'use_TEST'
@@ -98,12 +101,15 @@ class Workflow:
         # model parameters
         self.model_name = self.run_file[model_spec][model_name]
         self.ae_type = self.run_file[model_spec][ae_type]
-        self.hidden_size = self.run_file[model_spec][hidden_size]
-        self.hidden_size = (2*self.hidden_size, self.hidden_size, 2*self.hidden_size)
+        self.hidden_size = self.run_file[model_spec][hidden_size] # If hidden size is a integer, gives the size of the center layer. Otherwise, gives all layer sizes
+        if type(self.hidden_size) == int:
+            self.hidden_size = [2*self.hidden_size, self.hidden_size, 2*self.hidden_size]
         self.hidden_dropout = self.run_file[model_spec][hidden_dropout]
+        self.hidden_dropout = len(self.hidden_size) * [self.hidden_dropout]
         self.batchnorm = self.run_file[model_spec][batchnorm]
         self.activation = self.run_file[model_spec][activation]
         self.init = self.run_file[model_spec][init]
+        self.batch_removal_weight = self.run_file[model_spec][batch_removal_weight]
         # model training parameters
         self.epochs = self.run_file[model_training_spec][epochs]
         self.reduce_lr = self.run_file[model_training_spec][reduce_lr]
@@ -128,6 +134,7 @@ class Workflow:
         self.pct_split = self.run_file[dataset_train_split][pct_split]
         self.obs_key = self.run_file[dataset_train_split][obs_key]
         self.n_keep = self.run_file[dataset_train_split][n_keep]
+        self.split_strategy = self.run_file[dataset_train_split][split_strategy]
         self.keep_obs = self.run_file[dataset_train_split][keep_obs]
         self.train_test_random_seed = self.run_file[dataset_train_split][train_test_random_seed]
         self.use_TEST = self.run_file[dataset_train_split][use_TEST]
@@ -172,6 +179,9 @@ class Workflow:
         self.predict_log_path = self.predict_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt'
         self.umap_log_dir = working_dir + '/logs/umap'
         self.umap_log_path = self.umap_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt'
+        self.metrics_log_dir = working_dir + '/logs/metrics'
+        self.metrics_log_path = self.metrics_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt'
+        
         self.start_time = time.time()
         self.stop_time = time.time()
         self.runtime_path = self.result_path + '/runtime.txt'
@@ -187,7 +197,12 @@ class Workflow:
         self.training_kwds = {}
         self.network_kwds = {}
     
+    def write_metric_log(self):
+        open(self.metrics_log_path, 'a').close()
     
+    def check_metric_log(self):
+        return os.path.isfile(self.metrics_log_path)
+
     def write_run_log(self):
         open(self.run_log_path, 'a').close()
         
@@ -238,6 +253,7 @@ class Workflow:
                                      batchnorm = self.batchnorm, 
                                      activation = self.activation, 
                                      init = self.init,
+                                     batch_removal_weight = self.batch_removal_weight,
                                      epochs = self.epochs,
                                      reduce_lr = self.reduce_lr, 
                                      early_stop = self.early_stop, 
@@ -293,6 +309,7 @@ class Workflow:
                             obs_key = self.obs_key,
                             n_keep = self.n_keep,
                             keep_obs = self.keep_obs,
+                            split_strategy = self.split_strategy,
                             obs_subsample = self.obs_subsample,
                             train_test_random_seed = self.train_test_random_seed)
         if self.make_fake:
@@ -324,6 +341,8 @@ class Workflow:
 #             self.pred_hist = self.predictor.train_history
 #             self.predicted_class = self.predictor.y_pred
 #             self.latent_space.obs[f'{self.class_key}_pred'] = self.predicted_class
+        if type(self.run_file[model_spec][hidden_size]) == tuple:
+            self.run_file[model_spec][hidden_size] = str(self.run_file[model_spec][hidden_size])
         self.latent_space.uns['runfile_dict'] = self.run_file
         self.run_done = True
         self.stop_time = time.time()
@@ -364,9 +383,11 @@ class Workflow:
     def save_results(self):
         if not os.path.isdir(self.result_path):
             os.makedirs(self.result_path)
-        with open(self.runtime_path, 'w') as f:
-            f.write(self.stop_time - self.start_time)
-        self.latent_space.write(self.adata_path)
+        try:
+            self.latent_space.write(self.adata_path)
+        except NotImplementedError:
+            self.latent_space.uns['runfile_dict'] = dict() # Quick workaround
+            self.latent_space.write(self.adata_path)
 #         self.model.save_net(self.DR_model_path)
 #         if self.predictor_model:
 #             self.predictor.save_model(self.predictor_model_path)
@@ -390,11 +411,18 @@ class Workflow:
             self.write_umap_log()
         metric_series = pd.DataFrame(index = [self.workflow_ID], data={'workflow_ID':pd.Series([self.workflow_ID], index = [self.workflow_ID])})
         metric_series.to_csv(self.metric_path)
+        with open(self.runtime_path, 'w') as f:
+            f.write(str(self.stop_time - self.start_time))
 
 
     def load_results(self):
         if os.path.isdir(self.result_path):
-            self.latent_space = sc.read_h5ad(self.adata_path)
+            try:
+                self.latent_space = sc.read_h5ad(self.adata_path)
+            except OSError as e:
+                print(e)
+                print(f'failed to load {self.workflow_ID}')
+                return self.workflow_ID # Returns the failed id
         if self.check_run_log():
             self.run_done = True
         if self.check_predict_log():

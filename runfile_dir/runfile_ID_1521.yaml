@@ -16,6 +16,7 @@ model_spec:
   batchnorm: True
   activation: relu
   init: glorot_uniform
+  batch_removal_weight: None
 model_training_spec:
   epochs: 100
   reduce_lr: 10
@@ -28,17 +29,18 @@ model_training_spec:
   n_perm: 1
   permute: True
   change_perm: True
-  semi_sup: False
+  semi_sup: semi_sup
   unlabeled_category: nan
   save_zinb_param: False
   use_raw_as_output: False
-  contrastive_margin : None
-  same_class_pct : None
+  contrastive_margin : contrastive_margin
+  same_class_pct : same_class_pct
 dataset_train_split:
   mode: percentage
   pct_split: 0.1
   obs_key: None
   n_keep: None
+  split_strategy: random
   keep_obs: None
   train_test_random_seed: 47
   use_TEST : True

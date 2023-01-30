@@ -16,6 +16,7 @@ model_spec:
   batchnorm: {{batchnorm}}
   activation: {{activation}}
   init: {{init}}
+  batch_removal_weight: {{batch_removal_weight}}
 model_training_spec:
   epochs: {{epochs}}
   reduce_lr: {{reduce_lr}}
@@ -39,6 +40,7 @@ dataset_train_split:
   pct_split: {{pct_split}}
   obs_key: {{obs_key}}
   n_keep: {{n_keep}}
+  split_strategy: {{split_strategy}}
   keep_obs: {{keep_obs}}
   train_test_random_seed: {{train_test_random_seed}}
   use_TEST : {{use_TEST}}

@@ -10,7 +10,7 @@ if workflow.check_run_log() and not workflow.check_umap_log():
     workflow.load_results()
     workflow.compute_umap()
     print('umap done')
-    
+        
 elif workflow.check_umap_log():
     print('umap already exists')
     

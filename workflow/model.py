@@ -61,7 +61,7 @@ except ImportError:
     
 class DCA_Permuted:
     def __init__(self, ae_type='zinb-conddisp',hidden_size=(64, 32, 64), hidden_dropout=0, batchnorm=True, activation='relu', init='glorot_uniform',
-                 epochs=10,reduce_lr=10, early_stop=5, batch_size=32, optimizer='adam',verbose=True,threads=None, learning_rate=None,
+                batch_removal_weight = None, epochs=10,reduce_lr=10, early_stop=5, batch_size=32, optimizer='adam',verbose=True,threads=None, learning_rate=None,
                  training_kwds={},network_kwds={}, n_perm=1, class_key='celltype', permute = True,change_perm=True, unlabeled_category = 'UNK',use_raw_as_output=False,
                  contrastive_margin = 0, same_class_pct = None):
         self.net_name = 'dca_permuted'
@@ -69,6 +69,7 @@ class DCA_Permuted:
         self.ae_type = ae_type
         self.class_key = class_key
         self.network_kwds = network_kwds
+        self.batch_removal_weight = batch_removal_weight
         self.network_kwds = {**self.network_kwds,
                              'hidden_size' : hidden_size,
                              'hidden_dropout' : hidden_dropout,
@@ -92,23 +93,30 @@ class DCA_Permuted:
                               'class_key': class_key,
                               'n_perm': n_perm,
                               'same_class_pct': same_class_pct}
+        if self.ae_type != 'contrastive':
+            self.training_kwds['same_class_pct'] = None # In case there is an error in the Runfile
         self.unlabeled_category = unlabeled_category
         self.hist = dict()
         self.use_raw_as_output = use_raw_as_output
         
     def make_net(self, Dataset):
+        if self.ae_type == 'batch_removal':
+            n_batches = len(Dataset.adata.obs[Dataset.batch_key].unique())
+            self.network_kwds['n_batches'] = n_batches # Necessary to build the output layer of the model
+            self.training_kwds['batch_key'] = Dataset.batch_key # Necessary to indicate to the permutation generator to yield batch ID during training
+            self.network_kwds['batch_removal_weight'] = self.batch_removal_weight
         input_size = output_size = Dataset.adata_train.n_vars
         self.net = AE_types[self.ae_type](input_size=input_size,
                                 output_size=output_size,
                                 **self.network_kwds)
         #net.save()
         self.net.build()
-      
+
     def train_net(self, Dataset):
         if type(Dataset.adata_train.X) != np.ndarray :
             Dataset.adata_train.X = Dataset.adata_train.X.toarray()
         self.hist = train(adata = Dataset.adata_train, network = self.net, use_raw_as_output=self.use_raw_as_output,unlabeled_category = self.unlabeled_category, **self.training_kwds)
-        return self.hist 
+        return self.hist
         
     def predict_net(self, Dataset):
         print('model.predict : ')
@@ -128,6 +136,9 @@ class DCA_Permuted:
             corrected_count = anndata.AnnData() # Does not yet handle returning corrected counts
             latent_space = anndata.AnnData(self.net.encoder.predict({'count': Dataset.adata.X, 'size_factors': Dataset.adata.obs.size_factors, 'similarity':np.array([True] * Dataset.adata.n_obs)}), obs=Dataset.adata.obs)
         # similarity is just a place holder here it only has an impact during training anyway
+        if self.ae_type == 'batch_removal':
+            corrected_count = anndata.AnnData() # Does not yet handle returning corrected counts
+            latent_space = anndata.AnnData(self.net.encoder.predict({'count': Dataset.adata.X, 'size_factors': Dataset.adata.obs.size_factors}), obs=Dataset.adata.obs)
         else :
             corrected_count= self.net.predict(Dataset.adata, mode='denoise', return_info=True, copy=True)
             latent_space = anndata.AnnData(self.net.encoder.predict({'count': Dataset.adata.X, 'size_factors': Dataset.adata.obs.size_factors}), obs=Dataset.adata.obs)
@@ -266,8 +277,8 @@ class Scanvi:
         self.vae.train()
         self.net = scvi.model.SCANVI.from_scvi_model(
             self.vae,
-            adata=Dataset.adata_train,
-            unlabeled_category=self.unlabeled_category,
+            adata = Dataset.adata_train,
+            unlabeled_category = self.unlabeled_category,
         )
 
         self.net.train(max_epochs=20, n_samples_per_label=self.n_samples_per_label)
@@ -324,7 +335,7 @@ class ScarchesScanvi_LCA:
 
     def make_net(self, Dataset):
         '''In this case, make_net unfortunately doesn't make the nets... '''
-        adata_train = Dataset.adata
+        adata_train = Dataset.adata_train
         self.query_data = data_import_and_cleaning.subset_and_pad_adata_object(adata_train, self.reference_gene_order)
         if (self.query_data.var.index == self.reference_gene_order.gene_symbol).all() or (
             self.query_data.var.index == self.reference_gene_order.gene_id).all():

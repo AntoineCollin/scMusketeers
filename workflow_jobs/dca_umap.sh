@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#SBATCH --job-name=t1_umap
 #SBATCH --output=logs_DCA_t1_umap.txt
 
 #SBATCH --ntasks=1
@@ -18,4 +17,4 @@ working_dir=$1
 runfile_ID=$(basename $2 .yaml)
 
 
-python $working_dir/run_umap.py $working_dir $2 &> log/log_umap_$runfile_ID.txt
+python $working_dir/run_umap.py $working_dir $2 &> log/umap/log_umap_$runfile_ID.txt

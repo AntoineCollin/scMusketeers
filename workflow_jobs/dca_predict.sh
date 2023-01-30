@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#SBATCH --job-name=test_workflow
 #SBATCH --output=test_workflow.txt
 
 #SBATCH --ntasks=1
@@ -19,4 +18,4 @@ singularity_working_dir=$2
 runfile_ID=$(basename $3 .yaml)
 singularity_path=$working_dir"/singularity_dca.sif"
 
-singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python $working_dir/run_predict.py $singularity_working_dir $3 &> log/log_predict_$runfile_ID.txt
+singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python $working_dir/run_predict.py $singularity_working_dir $3 &> log/predict/log_predict_$runfile_ID.txt

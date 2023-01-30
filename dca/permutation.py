@@ -4,11 +4,18 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+
 import sklearn
 import tensorflow as tf
 import time
 
 import random
+
+def make_random_seed():
+    random_seed = time.time()
+    random_seed = int((random_seed*10 - int(random_seed*10)) * 10e7)
+    return random_seed
 
 def random_derangement(array):
     while True:
@@ -33,11 +40,7 @@ def make_training_pairs(ind_classes, n_perm):
     # X_1 = [[ind_classes[i]] * n_perm for i in range(n_c)] # Duplicate the index
     X_1 = ind_classes * n_perm
     # X_1 = [x for sublist in X_1 for x in sublist] 
-    a=tf.random.uniform((1,))
-    print(a)
-    print(a.numpy()[0])
-    print(f'in training_pairs : {a}')
-    X_perm = [sklearn.utils.shuffle(ind_classes) for i in range(n_perm)] # The corresponding permuted value
+    X_perm = [sklearn.utils.shuffle(ind_classes, random_state = make_random_seed()) for i in range(n_perm)] # The corresponding permuted value
     X_perm = [x for sublist in X_perm for x in sublist]
     return X_1, X_perm
 
@@ -49,18 +52,10 @@ def make_training_set(y, n_perm,same_class_pct=None,unlabeled_category='UNK'):
     permutations = [[],[]]
     y = np.array(y).astype(str)
     print('switching perm')
-    g1 = tf.random.Generator.from_seed(1)
-    a = g1.normal(shape=[1,])
-    print(np.random.get_state())
-    random_seed = time.time()
-    random_seed = int((random_seed * 10e10 - int(random_seed*10e10)) * 10e6)
-    print('time')
-    print(random_seed)
-    print(f'in training_set : {a}')
     classes = np.unique(y)
     ind_c = list(np.where(y)[0])
-    if same_class_pct : 
-        ind_c_same, ind_c_diff = train_test_split(ind_c, train_size = same_class_pct) # shuffling same_class_pct % in same class and the rest at random
+    if same_class_pct :
+        ind_c_same, ind_c_diff = train_test_split(ind_c, train_size = same_class_pct, random_state=make_random_seed()) # shuffling same_class_pct % in same class and the rest at random
         X1, Xperm = make_training_pairs(ind_c_diff, n_perm)
         permutations[0] += X1
         permutations[1] += Xperm
@@ -80,7 +75,7 @@ def make_training_set(y, n_perm,same_class_pct=None,unlabeled_category='UNK'):
     return [(a,b) for a,b in zip(permutations[0], permutations[1])]
 
 
-def batch_generator_training_permuted(adata, class_key, batch_size, n_perm, use_raw_as_output,change_perm = True,same_class_pct=None,unlabeled_category='UNK'):
+def batch_generator_training_permuted(adata, class_key, batch_size, n_perm, use_raw_as_output,change_perm = True,same_class_pct=None, batch_key=None, unlabeled_category='UNK'):
     """
     Permuted batch generation for dca. adata should have an obs field containing size factors.adata should have been processed by the dca normalize function therefore it should already be in dense form.
     """
@@ -96,13 +91,17 @@ def batch_generator_training_permuted(adata, class_key, batch_size, n_perm, use_
     samples_per_epoch = len(perm_indices)
     number_of_batches = samples_per_epoch/batch_size
     counter=0
-    np.random.shuffle(perm_indices) # Change to sklearn.utils.shuffle
+    perm_indices = sklearn.utils.shuffle(perm_indices, random_state = make_random_seed()) # Change to sklearn.utils.shuffle
     ind_in = [ind[0] for ind in perm_indices]
     ind_out = [ind[1] for ind in perm_indices]
-    if same_class_pct:
+    if same_class_pct: # In this case, we're using contrastive AE so we need to yield a similarity indicator
         sim = y[ind_in].values == y[ind_out].values
     #X =  X[shuffle_index, :]
     #y =  y[shuffle_index]
+    if batch_key: # In this case, we're using batch removal AE so we need to yield the batch ID
+        ohe = OneHotEncoder()
+        batch_ID = adata.obs[batch_key] # batch_ID refers to the batches of the single cell experiment whereas batch_size refers to the training batches of the training procedure
+        batch_ID = ohe.fit_transform(np.array(batch_ID).reshape(-1, 1)).toarray()
     i=0
     while 1:
         if counter == samples_per_epoch//batch_size :
@@ -122,19 +121,21 @@ def batch_generator_training_permuted(adata, class_key, batch_size, n_perm, use_
         if same_class_pct: # We're using a contrastive loss so we need to yield similarity
             sim_in_batch = sim[index_in_batch]
             yield({'count': X_in_batch,'size_factors' : sf_in_batch, 'similarity' : sim_in_batch}, X_out_batch) #first dim is the number of batches, next dims are the shape of input
+        if batch_key:
+            batch_ID_in_batch = batch_ID[index_in_batch,:] # The batch ID corresponding to the input cells
+            yield({'count': X_in_batch,'size_factors' : sf_in_batch}, {'reconstruction': X_out_batch,'batch_removal':batch_ID_in_batch})
         else:
             yield({'count': X_in_batch,'size_factors' : sf_in_batch}, X_out_batch) #first dim is the number of batches, next dims are the shape of input
         if (counter == samples_per_epoch//batch_size and samples_per_epoch % batch_size == 0) or (counter > number_of_batches):
             if change_perm:
                 perm_indices = make_training_set(y = y, n_perm = n_perm,same_class_pct=same_class_pct, unlabeled_category = unlabeled_category)
-                a=tf.random.uniform((1,)).numpy()[0]
-                print(f'in training_gen : {a}')
-            np.random.shuffle(perm_indices) # Change to sklearn.utils.shuffle
+            perm_indices = sklearn.utils.shuffle(perm_indices, random_state = make_random_seed()) # Change to sklearn.utils.shuffle
             ind_in = [ind[0] for ind in perm_indices]
             ind_out = [ind[1] for ind in perm_indices]
             if same_class_pct:
                 sim = y[ind_in].values == y[ind_out].values
             debug = pd.DataFrame({'in':ind_in,'out':ind_out})
+            print(make_random_seed())
             debug.to_csv(f'/home/acollin/jobs/dca_jobs/workflow_jobs/log_debug/log{i}.csv')
             i+=1
             counter=0

@@ -154,11 +154,12 @@ class MLP_Predictor:
         
         # encode class values as integers
         self.encoder = LabelEncoder()  
-        self.encoder.fit(self.y_train)
+        self.encoder.fit(self.y)
         self.y_train_onehot = self.encoder.transform(self.y_train)
+        self.y_val_onehot = self.encoder.transform(self.y_val)
 #         self.y_test_onehot = self.encoder.transform(self.y_test)
-
         self.y_train_onehot = np_utils.to_categorical(self.y_train_onehot)
+        self.y_val_onehot = np_utils.to_categorical(self.y_val_onehot)
 #         self.y_test_onehot = np_utils.to_categorical(self.y_test_onehot)
         
         self.train_adata = self.adata[self.train_index,:]
@@ -201,7 +202,7 @@ class MLP_Predictor:
 
         self.train_history = self.model.fit(x=self.X_train, y=self.y_train_onehot,
                                             batch_size=batch_size,epochs = epochs, callbacks=callbacks, 
-                                            validation_split=0.2)
+                                            validation_split=0.2) # Predictor is trained only on the annotated data in a fully supervised way
         self.is_trained = True
         
     def predict_on_test (self):

@@ -7,6 +7,7 @@ build
 docs/build
 data/simulation/
 
+mars/
 logs/
 metrics/
 results_semi_sup/
@@ -33,3 +34,4 @@ disco_celltype_lv1.csv
 htap_celltype.csv
 ajrccm_celltypes.csv
 
+compute_single_metrics.py

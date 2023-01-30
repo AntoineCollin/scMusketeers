@@ -3,7 +3,7 @@ import sys
 
 working_dir = sys.argv[1]
 print(sys.argv)
-runfile_path = sys.argv[2] 
+runfile_path = sys.argv[2]
 
 workflow = Workflow(yaml_name = runfile_path, working_dir = working_dir)
 
