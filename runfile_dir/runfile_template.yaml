@@ -8,6 +8,7 @@ dataset_normalize:
   normalize_size_factors: {{normalize_size_factors}}
   scale_input: {{scale_input}}
   logtrans_input: {{logtrans_input}}
+  use_hvg: {{use_hvg}}
 model_spec:
   model_name: {{model_name}}
   ae_type: {{ae_type}}

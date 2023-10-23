@@ -3,12 +3,14 @@ try :
     from .dataset import Dataset
     from .predictor import MLP_Predictor
     from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
+    
 except ImportError:
     from load import load_runfile
     from dataset import Dataset
     from predictor import MLP_Predictor
     from model import DCA_Permuted,Scanvi
-
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.cluster import KMeans
 import time
 import yaml
 import pickle
@@ -31,6 +33,7 @@ filter_min_counts = 'filter_min_counts'
 normalize_size_factors = 'normalize_size_factors'
 scale_input = 'scale_input'
 logtrans_input = 'logtrans_input'
+use_hvg = 'use_hvg'
     
 model_spec = 'model_spec'
 model_name = 'model_name'
@@ -98,6 +101,7 @@ class Workflow:
         self.normalize_size_factors = self.run_file[dataset_normalize][normalize_size_factors]
         self.scale_input = self.run_file[dataset_normalize][scale_input]
         self.logtrans_input = self.run_file[dataset_normalize][logtrans_input]
+        self.use_hvg = self.run_file[dataset_normalize][use_hvg]
         # model parameters
         self.model_name = self.run_file[model_spec][model_name]
         self.ae_type = self.run_file[model_spec][ae_type]
@@ -105,6 +109,8 @@ class Workflow:
         if type(self.hidden_size) == int:
             self.hidden_size = [2*self.hidden_size, self.hidden_size, 2*self.hidden_size]
         self.hidden_dropout = self.run_file[model_spec][hidden_dropout]
+        if not self.hidden_dropout:
+            self.hidden_dropout = 0 
         self.hidden_dropout = len(self.hidden_size) * [self.hidden_dropout]
         self.batchnorm = self.run_file[model_spec][batchnorm]
         self.activation = self.run_file[model_spec][activation]
@@ -230,6 +236,7 @@ class Workflow:
                                normalize_size_factors = self.normalize_size_factors,
                                scale_input = self.scale_input,
                                logtrans_input = self.logtrans_input,
+                               use_hvg = self.use_hvg,
                                n_perm = self.n_perm,
                                semi_sup = self.semi_sup,
                                unlabeled_category = self.unlabeled_category)
@@ -242,6 +249,7 @@ class Workflow:
                                normalize_size_factors = self.normalize_size_factors,
                                scale_input = self.scale_input,
                                logtrans_input = self.logtrans_input,
+                               use_hvg = self.use_hvg,
                                n_perm = self.n_perm,
                                semi_sup = self.semi_sup,
                                unlabeled_category = self.unlabeled_category)
@@ -379,7 +387,43 @@ class Workflow:
         self.write_umap_log()
         self.umap_done = True
 
+    def predict_knn_classifier(self, n_neighbors = 50, embedding_key=None, return_clustering = False):
+        adata_train = self.latent_space[self.latent_space.obs['TRAIN_TEST_split'] == 'train']
+        adata_train = adata_train[adata_train.obs[self.class_key] != self.unlabeled_category]
+       
+        knn_class = KNeighborsClassifier(n_neighbors = n_neighbors)
         
+        if embedding_key:
+            knn_class.fit(adata_train.obsm[embedding_key], adata_train.obs[self.class_key])        
+            pred_clusters = knn_class.predict(self.latent_space.X)
+            if return_clustering:
+                return pred_clusters
+            else:
+                self.latent_space.obs[f'{self.class_key}_{embedding_key}_knn_classifier{n_neighbors}_pred'] = pred_clusters
+        else :
+            knn_class.fit(adata_train.X, adata_train.obs[self.class_key])
+            pred_clusters = knn_class.predict(self.latent_space.X)
+            if return_clustering:
+                return pred_clusters
+            else:
+                self.latent_space.obs[f'{self.class_key}_knn_classifier{n_neighbors}_pred'] = pred_clusters
+
+
+    def predict_kmeans(self, embedding_key=None):
+        n_clusters = len(np.unique(self.latent_space.obs[self.class_key]))
+
+        kmeans = KMeans(n_clusters = n_clusters)
+        
+        if embedding_key:
+            kmeans.fit_predict(self.latent_space.obsm[embedding_key])
+            self.latent_space.obs[f'{embedding_key}_kmeans_pred'] = kmeans.predict(self.latent_space.obsm[embedding_key])
+        else :
+            kmeans.fit_predict(self.latent_space.X)
+            self.latent_space.obs[f'kmeans_pred'] = kmeans.predict(self.latent_space.X)
+
+    def compute_leiden(self, **kwargs):
+        sc.tl.leiden(self.latent_space, key_added = 'leiden_latent', neighbors_key = f'neighbors_{self.model_name}', **kwargs)
+    
     def save_results(self):
         if not os.path.isdir(self.result_path):
             os.makedirs(self.result_path)
@@ -400,7 +444,7 @@ class Workflow:
             if self.DR_hist:
                 with open(self.DR_history_path, 'wb') as file_pi:
                     pickle.dump(self.DR_hist.history, file_pi)
-        if self.predict_done:
+        if self.predict_done and self.pred_hist:
             with open(self.pred_history_path, 'wb') as file_pi:
                 pickle.dump(self.pred_hist.history, file_pi)
         if self.run_done:
@@ -409,10 +453,12 @@ class Workflow:
             self.write_predict_log()
         if self.umap_done:
             self.write_umap_log()
-        metric_series = pd.DataFrame(index = [self.workflow_ID], data={'workflow_ID':pd.Series([self.workflow_ID], index = [self.workflow_ID])})
-        metric_series.to_csv(self.metric_path)
-        with open(self.runtime_path, 'w') as f:
-            f.write(str(self.stop_time - self.start_time))
+        if not os.path.exists(self.result_path):
+            metric_series = pd.DataFrame(index = [self.workflow_ID], data={'workflow_ID':pd.Series([self.workflow_ID], index = [self.workflow_ID])})
+            metric_series.to_csv(self.metric_path)
+        if not os.path.exists(self.runtime_path):
+            with open(self.runtime_path, 'w') as f:
+                f.write(str(self.stop_time - self.start_time))
 
 
     def load_results(self):
@@ -437,3 +483,6 @@ class Workflow:
             self.corrected_count.layers['X_dca_dropout'] = self.corrected_count.obsm['X_dca_dropout']
             self.corrected_count.layers['X_dca_dispersion'] = self.corrected_count.obsm['X_dca_dispersion']
             self.corrected_count.obsm['X_umap'] = self.latent_space.obsm['X_umap']
+
+    def __str__(self):
+        return str(self.run_file)

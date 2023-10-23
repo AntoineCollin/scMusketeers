@@ -23,6 +23,7 @@ try :
     import torch
 except ImportError:
     pass
+
 try:
     import scvi
 except ImportError:
@@ -263,7 +264,10 @@ class Scanvi:
         for b_k in ['manip', 'sample']:
             if b_k in adata_train.obs.columns:
                 batch_key = b_k
-        scvi.model.SCVI.setup_anndata(adata_train, labels_key=self.class_key, batch_key=batch_key)
+        if self.unlabeled_category not in np.unique(adata_train.obs[self.class_key]):
+            adata_train.obs[self.class_key] = adata_train.obs[self.class_key].astype('str')
+            adata_train.obs[self.class_key][0] = self.unlabeled_category # adding a dummy celltype to include self.unlabeled_category to the scvi setup
+        scvi.model.SCVI.setup_anndata(adata_train, labels_key=self.class_key, batch_key=Dataset.batch_key)
         print(adata_train)
         print(adata_train.obs[self.class_key])
         print(adata_train.X[:100,:100])
@@ -286,10 +290,18 @@ class Scanvi:
         return self.hist 
         
     def predict_net(self, Dataset):
-        corrected_count= self.net.get_normalized_expression(Dataset.adata)
-        latent_space = self.net.get_latent_representation(Dataset.adata)
-        latent_space = anndata.AnnData(X = latent_space, obs = Dataset.adata.obs)
-        latent_space.obs[f"{self.class_key}_pred_scanvi"] = self.net.predict(Dataset.adata)
+        if Dataset.keep_obs:
+            sub_adata = Dataset.adata[Dataset.adata.obs[Dataset.obs_key].isin(Dataset.keep_obs)]
+            print(sub_adata)
+            corrected_count = self.net.get_normalized_expression(sub_adata)
+            latent_space = self.net.get_latent_representation(sub_adata)
+            latent_space = anndata.AnnData(X = latent_space, obs = sub_adata.obs)
+            latent_space.obs[f"{self.class_key}_pred_scanvi"] = self.net.predict(sub_adata)
+        else:
+            corrected_count= self.net.get_normalized_expression(Dataset.adata)
+            latent_space = self.net.get_latent_representation(Dataset.adata)
+            latent_space = anndata.AnnData(X = latent_space, obs = Dataset.adata.obs)
+            latent_space.obs[f"{self.class_key}_pred_scanvi"] = self.net.predict(Dataset.adata)
         return latent_space,corrected_count
     
     def save_net(self, save_path):

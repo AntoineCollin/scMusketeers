@@ -30,9 +30,10 @@ from keras.initializers import Constant
 from tensorflow.compat.v1.keras import backend as K
 
 import tensorflow as tf
-
+print(tf.__version__)
+print(keras.__version__)
 from .loss import poisson_loss, NB, ZINB, ContrastiveLoss
-from .layers import ConstantDispersionLayer, SliceLayer, ColwiseMultLayer, ElementwiseDense
+from .layers import ConstantDispersionLayer, SliceLayer, ColwiseMultLayer, ElementwiseDense,GradReverse
 from .io import write_text_matrix
 
 import faulthandler
@@ -102,7 +103,7 @@ class Autoencoder():
 
         if self.input_dropout > 0.0:
             last_hidden = Dropout(self.input_dropout, name='input_dropout')(last_hidden)
-
+        print(self.hidden_dropout)
         for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
             center_idx = int(np.floor(len(self.hidden_size) / 2.0))
             if i == center_idx:
@@ -300,6 +301,8 @@ class BatchRemovalAutoencoder(Autoencoder):
             self.br_layers = tuple([(self.hidden_size[int(np.floor(len(self.hidden_size) / 2.0))] + self.n_batches)/2]) # mean between the bottleneck layer size and the number of batches
             self.br_activation = tuple(['relu'])
         classifier = self.bottleneck_layer
+
+        classifier = GradReverse()(classifier)
         for i, (hid_size, hid_act) in enumerate(zip(self.br_layers,self.br_activation)):
             layer_name = f'predictor_layer_{i}'
             classifier = Dense(hid_size, activation=hid_act, kernel_initializer=self.init,

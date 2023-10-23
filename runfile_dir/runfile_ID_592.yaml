@@ -8,6 +8,7 @@ dataset_normalize:
   normalize_size_factors: True
   scale_input: True
   logtrans_input: True
+  use_hvg: None
 model_spec:
   model_name: dca_into_perm
   ae_type: zinb-conddisp

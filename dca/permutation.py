@@ -123,6 +123,7 @@ def batch_generator_training_permuted(adata, class_key, batch_size, n_perm, use_
             yield({'count': X_in_batch,'size_factors' : sf_in_batch, 'similarity' : sim_in_batch}, X_out_batch) #first dim is the number of batches, next dims are the shape of input
         if batch_key:
             batch_ID_in_batch = batch_ID[index_in_batch,:] # The batch ID corresponding to the input cells
+            batch_ID_in_batch=1-batch_ID_in_batch
             yield({'count': X_in_batch,'size_factors' : sf_in_batch}, {'reconstruction': X_out_batch,'batch_removal':batch_ID_in_batch})
         else:
             yield({'count': X_in_batch,'size_factors' : sf_in_batch}, X_out_batch) #first dim is the number of batches, next dims are the shape of input
@@ -136,7 +137,7 @@ def batch_generator_training_permuted(adata, class_key, batch_size, n_perm, use_
                 sim = y[ind_in].values == y[ind_out].values
             debug = pd.DataFrame({'in':ind_in,'out':ind_out})
             print(make_random_seed())
-            debug.to_csv(f'/home/acollin/jobs/dca_jobs/workflow_jobs/log_debug/log{i}.csv')
+            # debug.to_csv(f'/home/acollin/jobs/dca_jobs/workflow_jobs/log_debug/log{i}.csv')
             i+=1
             counter=0
             

@@ -8,6 +8,7 @@ dataset_normalize:
   normalize_size_factors: True
   scale_input: False
   logtrans_input: True
+  use_hvg: None
 model_spec:
   model_name: dca_permuted
   ae_type: batch_removal
@@ -29,12 +30,12 @@ model_training_spec:
   n_perm: 1
   permute: True
   change_perm: True
-  semi_sup: True
+  semi_sup: semi_sup
   unlabeled_category: nan
   save_zinb_param: False
   use_raw_as_output: False
-  contrastive_margin : None
-  same_class_pct : None
+  contrastive_margin : contrastive_margin
+  same_class_pct : same_class_pct
 dataset_train_split:
   mode: percentage
   pct_split: None

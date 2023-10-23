@@ -9,6 +9,59 @@ except ImportError:
     pass
 import numpy as np
 
+
+
+def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduce_adata=True): 
+    '''
+    Computes a list of hvg which are common to the most different batches.
+    '''
+    adata = adata_.copy()
+    check_nnz = np.asarray(adata.X[adata.X != 0][0]) 
+    while len(check_nnz.shape) >= 1: # Get first non zero element of X
+        check_nnz = check_nnz[0]
+    if int(check_nnz) == float(check_nnz):
+        sc.pp.normalize_total(adata)
+        sc.pp.log1p(adata)
+    n_batches = len(adata.obs[batch_key].unique())
+    
+    sc.pp.highly_variable_genes(adata=adata,
+                                n_top_genes=n_hvg,
+                                flavor=flavor,
+                                batch_key=batch_key)
+    dispersion_nbatches = adata.var['dispersions_norm'][adata.var['highly_variable_nbatches'] == n_batches] # Starts with genes hvg for every batches
+    dispersion_nbatches = dispersion_nbatches.sort_values(ascending = False)
+    print(f'Searching for highly variable genes in {n_batches} batches')
+    if len(dispersion_nbatches) >= n_hvg: # If there are already enough hvg in every batch, returns them
+        top_genes = list(dispersion_nbatches[:n_hvg].index)
+        if reduce_adata:
+            return adata[:,top_genes]
+        else:
+            return top_genes
+    print(f'Found {len(dispersion_nbatches)} highly variable genes using {n_batches} batches')
+    top_genes = list(dispersion_nbatches.index) # top_genes is the final selection of genes
+    remaining_genes = n_hvg
+    enough = False
+    
+    while not enough:
+        n_batches = n_batches - 1 # Looks for genes hvg for one fewer batch at each iteration
+        print(f'Searching for highly variable genes in {n_batches} batches')
+        remaining_genes = n_hvg - len(top_genes) # nb of genes left to find
+        dispersion_nbatches = adata.var['dispersions_norm'][adata.var['highly_variable_nbatches'] == n_batches] 
+        dispersion_nbatches = dispersion_nbatches.sort_values(ascending = False)
+        if len(dispersion_nbatches) > remaining_genes: # Enough genes to fill in the rest
+            print(f'Found {len(dispersion_nbatches)} highly variable genes using {n_batches} batches. Selecting top {remaining_genes}')
+            print(dispersion_nbatches)
+            top_genes += list(dispersion_nbatches[:remaining_genes].index)
+            enough = True
+        else :
+            print(f'Found {len(dispersion_nbatches)} highly variable genes using {n_batches} batches')
+            top_genes += list(dispersion_nbatches.index)
+            
+    if reduce_adata:
+        return adata[:,top_genes]
+
+    return top_genes
+
 def load_ref_markers(adata, marker_path):
     '''
     loads markers as a dict and filters out the ones which are absent from the adata
@@ -57,7 +110,7 @@ def sum_marker_score(markers, adata, obs_key):
     adata.obs['sum_marker_score'] = sum_scores
 
 class Dataset:
-    def __init__(self, dataset_dir,dataset_name,class_key,filter_min_counts,normalize_size_factors,scale_input,logtrans_input, n_perm, semi_sup,unlabeled_category):
+    def __init__(self, dataset_dir,dataset_name,class_key,filter_min_counts,normalize_size_factors,scale_input,logtrans_input,use_hvg, n_perm, semi_sup,unlabeled_category):
         self.dataset_name = dataset_name
         self.adata = anndata.AnnData()
         self.adata_train_extended = anndata.AnnData()
@@ -69,7 +122,10 @@ class Dataset:
         self.normalize_size_factors = normalize_size_factors
         self.scale_input = scale_input
         self.logtrans_input = logtrans_input
+        self.use_hvg = use_hvg
         self.n_perm = n_perm
+        # if not semi_sup:
+        #     self.semi_sup = True # semi_sup defaults to True, especially for scANVI
         self.semi_sup = semi_sup
         self.unlabeled_category = unlabeled_category 
         self.mode=str()
@@ -94,20 +150,35 @@ class Dataset:
                                 "disco_htap_ajrccm":'discovair_htap_ajrccm',
                                 "disco_htap": 'discovair_htap',
                                 "disco_ajrccm": 'discovair_ajrccm',
+                                "disco_ajrccm_downsampled":'discovair_ajrccm_downsampled',
                                 "discovair_ajrccm_small" : "discovair_ajrccm_small",
                                 'htap_ajrccm': 'htap_ajrccm_raw',
                              'pbmc3k_processed':'pbmc_3k',
                              'htap_final':'htap_final',
+                             'htap_final_C1_C5':'htap_final_C1_C5',
+                             'pbmc8k':'pbmc8k',
+                             'pbmc68k':'pbmc68k',
+                             'pbmc8k_68k':'pbmc8k_68k',
+                             'pbmc8k_68k_augmented':'pbmc8k_68k_augmented',
+                             'pbmc8k_68k_downsampled':'pbmc8k_68k_downsampled',
                              'htap_final_ajrccm': 'htap_final_ajrccm'}
         self.batch_key = {'htap': 'place_holder',
                             'discovair': 'sample',
                             'ajrccm': 'manip',
+                            'pbmc8k':'dataset',
+                            'pbmc68k':'dataset',
+                            'pbmc8k_68k':'dataset',
+                            'pbmc8k_68k_augmented':'dataset',
+                            'pbmc8k_68k_downsampled':'dataset',
                             'disco_htap_ajrccm': 'sample',
                             'disco_htap': 'sample',
                             'disco_ajrccm': 'manip',
+                            'disco_ajrccm_downsampled': 'manip',
                             'htap_ajrccm': 'place_holder',
-                            'pbmc3k_processed': 'place_holder',
-                            'htap_final': 'place_holder',
+                            'pbmc3k_processed': 'manip',
+                            'htap_final': 'sample',
+                            'htap_final_C1_C5':'sample',
+                            'discovair_ajrccm_small' : 'manip',
                             'htap_final_ajrccm': 'place_holder'}
         self.batch_key = self.batch_key[self.dataset_name]
         self.dataset_path = self.dataset_dir + '/' + self.dataset_names[self.dataset_name] + '.h5ad'
@@ -116,7 +187,7 @@ class Dataset:
         
     def load_dataset(self):
         self.adata = sc.read_h5ad(self.dataset_path)
-        self.adata.obs[f'true_{self.class_key}'] = self.adata.obs[self.class_key]
+        self.adata.obs[f'true_{self.class_key}'] = self.adata.obs[self.class_key] # Duplicate original annotation in true_class_key
 #         if type(self.adata.X) != np.ndarray :
 #             self.adata.X = self.adata.X.toarray()
         if not self.adata.raw:
@@ -129,6 +200,9 @@ class Dataset:
             sc.pp.filter_cells(self.adata, min_counts=1)
         nonzero_genes, _ = sc.pp.filter_genes(self.adata.X, min_counts=1)
         assert nonzero_genes.all(), 'Please remove all-zero genes before using DCA.'
+
+        if self.use_hvg:
+            self.adata = get_hvg_common(self.adata, n_hvg = self.use_hvg, batch_key=self.batch_key)
 
         if self.normalize_size_factors or self.scale_input or self.logtrans_input:
             self.adata.raw = self.adata.copy()
@@ -143,10 +217,14 @@ class Dataset:
 
         if self.logtrans_input:
             sc.pp.log1p(self.adata)
-
+ 
         if self.scale_input:
             sc.pp.scale(self.adata)
         
+        obs = self.adata.obs[self.class_key].astype('str') 
+        obs[self.adata.obs['TRAIN_TEST_split'] == 'test'] = self.unlabeled_category 
+        self.adata.obs[self.class_key] = obs # hiding test celltypes in the original anndata (necessary for scanvi)
+
         self.adata_test = self.adata[self.adata.obs['TRAIN_TEST_split'] == 'test']
         self.adata_train_extended = self.adata[self.adata.obs['TRAIN_TEST_split'] == 'train']
         print('right after loading')
@@ -264,27 +342,36 @@ class Dataset:
         if not self.semi_sup:
             to_keep = self.adata_train_extended.obs['train_split']
             UNK_cells = self.adata_train_extended.obs[self.class_key] == self.unlabeled_category
-            to_keep[UNK_cells] = 'val'
+            to_keep[UNK_cells] = 'val' # Change unknown cells to val
             self.adata_train_extended.obs['train_split'] = to_keep
-            self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'train'].copy()
+
+            obs = self.adata_train_extended.obs[self.class_key].astype('str')
+            obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # hiding val celltypes with UNK for prediction by scanvi
+            self.adata_train_extended.obs[self.class_key] = obs
+            self.adata.obs.loc[self.adata_train_extended.obs_names,self.class_key] = obs # replace val celltypes in the original adata
+
+            self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'train'].copy() # in full supervised training set is only annotated cells
             self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
-            train_split = self.adata.obs['TRAIN_TEST_split'].astype('str')
+            train_split = self.adata.obs['TRAIN_TEST_split'].astype('str') # Replace the test, train, val values in the global adata object
             train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
-            self.adata.obs['train_split'] = train_split
+            self.adata.obs['train_split'] = train_split 
             print(f'train split, train : {self.adata_train}')
             print(self.adata_train.obs[self.class_key].value_counts())
         elif self.semi_sup:
             obs = self.adata_train_extended.obs[self.class_key].astype('str')
-            obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # Replacing val values with UNK
+            obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # hiding val celltypes with UNK for semi-supervised training
             self.adata_train_extended.obs[self.class_key] = obs
+            self.adata.obs.loc[self.adata_train_extended.obs_names,self.class_key] = obs # Hiding val celltypes in the global adata (necessary for scanvi)
+            
+            print(self.adata_train_extended.obs['train_split'].value_counts())
             self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'].isin(['train', 'val'])].copy() #we keep the validation data as unsupervised training cells. both side of the = are equal here...
             self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
             print(f'train split, train : {self.adata_train}')
             print(self.adata_train.obs[self.class_key].value_counts())
             train_split = self.adata.obs['TRAIN_TEST_split'].astype('str')
             train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
-            self.adata.obs['train_split'] = train_split
-
+            self.adata.obs['train_split'] = train_split # Replace the test, train, val values in the global adata object
+        print(f'train, test, val proportions : {self.adata.obs["train_split"]}')
         
     def fake_annotation(self,true_celltype,false_celltype,pct_false, train_test_random_seed=None):
         '''

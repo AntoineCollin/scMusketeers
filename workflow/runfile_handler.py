@@ -22,6 +22,7 @@ class RunFile:
                        normalize_size_factors = None,
                        scale_input = None,
                        logtrans_input = None ,
+                       use_hvg = None,
                        model_spec = 'model_spec',
                        model_name = None,
                        ae_type = None,
@@ -90,6 +91,7 @@ class RunFile:
         self.normalize_size_factors = normalize_size_factors
         self.scale_input = scale_input
         self.logtrans_input = logtrans_input
+        self.use_hvg = use_hvg
         self.model_spec = model_spec
         self.model_name = model_name
         self.ae_type = ae_type
@@ -254,6 +256,7 @@ def read_from_ID(working_dir, workflow_ID):
         normalize_size_factors = 'normalize_size_factors'
         scale_input = 'scale_input'
         logtrans_input = 'logtrans_input'
+        use_hvg = 'use_hvg'
 
         model_spec = 'model_spec'
         model_name = 'model_name'
@@ -318,6 +321,7 @@ def read_from_ID(working_dir, workflow_ID):
         normalize_size_factors = run_file[dataset_normalize][normalize_size_factors]
         scale_input = run_file[dataset_normalize][scale_input]
         logtrans_input = run_file[dataset_normalize][logtrans_input]
+        use_hvg = run_file[dataset_normalize][use_hvg]
         # model parameters
         model_name = run_file[model_spec][model_name]
         ae_type = run_file[model_spec][ae_type]
@@ -393,6 +397,7 @@ class run_file_handler:
                           normalize_size_factors = [None],
                           scale_input = [None],
                           logtrans_input = [None] ,
+                          use_hvg = [None],
                           model_spec = [None],
                           model_name = [None],
                           ae_type = [None],
@@ -462,7 +467,6 @@ class run_file_handler:
             rf.create_runfile()
             self.runfile_df = pd.read_csv(self.runfile_csv_path, index_col = 'index')
             self.metric_results_df = pd.read_csv(self.metric_results_path, index_col = 'index')
-
             
             
     def query_yaml(self,**kwargs):
@@ -479,7 +483,10 @@ class run_file_handler:
                     query = f'{key} != {key}'
                 else:
                     query =  f'{key} == {value}'
-                runfile_csv_filtered = runfile_csv_filtered.query(query)
+            else:
+                query =  f'{key} == {value}'
+            runfile_csv_filtered = runfile_csv_filtered.query(query)
+            
         queried_ID = list(runfile_csv_filtered['workflow_ID'])
         print(f'The IDs corresponding to this query are {", ".join([str(ID) for ID in queried_ID]) }')
         return queried_ID

@@ -7,6 +7,7 @@ try :
     from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score, plot_confusion_matrix
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import LabelEncoder
+    
 except ImportError:
     pass
 
@@ -92,8 +93,8 @@ class MLP_Predictor:
         self.unlabeled_category = unlabeled_category
         
         ## Removing the unlabeled cells from the prediction training set
-        to_keep = self.adata.obs['train_split'].copy()
-        UNK_cells = self.adata.obs[self.predict_key] == self.unlabeled_category
+        to_keep = self.adata.obs['train_split'].astype(str).copy()
+        UNK_cells = (self.adata.obs[self.predict_key] == self.unlabeled_category) & (self.adata.obs['train_split'] != 'test')
         print('nb of nan')
         print(UNK_cells.sum())
         to_keep[UNK_cells] = 'val'
@@ -156,10 +157,10 @@ class MLP_Predictor:
         self.encoder = LabelEncoder()  
         self.encoder.fit(self.y)
         self.y_train_onehot = self.encoder.transform(self.y_train)
-        self.y_val_onehot = self.encoder.transform(self.y_val)
+        # self.y_val_onehot = self.encoder.transform(self.y_val)
 #         self.y_test_onehot = self.encoder.transform(self.y_test)
         self.y_train_onehot = np_utils.to_categorical(self.y_train_onehot)
-        self.y_val_onehot = np_utils.to_categorical(self.y_val_onehot)
+        # self.y_val_onehot = np_utils.to_categorical(self.y_val_onehot)
 #         self.y_test_onehot = np_utils.to_categorical(self.y_test_onehot)
         
         self.train_adata = self.adata[self.train_index,:]
@@ -175,8 +176,9 @@ class MLP_Predictor:
         print(self.train_categories)
         print(self.adata_train.obs[self.predict_key].value_counts())
 
+
         input_size = self.X_train.shape[1]
-        nb_classes = len(self.train_categories)
+        nb_classes = self.y_train_onehot.shape[1]
         
         inputs = Input(shape=(input_size,))
 
@@ -298,5 +300,36 @@ class MLP_Predictor:
         sc.pl.umap(self.adata, color = ['misclassified','is_test'], size=sizes)
         sc.pl.umap(self.adata, color = ['misclassified_and_test', 'dca_split'], size=sizes)
 
-       
+
+# def predict_knn_classifier(adata, label_key,n_neighbors = 30, embedding_key=None, return_clustering = False):
+#         adata_train = adata[adata.obs['TRAIN_TEST_split'] == 'train']
+
+#         knn_class = KNeighborsClassifier(n_neighbors = n_neighbors)
         
+#         if embedding_key:
+#             knn_class.fit(adata_train.obsm[embedding_key], adata_train.obs[label_key])        
+#             pred_clusters = knn_class.predict(adata.X)
+#             if return_clustering:
+#                 return pred_clusters
+#             else:
+#                 adata.obs[f'{label_key}_{embedding_key}_knn_classifier{n_neighbors}_pred'] = pred_clusters
+#         else :
+#             knn_class.fit(adata_train.X, adata_train.obs[label_key])
+#             pred_clusters = knn_class.predict(adata.X)
+#             if return_clustering:
+#                 return pred_clusters
+#             else:
+#                 adata.obs[f'{label_key}_knn_classifier{n_neighbors}_pred'] = pred_clusters
+
+
+#     def predict_kmeans(adata, label_key, embedding_key=None):
+#         n_clusters = len(np.unique(adata.obs[label_key]))
+
+#         kmeans = KMeans(n_clusters = n_clusters)
+        
+#         if embedding_key:
+#             kmeans.fit_predict(adata.obsm[embedding_key])
+#             adata.obs[f'{embedding_key}_kmeans_pred'] = kmeans.predict(adata.obsm[embedding_key])
+#         else :
+#             kmeans.fit_predict(adata.X)
+#             adata.obs[f'kmeans_pred'] = kmeans.predict(adata.X)

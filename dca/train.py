@@ -57,11 +57,11 @@ def train(adata, network, class_key, output_dir=None, optimizer='adam', learning
 
     print(model, loss, optimizer)
     print(type(network))
-    if type(network == BatchRemovalAutoencoder) : # We compile the model differently with the combined loss
+    if type(network) == BatchRemovalAutoencoder : # We compile the model differently with the combined loss
         model.compile(loss = {'batch_removal': network.batch_removal_loss,
                               'reconstruction': network.reconstruction_loss},
-                      loss_weights = {'batch_removal': - network.batch_removal_weight, # we take the opposite because we need to maximize this loss
-                                      'reconstruction' : 1 - network.batch_removal_weight},
+                      loss_weights = {'batch_removal': network.batch_removal_weight, # we take the opposite because we need to maximize this loss
+                                      'reconstruction' : 1-network.batch_removal_weight},
                       optimizer = optimizer) 
     else:
         model.compile(loss=loss, optimizer=optimizer)

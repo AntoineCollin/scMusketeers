@@ -1,0 +1,60 @@
+---
+workflow_ID: 5495
+dataset:
+  dataset_name: htap_final_C1_C5
+  class_key: celltype
+dataset_normalize:
+  filter_min_counts: True
+  normalize_size_factors: True
+  scale_input: False
+  logtrans_input: True
+  use_hvg: None
+model_spec:
+  model_name: scanvi
+  ae_type: None
+  hidden_size: 0
+  hidden_dropout: None
+  batchnorm: None
+  activation: None
+  init: None
+  batch_removal_weight: None
+model_training_spec:
+  epochs: None
+  reduce_lr: None
+  early_stop: None
+  batch_size: None
+  optimizer: None
+  verbose: None
+  threads: None
+  learning_rate: None
+  n_perm: 1
+  permute: None
+  change_perm: None
+  semi_sup: None
+  unlabeled_category: nan
+  save_zinb_param: None
+  use_raw_as_output: None
+  contrastive_margin : None
+  same_class_pct : None
+dataset_train_split:
+  mode: entire_condition
+  pct_split: None
+  obs_key: celltype_sample
+  n_keep: None
+  split_strategy: random
+  keep_obs: ['AM1_C5', 'AM2_C5', 'ASMC_C5', 'AT1_C5', 'AT2a_C5', 'AT2b_C5', 'Adv.FB_C5', 'Alv.FB_C5', 'Basal_C5', 'Baso-Mast_C5', 'CD4.T_C5', 'CD8.T_C5', 'DC2_C5', 'EMT_C5', 'EndoMT_C5', 'MCC_C5', 'Monocytes_C5', 'NK_C5', 'Pericytes_C5', 'Pulm.Art.EC_C5', 'Pulm.Vein.EC_C5', 'Secretory_C5', 'Syst.Art.EC_C5', 'TRB-SC_C5', 'VSMC_C5', 'aCap.EC_C5', 'gCap.EC_C5', 'pre-TB-SC_C5', 'Lymph.EC_C1']
+  train_test_random_seed: 125
+  use_TEST : True
+  obs_subsample: None
+dataset_fake_annotation:
+  make_fake: False
+  true_celltype: None
+  false_celltype: None
+  pct_false: None
+predictor_spec:
+  predictor_model: MLP
+  predict_key: celltype
+  predictor_hidden_sizes: 64
+  predictor_epochs: 100
+  predictor_batch_size: 64
+  predictor_activation: softmax

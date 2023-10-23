@@ -16,6 +16,7 @@ except ImportError:
     from clust_compute import *
 
 import math
+import logging
 import pickle
 from sklearn.metrics import balanced_accuracy_score, accuracy_score
 from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score, plot_confusion_matrix
@@ -38,8 +39,11 @@ metrics_list = ["balanced_accuracy_scores",
 #"silhouette_pred",
 "davies_bouldin_true",
 "davies_bouldin_pred",
+"ari",
 "nmi",
 "batch_entropy_mixing"]
+
+
 
 class AnalysisWorkflow:
     def __init__(self, working_dir, id_list):
@@ -57,7 +61,6 @@ class AnalysisWorkflow:
         self.accuracy_scores = dict()
         
         
-        
         self.metric_results_path = self.working_dir + '/results/metric_results.csv'
         self.metric_results_df = pd.read_csv(self.metric_results_path, index_col = 'index')
 
@@ -69,7 +72,9 @@ class AnalysisWorkflow:
         self.metrics_computed_solo = []
         self.metrics_computed_solo_df = pd.DataFrame()
 
-        self.metrics_table = self.metric_results_df.copy().loc[self.id_list,:]             
+        self.metrics_table = self.metric_results_df.copy().loc[self.id_list,:]      
+        
+           
 
     def load_metrics(self):
         '''
@@ -110,9 +115,9 @@ class AnalysisWorkflow:
             failed_ID = [str(i) for i in failed_ID]
             print(Exception(f'The following ID didnt have a true_class_key obs : {"_".join(failed_ID)}'))
             return failed_ID # returns th wrong ids
-
-        self .pred_class = {wf_id: workflow.latent_space.obs[f'{workflow.class_key}_pred'] for wf_id, workflow in self.workflow_list.items()}
+        
         self.latent_spaces = {wf_id: workflow.latent_space for wf_id, workflow in self.workflow_list.items()}
+        self.pred_class = {wf_id: workflow.latent_space.obs[f'{workflow.class_key}_pred'] for wf_id, workflow in self.workflow_list.items()}
         self.pred_tables = {wf_id: workflow.latent_space.obs.loc[:,[f'true_{workflow.class_key}',f'{workflow.class_key}_pred', 'train_split']] for wf_id, workflow in self.workflow_list.items()}
 #         for wf_id,workflow in self.workflow_list.items():
 #             class_key = self.workflow_list[wf_id].class_key
@@ -205,112 +210,145 @@ class AnalysisWorkflow:
             metric_series = pd.DataFrame([metric_series.values], index = [ID], columns = metric_series.index)
         # metric_series = pd.read_csv(wf.metric_path, index_col = 0)
         metric_clone = metric_series.copy()
+        prediction_list=  [f'{wf.class_key}_pred', # All the predictions on which we might want to compute clustering metrics
+                f'{wf.class_key}_knn_classifier10_pred',
+                f'{wf.class_key}_knn_classifier50_pred',
+                f'{wf.class_key}_knn_classifier100_pred']
+        clustering_list =['kmeans_pred', # All the clusterings on which we might want to compute clustering metrics
+                'leiden_latent']
+        partition_list = prediction_list + clustering_list
+                
         print(f'computing ID {ID}')
         for metric in metrics_list:
-            if (metric not in metric_series.columns) or (metric_series.isna().loc[ID,metric]) or (metric_series.loc[ID,metric] == 'NC') :
-                print(f'computing metric : {metric}')
+            for prediction in prediction_list:
+                meta_metric = f'{metric}_{prediction}'
+                # if (meta_metric not in metric_series.columns) or (metric_series.isna().loc[ID,meta_metric]) or (metric_series.loc[ID,meta_metric] == 'NC') :
+                #     print(f'computing metric : {metric}')
                 if metric == 'balanced_accuracy_scores':
                     try :
-                        metric_series.loc[ID,metric] = balanced_accuracy(adata=latent_space, 
-                                                                    partition_key=f'{wf.class_key}_pred',
+                        metric_series.loc[ID,meta_metric] = balanced_accuracy(adata=latent_space, 
+                                                                    partition_key=prediction,
                                                                     reference=f'true_{wf.class_key}')
                     except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                        logging.exception(f"Could not compute {meta_metric} with following error")
+                        metric_series.loc[ID,meta_metric] = 'NC'
 
                 elif metric == 'balanced_accuracy_scores_test':
                     try :
-                        metric_series.loc[ID,metric] = balanced_accuracy(adata=latent_space[latent_space.obs['train_split'] == 'test'], 
-                                                                    partition_key=f'{wf.class_key}_pred',
+                        metric_series.loc[ID,meta_metric] = balanced_accuracy(adata=latent_space[latent_space.obs['train_split'] == 'test'], 
+                                                                    partition_key=prediction,
                                                                     reference=f'true_{wf.class_key}')
-                    except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                    except :
+                        logging.exception(f"Could not compute {meta_metric} with following error")
+                        metric_series.loc[ID,meta_metric] = 'NC'
 
                 elif metric == 'balanced_accuracy_scores_val':
                     try :
-                        metric_series.loc[ID,metric] = balanced_accuracy(adata=latent_space[latent_space.obs['train_split'] == 'val'], 
-                                                                    partition_key=f'{wf.class_key}_pred',
+                        metric_series.loc[ID,meta_metric] = balanced_accuracy(adata=latent_space[latent_space.obs['train_split'] == 'val'], 
+                                                                    partition_key=prediction,
                                                                     reference=f'true_{wf.class_key}')
-                    except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                    except :
+                        logging.exception(f"Could not compute {meta_metric} with following error")
+                        metric_series.loc[ID,meta_metric] = 'NC'
 
                 elif metric == 'balanced_accuracy_scores_train':
                     try :
-                        metric_series.loc[ID,metric] = balanced_accuracy(adata=latent_space[latent_space.obs['train_split'] == 'train'], 
-                                                                    partition_key=f'{wf.class_key}_pred',
+                        metric_series.loc[ID,meta_metric] = balanced_accuracy(adata=latent_space[latent_space.obs['train_split'] == 'train'], 
+                                                                    partition_key=prediction,
                                                                     reference=f'true_{wf.class_key}')
                     except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                        logging.exception(f"Could not compute {meta_metric} with following error")
+                        metric_series.loc[ID,meta_metric] = 'NC'
                 
                 elif metric == 'accuracy_scores':
                     try :
-                        metric_series.loc[ID,metric] = accuracy(adata=latent_space, 
-                                                                    partition_key=f'{wf.class_key}_pred',
+                        metric_series.loc[ID,meta_metric] = accuracy(adata=latent_space, 
+                                                                    partition_key=prediction,
                                                                     reference=f'true_{wf.class_key}')
-                    except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                    except :
+                        logging.exception(f"Could not compute {meta_metric} with following error") 
+                        metric_series.loc[ID,meta_metric] = 'NC'
 
                 elif metric == 'accuracy_scores_test':
                     try :
-                        metric_series.loc[ID,metric] = accuracy(adata=latent_space[latent_space.obs['train_split'] == 'test'], 
-                                                                    partition_key=f'{wf.class_key}_pred',
+                        metric_series.loc[ID,meta_metric] = accuracy(adata=latent_space[latent_space.obs['train_split'] == 'test'], 
+                                                                    partition_key=prediction,
                                                                     reference=f'true_{wf.class_key}')
                     except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                        logging.exception(f"Could not compute {meta_metric} with following error")
+                        metric_series.loc[ID,meta_metric] = 'NC'
 
                 elif metric == 'accuracy_scores_val':
                     try :
-                        metric_series.loc[ID,metric] = accuracy(adata=latent_space[latent_space.obs['train_split'] == 'val'], 
-                                                                    partition_key=f'{wf.class_key}_pred',
+                        metric_series.loc[ID,meta_metric] = accuracy(adata=latent_space[latent_space.obs['train_split'] == 'val'], 
+                                                                    partition_key=prediction,
                                                                     reference=f'true_{wf.class_key}')
                     except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                        logging.exception(f"Could not compute {meta_metric} with following error")
+                        metric_series.loc[ID,meta_metric] = 'NC'
 
                 elif metric == 'accuracy_scores_train':
                     try :
-                        metric_series.loc[ID,metric] = accuracy(adata=latent_space[latent_space.obs['train_split'] == 'train'], 
-                                                                    partition_key=f'{wf.class_key}_pred',
+                        metric_series.loc[ID,meta_metric] = accuracy(adata=latent_space[latent_space.obs['train_split'] == 'train'], 
+                                                                    partition_key=prediction,
                                                                     reference=f'true_{wf.class_key}')
                     except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                        logging.exception(f"Could not compute {meta_metric} with following error")
+                        metric_series.loc[ID,meta_metric] = 'NC'
 
-                elif metric == 'silhouette_true':
-                    try :
-                        metric_series.loc[ID,metric] = silhouette(adata=latent_space, partition_key=f'true_{wf.class_key}')
-                    except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                # elif metric == 'silhouette_true':
+                #     try :
+                #         metric_series.loc[ID,metric] = silhouette(adata=latent_space, partition_key=f'true_{wf.class_key}')
+                #     except : 
+                #         metric_series.loc[ID,metric] = 'NC'
 
-                elif metric == 'silhouette_pred':
-                    try :
-                        metric_series.loc[ID,metric] = silhouette(adata=latent_space, partition_key=f'{wf.class_key}_pred')
-                    except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                # elif metric == 'silhouette_pred':
+                #     try :
+                #         metric_series.loc[ID,metric] = silhouette(adata=latent_space, partition_key=f'{wf.class_key}_pred')
+                #     except : 
+                #         metric_series.loc[ID,metric] = 'NC'
 
-                elif metric == 'silhouette_true':
-                    try :
-                        metric_series.loc[ID,metric] = davies_bouldin(adata=latent_space, partition_key=f'true_{wf.class_key}')
-                    except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                # elif metric == 'silhouette_true':
+                #     try :
+                #         metric_series.loc[ID,metric] = davies_bouldin(adata=latent_space, partition_key=f'true_{wf.class_key}')
+                #     except : 
+                #         metric_series.loc[ID,metric] = 'NC'
 
-                elif metric == 'silhouette_pred':
-                    try :
-                        metric_series.loc[ID,metric] = davies_bouldin(adata=latent_space, partition_key=f'{wf.class_key}_pred')
-                    except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                # elif metric == 'silhouette_pred':
+                #     try :
+                #         metric_series.loc[ID,metric] = davies_bouldin(adata=latent_space, partition_key=f'{wf.class_key}_pred')
+                #     except : 
+                #         metric_series.loc[ID,metric] = 'NC'
+            
+            for partition in partition_list:
+                meta_metric = f'{metric}_{partition}'
+                # if (meta_metric not in metric_series.columns) or (metric_series.isna().loc[ID,meta_metric]) or (metric_series.loc[ID,meta_metric] == 'NC') :
+                if metric == 'nmi':
+                        try :
+                            metric_series.loc[ID,meta_metric] = nmi(adata=latent_space, 
+                                                                    partition_key=partition,
+                                                                    reference=f'true_{wf.class_key}')
+                        except :
+                            logging.exception(f"Could not compute {meta_metric} with following error") 
+                            metric_series.loc[ID,meta_metric] = 'NC'
 
-                elif metric == 'nmi':
-                    try :
-                        metric_series.loc[ID,metric] = nmi(adata=latent_space, partition_key=f'{wf.class_key}_pred',reference=f'true_{wf.class_key}')
-                    except : 
-                        metric_series.loc[ID,metric] = 'NC'
+                elif metric == 'ari':
+                        try:
+                            metric_series.loc[ID,meta_metric] = rand(adata=latent_space,
+                                                                        partition_key=partition,
+                                                                        reference=f'true_{wf.class_key}')
+                        except : 
+                            logging.exception(f"Could not compute {meta_metric} with following error")
+                            metric_series.loc[ID,meta_metric] = 'NC'
 
-                elif metric == 'batch_entropy_mixing':
-                    for b_k in ['manip', 'sample']:
-                        if b_k in latent_space.obs.columns:
-                            batch_key = b_k
-                    try :
-                        metric_series.loc[ID,metric] = batch_entropy_mixing(adata=latent_space, batch_key=batch_key)
-                    except :
-                        metric_series.loc[ID,metric] = 'NC'
+            if metric == 'batch_entropy_mixing':
+                for b_k in ['manip', 'sample']:
+                    if b_k in latent_space.obs.columns:
+                        batch_key = b_k
+                try :
+                    metric_series.loc[ID,metric] = batch_entropy_mixing(adata=latent_space, batch_key=batch_key)
+                except :
+                    metric_series.loc[ID,metric] = 'NC'
         
         if not metric_series.equals(metric_clone):
             metric_series.to_csv(wf.metric_path)
@@ -830,3 +868,6 @@ class AnalysisWorkflow:
                 title = 'worklow_ID_' +  str(metrics_to_plot.loc[ID, 'workflow_ID'])
             plt.title(title)
             plt.tight_layout()
+    
+    def __str__(self) -> str:
+        return self.id_list

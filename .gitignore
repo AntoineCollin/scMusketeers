@@ -35,3 +35,14 @@ htap_celltype.csv
 ajrccm_celltypes.csv
 
 compute_single_metrics.py
+metricsbatch_mixing_expe2_htap_C1.csv
+metricsbatch_mixing_expe2_htap_C5.csv
+
+Batch_entropy_mixing.log
+Batch_entropy_mixing.py
+Batch_entropy_mixing_setup2.log
+Batch_entropy_mixing_setup2.py
+batch_entropy.log
+br_test/
+loglog.log
+loglog2.log
