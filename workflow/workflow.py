@@ -89,9 +89,14 @@ predictor_epochs = 'predictor_epochs'
 predictor_batch_size = 'predictor_batch_size'
 predictor_activation = 'predictor_activation'
 
+
+
 class Workflow:
-    def __init__(self, yaml_name, working_dir): 
-        self.run_file = load_runfile(yaml_name)
+    def __init__(self, run_file, working_dir): 
+        '''
+        run_file : a dictionary outputed by the function load_runfile
+        '''
+        self.run_file = run_file
         self.workflow_ID = self.run_file[workflow_ID]
         # dataset identifiers
         self.dataset_name = self.run_file[dataset][dataset_name]
