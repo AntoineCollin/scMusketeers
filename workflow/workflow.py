@@ -90,7 +90,7 @@ predictor_batch_size = 'predictor_batch_size'
 predictor_activation = 'predictor_activation'
 
 class Workflow:
-    def __init__(self, yaml_name, working_dir):
+    def __init__(self, yaml_name, working_dir): 
         self.run_file = load_runfile(yaml_name)
         self.workflow_ID = self.run_file[workflow_ID]
         # dataset identifiers
@@ -228,7 +228,7 @@ class Workflow:
     def check_umap_log(self):
         return os.path.isfile(self.umap_log_path)
 
-    def load_dataset(self):
+    def load_dataset(self) -> None:
         self.dataset = Dataset(dataset_dir = self.data_dir,
                                dataset_name = self.dataset_name,
                                class_key = self.class_key,

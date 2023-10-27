@@ -75,7 +75,15 @@ def make_training_set(y, n_perm,same_class_pct=None,unlabeled_category='UNK'):
     return [(a,b) for a,b in zip(permutations[0], permutations[1])]
 
 
-def batch_generator_training_permuted(adata, class_key, batch_size, n_perm, use_raw_as_output,change_perm = True,same_class_pct=None, batch_key=None, unlabeled_category='UNK'):
+def batch_generator_training_permuted(adata, 
+                                    class_key, 
+                                    batch_size,
+                                    n_perm, 
+                                    use_raw_as_output,
+                                    change_perm = True,
+                                    same_class_pct=None, 
+                                    batch_key=None, 
+                                    unlabeled_category='UNK'):
     """
     Permuted batch generation for dca. adata should have an obs field containing size factors.adata should have been processed by the dca normalize function therefore it should already be in dense form.
     """

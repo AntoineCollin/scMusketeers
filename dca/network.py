@@ -249,6 +249,8 @@ class Autoencoder():
                               os.path.join(file_path, 'latent.tsv'),
                               rownames=rownames, transpose=False)
 
+
+
 ###### Added Antoine Collin ###### 
 
 class ContrastiveAutoencoder(Autoencoder):

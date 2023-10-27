@@ -1,8 +1,9 @@
-from keras.engine.topology import Layer
+# from keras.engine.topology import Layer
 from keras.layers import Lambda, Dense
-from keras.engine.base_layer import InputSpec
+# from keras.engine.base_layer import InputSpec
 from tensorflow.compat.v1.keras import backend as K
 import tensorflow as tf
+from tensorflow.keras.layers import Layer
 
 
 class ConstantDispersionLayer(Layer):
@@ -86,7 +87,7 @@ ColwiseMultLayer = Lambda(lambda l: l[0]*tf.reshape(l[1], (-1,1)), name='reconst
 
 
 import tensorflow as tf
-from keras.engine import Layer
+# from keras.engine import Layer
 import keras.backend as K
 
 def reverse_gradient(X, hp_lambda):
