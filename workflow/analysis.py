@@ -53,7 +53,7 @@ class AnalysisWorkflow:
         self.id_list = id_list
         self.working_dir = working_dir
         self.runfile_paths = {wf_id: RunFile(working_dir=working_dir, workflow_ID=wf_id).run_file_path for wf_id in self.id_list}
-        self.workflow_list = {wf_id: Workflow(working_dir=working_dir, yaml_name=rf_path) for wf_id, rf_path in self.runfile_paths.items()}
+        self.workflow_list = {wf_id: Workflow(working_dir=working_dir, run_file=load_runfile(rf_path)) for wf_id, rf_path in self.runfile_paths.items()}
         self.true_class = dict()
         self.pred_class = dict()
         self.corrected_counts = dict()

@@ -2,11 +2,8 @@ import anndata
 import scanpy as sc
 import pandas as pd
 from sklearn.utils import shuffle
-
-try :
-    from sklearn.model_selection import train_test_split
-except ImportError:
-    pass
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import train_test_split
 import numpy as np
 
 
@@ -50,7 +47,7 @@ def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduc
         dispersion_nbatches = dispersion_nbatches.sort_values(ascending = False)
         if len(dispersion_nbatches) > remaining_genes: # Enough genes to fill in the rest
             print(f'Found {len(dispersion_nbatches)} highly variable genes using {n_batches} batches. Selecting top {remaining_genes}')
-            print(dispersion_nbatches)
+            # print(dispersion_nbatches)
             top_genes += list(dispersion_nbatches[:remaining_genes].index)
             enough = True
         else :
@@ -110,7 +107,18 @@ def sum_marker_score(markers, adata, obs_key):
     adata.obs['sum_marker_score'] = sum_scores
 
 class Dataset:
-    def __init__(self, dataset_dir,dataset_name,class_key,filter_min_counts,normalize_size_factors,scale_input,logtrans_input,use_hvg, n_perm, semi_sup,unlabeled_category):
+    def __init__(self, 
+                dataset_dir,
+                dataset_name,
+                class_key,
+                filter_min_counts,
+                normalize_size_factors,
+                scale_input,
+                logtrans_input,
+                use_hvg,
+                n_perm,
+                semi_sup,
+                unlabeled_category):
         self.dataset_name = dataset_name
         self.adata = anndata.AnnData()
         self.adata_train_extended = anndata.AnnData()
@@ -227,11 +235,11 @@ class Dataset:
 
         self.adata_test = self.adata[self.adata.obs['TRAIN_TEST_split'] == 'test']
         self.adata_train_extended = self.adata[self.adata.obs['TRAIN_TEST_split'] == 'train']
-        print('right after loading')
-        print(self.adata)
-        print(self.adata_test)
-        print(self.adata_train_extended)
-        print(self.adata_train_extended.obs[self.class_key].value_counts())
+        # print('right after loading')
+        # print(self.adata)
+        # print(self.adata_test)
+        # print(self.adata_train_extended)
+        # print(self.adata_train_extended.obs[self.class_key].value_counts())
         self.adata_train = self.adata_train_extended.copy()
 
         
@@ -300,9 +308,9 @@ class Dataset:
 
             spl = pd.Series(['train'] * self.adata_train_extended.n_obs, index = self.adata_train_extended.obs.index)
             spl.iloc[val_idx] = 'val'
-            print(len(spl))
-            print(self.adata_train_extended)
-            print(self.adata_train_extended.obs[self.class_key].value_counts())
+            # print(len(spl))
+            # print(self.adata_train_extended)
+            # print(self.adata_train_extended.obs[self.class_key].value_counts())
             self.adata_train_extended.obs['train_split'] = spl.values
         elif mode == 'entire_condition':
             self.obs_key = obs_key
@@ -355,23 +363,56 @@ class Dataset:
             train_split = self.adata.obs['TRAIN_TEST_split'].astype('str') # Replace the test, train, val values in the global adata object
             train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
             self.adata.obs['train_split'] = train_split 
-            print(f'train split, train : {self.adata_train}')
-            print(self.adata_train.obs[self.class_key].value_counts())
+            # print(f'train split, train : {self.adata_train}')
+            # print(self.adata_train.obs[self.class_key].value_counts())
         elif self.semi_sup:
             obs = self.adata_train_extended.obs[self.class_key].astype('str')
             obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # hiding val celltypes with UNK for semi-supervised training
             self.adata_train_extended.obs[self.class_key] = obs
             self.adata.obs.loc[self.adata_train_extended.obs_names,self.class_key] = obs # Hiding val celltypes in the global adata (necessary for scanvi)
             
-            print(self.adata_train_extended.obs['train_split'].value_counts())
+            # print(self.adata_train_extended.obs['train_split'].value_counts())
             self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'].isin(['train', 'val'])].copy() #we keep the validation data as unsupervised training cells. both side of the = are equal here...
             self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
-            print(f'train split, train : {self.adata_train}')
-            print(self.adata_train.obs[self.class_key].value_counts())
+            # print(f'train split, train : {self.adata_train}')
+            # print(self.adata_train.obs[self.class_key].value_counts())
             train_split = self.adata.obs['TRAIN_TEST_split'].astype('str')
             train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
             self.adata.obs['train_split'] = train_split # Replace the test, train, val values in the global adata object
+
+        self.adata_train = self.adata[self.adata.obs['train_split'] == 'train'].copy()
+        self.adata_val = self.adata[self.adata.obs['train_split'] == 'val'].copy()
+        self.adata_test = self.adata[self.adata.obs['train_split'] == 'test'].copy()
         print(f'train, test, val proportions : {self.adata.obs["train_split"]}')
+
+    def create_inputs(self):
+        '''
+        Must be called after train_split
+        '''
+        self.X = self.adata.X
+        self.X_train = self.adata_train.X
+        self.X_val = self.adata_val.X
+        self.X_test = self.adata_test.X
+        self.y = self.adata.y
+        self.y_train = self.adata_train.obs[self.class_key]
+        self.y_val = self.adata_val.obs[self.class_key]
+        self.y_test = self.adata_test.obs[self.class_key]
+        ohe_celltype = OneHotEncoder(handle_unknown='ignore') # TODO : handle the case where there can be unknown celltypes in val, pex adding an output node for 'UNK'
+        y = np.array(self.y_train).reshape(-1,1) 
+        ohe_celltype.fit(y)
+        y = ohe_celltype.fit_transform(y).astype(float).todense()
+        self.y_train_onehot = ohe_celltype.transform(self.y_train)
+        self.y_val_onehot = ohe_celltype.transform(self.y_val)
+        self.y_test_onehot = ohe_celltype.transform(self.y_test)
+        self.batch_train = self.adata_train.obs[self.batch_key]
+        self.batch_val = self.adata_val.obs[self.batch_key]
+        self.batch_test = self.adata_test.obs[self.batch_key]
+        ohe_batches = OneHotEncoder()
+        batch_ID = np.array(self.batch_train).reshape(-1,1) 
+        ohe_batches.fit_transform(batch_ID).astype(float).todense()
+        self.batch_train_one_hot = ohe_batches.transform(self.batch_train)
+        self.batch_val_one_hot = ohe_batches.transform(self.batch_val)
+        self.batch_test_one_hot = ohe_batches.transform(self.batch_test)
         
     def fake_annotation(self,true_celltype,false_celltype,pct_false, train_test_random_seed=None):
         '''
@@ -391,30 +432,30 @@ class Dataset:
         true_idx= true_series[round(n*self.pct_false):].index
         obs_series_true = self.adata_train.obs[f'true_{self.class_key}'].astype('str') ## The true labels
         obs_series = self.adata_train.obs[self.class_key].astype('str') # The training labels, which include nan and faked
-        print(f'1 {obs_series_true.value_counts()}')
-        print(f'2 {obs_series_true[false_idx]}')
-        print(f'2.5 {false_idx}')
-        print(f'2.75 {len(false_idx)}')
+        # print(f'1 {obs_series_true.value_counts()}')
+        # print(f'2 {obs_series_true[false_idx]}')
+        # print(f'2.5 {false_idx}')
+        # print(f'2.75 {len(false_idx)}')
         obs_series_true[false_idx] = self.false_celltype
         obs_series[false_idx] = self.false_celltype
-        print(f'3 {obs_series_true.value_counts()}')
+        # print(f'3 {obs_series_true.value_counts()}')
         self.adata_train.obs[self.class_key] = obs_series
         adata_obs = self.adata.obs[f'true_{self.class_key}'].astype('str') # The true labels
         adata_obs_train = self.adata.obs[self.class_key].astype('str') # The training labels, which should include nan and faked
-        print(f'4 {adata_obs.value_counts()}')
-        print(f'adata_obs.index : {adata_obs.index}')
-        print(f'obs_series.index : {obs_series.index}')
+        # print(f'4 {adata_obs.value_counts()}')
+        # print(f'adata_obs.index : {adata_obs.index}')
+        # print(f'obs_series.index : {obs_series.index}')
         adata_obs.loc[obs_series_true.index] = obs_series_true # Les valeurs trafiquées
         adata_obs_train.loc[obs_series.index] = obs_series # Les valeurs trafiquées
-        print(f"il y a {len(true_series)} True ({self.true_celltype}) et {len(false_series)} False ({self.false_celltype})")
-        print(f"on fake donc {len(false_idx)} cellules avec un pct_false de {self.pct_false}")
-        print(f"adata_obs  (faked) : {adata_obs.value_counts()}") 
-        print(f"true celltype : {self.adata.obs[f'true_{self.class_key}']}")
+        # print(f"il y a {len(true_series)} True ({self.true_celltype}) et {len(false_series)} False ({self.false_celltype})")
+        # print(f"on fake donc {len(false_idx)} cellules avec un pct_false de {self.pct_false}")
+        # print(f"adata_obs  (faked) : {adata_obs.value_counts()}") 
+        # print(f"true celltype : {self.adata.obs[f'true_{self.class_key}']}")
         self.adata.obs[f'fake_{self.class_key}'] = adata_obs
         self.adata.obs[self.class_key] = adata_obs_train
         self.adata.obs['faked'] = (self.adata.obs[f'fake_{self.class_key}'] != self.adata.obs[f'true_{self.class_key}'])
         self.adata.obs['faked_color'] = self.adata.obs['faked'].replace({True : 'faked', False : 'not faked'})
-        print(self.adata.obs['faked'].value_counts())
+        # print(self.adata.obs['faked'].value_counts())
         
         
     def small_clusters_totest(self):

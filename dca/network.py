@@ -95,9 +95,10 @@ class Autoencoder():
     
     faulthandler.enable()
 
+
     def build(self):
 
-        self.input_layer = Input(shape=(self.input_size,), name='count')
+        self.input_layer = Input(shape=(self.input_size,), name='counts')
         self.sf_layer = Input(shape=(1,), name='size_factors')
         last_hidden = self.input_layer
 
@@ -208,21 +209,21 @@ class Autoencoder():
         if mode in ('denoise', 'full'):
             print('dca: Calculating reconstructions...')
 
-            adata.X = self.model.predict({'count': adata.X,
+            adata.X = self.model.predict({'counts': adata.X,
                                           'size_factors': adata.obs.size_factors})
-            print(adata.X)
+            # print(adata.X)
 #             if type(adata.raw.X) == csr_matrix:
-#                 adata.uns['dca_loss'] = self.model.test_on_batch({'count': adata.X,
+#                 adata.uns['dca_loss'] = self.model.test_on_batch({'counts': adata.X,
 #                                                                   'size_factors': adata.obs.size_factors},
 #                                                                    adata.raw.X.todense())
 #             else:
-#                 adata.uns['dca_loss'] = self.model.test_on_batch({'count': adata.X,
+#                 adata.uns['dca_loss'] = self.model.test_on_batch({'counts': adata.X,
 #                                                                   'size_factors': adata.obs.size_factors},
 #                                                                    adata.raw.X)
         if mode in ('latent', 'full'):
             print('dca: Calculating low dimensional representations...')
 
-            adata.obsm['X_dca'] = self.encoder.predict({'count': adata.X,
+            adata.obsm['X_dca'] = self.encoder.predict({'counts': adata.X,
                                                         'size_factors': adata.obs.size_factors})
         if mode == 'latent':
             adata.X = adata.raw.X.copy() #recover normalized expression values
@@ -294,8 +295,8 @@ class BatchRemovalAutoencoder(Autoencoder):
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
         output_AE = ColwiseMultLayer([mean, self.sf_layer])
-        print(type(output_AE))
-        print(output_AE.name)
+        # print(type(output_AE))
+        # print(output_AE.name)
         
         
         # Output of the batch predictor ie batch_removal
@@ -311,7 +312,7 @@ class BatchRemovalAutoencoder(Autoencoder):
                                 kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                                 name=layer_name)(classifier)
 
-        output_batch_removal = Dense(self.n_batches, activation='softmax', name='batch_removal')(classifier)
+        output_batch_removal = Dense(self.n_batches, activation='softmax', name='batch_discriminator')(classifier)
 
         self.reconstruction_loss = mean_squared_error
         self.batch_removal_loss = categorical_crossentropy
@@ -634,8 +635,8 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
         if 'X_dca_dispersion' in adata.var_keys():
             print('près du but')
-            print(adata.var['X_dca_dispersion'])
-            print(np.array(adata.var['X_dca_dispersion']))
+            # print(adata.var['X_dca_dispersion'])
+            # print(np.array(adata.var['X_dca_dispersion']))
             write_text_matrix(np.array(adata.var['X_dca_dispersion']).reshape(1, -1),
                               os.path.join(file_path, 'dispersion.tsv'),
                               colnames=colnames, transpose=True)
@@ -650,7 +651,7 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
 
     def build(self):
 
-        self.input_layer = Input(shape=(self.input_size,), name='count')
+        self.input_layer = Input(shape=(self.input_size,), name='counts')
         self.sf_layer = Input(shape=(1,), name='size_factors')
         last_hidden = self.input_layer
 
@@ -760,7 +761,7 @@ class NBForkAutoencoder(NBAutoencoder):
 
     def build(self):
 
-        self.input_layer = Input(shape=(self.input_size,), name='count')
+        self.input_layer = Input(shape=(self.input_size,), name='counts')
         self.sf_layer = Input(shape=(1,), name='size_factors')
         last_hidden = self.input_layer
 
@@ -857,7 +858,7 @@ class NBForkAutoencoder(NBAutoencoder):
 
 
 AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,
-            'contrastive': ContrastiveAutoencoder, 'batch_removal' : BatchRemovalAutoencoder, ### Added Antoine Collin ###
+            'contrastive': ContrastiveAutoencoder, 'batch_discriminator' : BatchRemovalAutoencoder, ### Added Antoine Collin ###
             'nb': NBConstantDispAutoencoder, 'nb-conddisp': NBAutoencoder,
             'nb-shared': NBSharedAutoencoder, 'nb-fork': NBForkAutoencoder,
             'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder,

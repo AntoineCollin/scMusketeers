@@ -101,7 +101,8 @@ class DCA_Permuted:
         self.use_raw_as_output = use_raw_as_output
         
     def make_net(self, Dataset):
-        if self.ae_type == 'batch_removal':
+        print(self.ae_type)
+        if self.ae_type == 'batch_discriminator':
             n_batches = len(Dataset.adata.obs[Dataset.batch_key].unique())
             self.network_kwds['n_batches'] = n_batches # Necessary to build the output layer of the model
             self.training_kwds['batch_key'] = Dataset.batch_key # Necessary to indicate to the permutation generator to yield batch ID during training
@@ -116,7 +117,10 @@ class DCA_Permuted:
     def train_net(self, Dataset):
         if type(Dataset.adata_train.X) != np.ndarray :
             Dataset.adata_train.X = Dataset.adata_train.X.toarray()
-        self.hist = train(adata = Dataset.adata_train, network = self.net, use_raw_as_output=self.use_raw_as_output,unlabeled_category = self.unlabeled_category, **self.training_kwds)
+        self.hist = train(adata = Dataset.adata_train,
+                           network = self.net, 
+                           use_raw_as_output=self.use_raw_as_output,
+                           unlabeled_category = self.unlabeled_category, **self.training_kwds)
         return self.hist
         
     def predict_net(self, Dataset):
@@ -135,14 +139,14 @@ class DCA_Permuted:
         
         if self.ae_type == 'contrastive':
             corrected_count = anndata.AnnData() # Does not yet handle returning corrected counts
-            latent_space = anndata.AnnData(self.net.encoder.predict({'count': Dataset.adata.X, 'size_factors': Dataset.adata.obs.size_factors, 'similarity':np.array([True] * Dataset.adata.n_obs)}), obs=Dataset.adata.obs)
+            latent_space = anndata.AnnData(self.net.encoder.predict({'counts': Dataset.adata.X, 'size_factors': Dataset.adata.obs.size_factors, 'similarity':np.array([True] * Dataset.adata.n_obs)}), obs=Dataset.adata.obs)
         # similarity is just a place holder here it only has an impact during training anyway
-        if self.ae_type == 'batch_removal':
+        if self.ae_type == 'batch_discriminator':
             corrected_count = anndata.AnnData() # Does not yet handle returning corrected counts
-            latent_space = anndata.AnnData(self.net.encoder.predict({'count': Dataset.adata.X, 'size_factors': Dataset.adata.obs.size_factors}), obs=Dataset.adata.obs)
+            latent_space = anndata.AnnData(self.net.encoder.predict({'counts': Dataset.adata.X, 'size_factors': Dataset.adata.obs.size_factors}), obs=Dataset.adata.obs)
         else :
             corrected_count= self.net.predict(Dataset.adata, mode='denoise', return_info=True, copy=True)
-            latent_space = anndata.AnnData(self.net.encoder.predict({'count': Dataset.adata.X, 'size_factors': Dataset.adata.obs.size_factors}), obs=Dataset.adata.obs)
+            latent_space = anndata.AnnData(self.net.encoder.predict({'counts': Dataset.adata.X, 'size_factors': Dataset.adata.obs.size_factors}), obs=Dataset.adata.obs)
         return latent_space,corrected_count
     
     def save_net(self, save_path):
@@ -241,7 +245,7 @@ class DCA_into_Perm:
         # denoised_adata = self.denoise_net.predict(Dataset.adata, mode='denoise', return_info=True, copy=True)
         # Dataset.adata.X = Dataset.adata.raw.X # Making sure .X preserves raw values after predict (which can modify the .X in place)
         self.denoised_full_adata.obs['size_factors'] = self.denoised_full_adata.obs.n_counts / np.median(self.denoised_full_adata.obs.n_counts)
-        latent_space = anndata.AnnData(self.permute_net.encoder.predict({'count': self.denoised_full_adata.X, 'size_factors': self.denoised_full_adata.obs.size_factors}), obs=Dataset.adata.obs)
+        latent_space = anndata.AnnData(self.permute_net.encoder.predict({'counts': self.denoised_full_adata.X, 'size_factors': self.denoised_full_adata.obs.size_factors}), obs=Dataset.adata.obs)
         corrected_count= self.permute_net.predict(self.denoised_full_adata, mode='denoise', return_info=True, copy=True)
         return latent_space,corrected_count
         

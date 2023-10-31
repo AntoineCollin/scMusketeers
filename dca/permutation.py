@@ -1,6 +1,7 @@
 import scanpy as sc
 import random
 import numpy as np
+import scipy
 import pandas as pd
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
@@ -31,11 +32,11 @@ def random_derangement(array):
                 return array
 
 def make_training_pairs(ind_classes, n_perm):
-    """
+    '''
     Creates n_perm permutations of indices for the indices of a particular class.
     ind_classes : the dataframe index of interest for a particular class
     n_perm : number of permutations
-    """
+    '''
     n_c = len(ind_classes)
     # X_1 = [[ind_classes[i]] * n_perm for i in range(n_c)] # Duplicate the index
     X_1 = ind_classes * n_perm
@@ -45,10 +46,10 @@ def make_training_pairs(ind_classes, n_perm):
     return X_1, X_perm
 
 def make_training_set(y, n_perm,same_class_pct=None,unlabeled_category='UNK'):
-    """
+    '''
     Creates the total list of permutations to be used by the generator to create shuffled training batches
     same_class_pct : When using contrastive loss, indicates the pct of samples to permute within their class. set to None when not using contrastive loss
-    """
+    '''
     permutations = [[],[]]
     y = np.array(y).astype(str)
     print('switching perm')
@@ -78,16 +79,30 @@ def make_training_set(y, n_perm,same_class_pct=None,unlabeled_category='UNK'):
 def batch_generator_training_permuted(adata, 
                                     class_key, 
                                     batch_size,
-                                    n_perm, 
                                     use_raw_as_output,
+                                    ret_input_only = False,
+                                    n_perm=1, # TODO : remove n_perm. We always use n_perm=1, one epoch = one pass of the dataset
                                     change_perm = True,
                                     same_class_pct=None, 
                                     batch_key=None, 
-                                    unlabeled_category='UNK'):
-    """
-    Permuted batch generation for dca. adata should have an obs field containing size factors.adata should have been processed by the dca normalize function therefore it should already be in dense form.
-    """
-    print(adata)
+                                    unlabeled_category='UNK',
+                                    use_perm = True):
+    '''
+    Permuted batch generation for dca. adata should have an obs field containing size factors.adata should have been 
+    processed by the dca normalize function therefore it should already be in dense form.
+
+    adata : the adata object to generate
+    class_key : the key on which to make the permutations (usually celltypes)
+    batch_size : the size of the batches to yield
+    use_raw_as_output : wether to yield the raw data as output, independantly form the data yielded as input
+    ret_input_only : weither to return only inputs. Used in the case of custom training.
+    change_perm : changes the permutation used once the whole dataset has been processed once. Always use true
+    same_class_pct : defines the percentage of permutation which are made within class. Defaults is all permutation are within class.
+    Otherwise, some observations will be matched with an observation from a different class. Mostly used for the contrastive loss
+    batch_key : the key of the batches. Used to yield the batch as well when using DANN
+    unlabeled_category : unknwon classes in adata.obs['class_key']
+    use_perm : weither to use permutation or not. If False, this is simply an AE generator which yields X for input and output batch by batch 
+    '''
     X = adata.X
     if use_raw_as_output:
         X_out = adata.raw.X
@@ -96,20 +111,26 @@ def batch_generator_training_permuted(adata,
     sf = adata.obs['size_factors']
     y = adata.obs[class_key]
     perm_indices = make_training_set(y = y, n_perm = n_perm,same_class_pct=same_class_pct, unlabeled_category = unlabeled_category)
+    if batch_key: # In this case, we're using batch removal AE so we need to yield the batch ID
+        ohe_batches = OneHotEncoder()
+        batch_ID = np.array(adata.obs[batch_key]).reshape(-1,1) # batch_ID refers to the batches of the single cell experiment whereas batch_size refers to the training batches of the training procedure
+        batch_ID = ohe_batches.fit_transform(batch_ID).astype(float).todense()
+    ohe_celltype = OneHotEncoder()
+    y = np.array(y).reshape(-1,1)
+    y = ohe_celltype.fit_transform(y).astype(float).todense()
     samples_per_epoch = len(perm_indices)
     number_of_batches = samples_per_epoch/batch_size
     counter=0
     perm_indices = sklearn.utils.shuffle(perm_indices, random_state = make_random_seed()) # Change to sklearn.utils.shuffle
     ind_in = [ind[0] for ind in perm_indices]
-    ind_out = [ind[1] for ind in perm_indices]
+    if use_perm:
+        ind_out = [ind[1] for ind in perm_indices]
+    else:
+        ind_out = ind_in # Here, we're not using permutations
     if same_class_pct: # In this case, we're using contrastive AE so we need to yield a similarity indicator
         sim = y[ind_in].values == y[ind_out].values
     #X =  X[shuffle_index, :]
     #y =  y[shuffle_index]
-    if batch_key: # In this case, we're using batch removal AE so we need to yield the batch ID
-        ohe = OneHotEncoder()
-        batch_ID = adata.obs[batch_key] # batch_ID refers to the batches of the single cell experiment whereas batch_size refers to the training batches of the training procedure
-        batch_ID = ohe.fit_transform(np.array(batch_ID).reshape(-1, 1)).toarray()
     i=0
     while 1:
         if counter == samples_per_epoch//batch_size :
@@ -123,28 +144,46 @@ def batch_generator_training_permuted(adata,
         # X_out_batch = X[X_out_batch,:].todense()
         # X_out_batch = np.array(X_out_batch).reshape(X_out_batch.shape[0], X_out_batch.shape[1], 1)
         sf_in_batch = sf[index_in_batch]
+        y_in_batch = y[index_in_batch]
         X_in_batch = X[index_in_batch,:]
         X_out_batch = X_out[ind_out_batch,:]
+        if (type(X) == scipy.sparse.csr_matrix) or (type(X) == scipy.sparse.csr_matrix):
+            X_in_batch = X_in_batch.todense()
+            X_out_batch = X_out_batch.todense()
         counter += 1
         if same_class_pct: # We're using a contrastive loss so we need to yield similarity
             sim_in_batch = sim[index_in_batch]
-            yield({'count': X_in_batch,'size_factors' : sf_in_batch, 'similarity' : sim_in_batch}, X_out_batch) #first dim is the number of batches, next dims are the shape of input
+            if ret_input_only:
+                yield({'counts': X_in_batch,'size_factors' : sf_in_batch, 'similarity' : sim_in_batch})
+            else:
+                yield({'counts': X_in_batch,'size_factors' : sf_in_batch, 'similarity' : sim_in_batch}, {X_out_batch}) #first dim is the number of batches, next dims are the shape of input
         if batch_key:
             batch_ID_in_batch = batch_ID[index_in_batch,:] # The batch ID corresponding to the input cells
-            batch_ID_in_batch=1-batch_ID_in_batch
-            yield({'count': X_in_batch,'size_factors' : sf_in_batch}, {'reconstruction': X_out_batch,'batch_removal':batch_ID_in_batch})
+            # batch_ID_in_batch = 1-batch_ID_in_batch # ???
+            if ret_input_only:
+                yield({'counts': X_in_batch,'size_factors' : sf_in_batch})
+            else:
+                # yield({'counts': X_in_batch,'size_factors' : sf_in_batch}, {'batch_discriminator':batch_ID_in_batch,
+                #                                                            'reconstruction': X_out_batch})
+                yield({'counts': X_in_batch,'size_factors' : sf_in_batch}, {'classifier':y_in_batch,
+                                                                           'batch_discriminator':batch_ID_in_batch,
+                                                                           'reconstruction': X_out_batch})
         else:
-            yield({'count': X_in_batch,'size_factors' : sf_in_batch}, X_out_batch) #first dim is the number of batches, next dims are the shape of input
-        if (counter == samples_per_epoch//batch_size and samples_per_epoch % batch_size == 0) or (counter > number_of_batches):
+            if ret_input_only:
+                yield({'counts': X_in_batch,'size_factors' : sf_in_batch})
+            else:
+                yield({'counts': X_in_batch,'size_factors' : sf_in_batch}, X_out_batch) #first dim is the number of batches, next dims are the shape of input
+        if (counter == samples_per_epoch//batch_size and samples_per_epoch % batch_size == 0) or (counter > number_of_batches): # The entire dataset has been processed, we reset the state of the generator
             if change_perm:
                 perm_indices = make_training_set(y = y, n_perm = n_perm,same_class_pct=same_class_pct, unlabeled_category = unlabeled_category)
-            perm_indices = sklearn.utils.shuffle(perm_indices, random_state = make_random_seed()) # Change to sklearn.utils.shuffle
+            random_seed = make_random_seed()
+            perm_indices = sklearn.utils.shuffle(perm_indices, random_state = random_seed) # Shuffles the orders of observations
             ind_in = [ind[0] for ind in perm_indices]
             ind_out = [ind[1] for ind in perm_indices]
             if same_class_pct:
                 sim = y[ind_in].values == y[ind_out].values
             debug = pd.DataFrame({'in':ind_in,'out':ind_out})
-            print(make_random_seed())
+            print(random_seed)
             # debug.to_csv(f'/home/acollin/jobs/dca_jobs/workflow_jobs/log_debug/log{i}.csv')
             i+=1
             counter=0

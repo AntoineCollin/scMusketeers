@@ -37,6 +37,7 @@ import faulthandler
 tf.compat.v1.disable_eager_execution()
 faulthandler.enable()
 
+
 def train(adata, network, class_key, output_dir=None, optimizer='adam', learning_rate=None,
           epochs=300, reduce_lr=10, output_subset=None, use_raw_as_output=True,
           early_stop=15, batch_size=32, clip_grad=5., save_weights=False,
@@ -58,9 +59,9 @@ def train(adata, network, class_key, output_dir=None, optimizer='adam', learning
     print(model, loss, optimizer)
     print(type(network))
     if type(network) == BatchRemovalAutoencoder : # We compile the model differently with the combined loss
-        model.compile(loss = {'batch_removal': network.batch_removal_loss,
+        model.compile(loss = {'batch_discriminator': network.batch_removal_loss,
                               'reconstruction': network.reconstruction_loss},
-                      loss_weights = {'batch_removal': network.batch_removal_weight, # we take the opposite because we need to maximize this loss
+                      loss_weights = {'batch_discriminator': network.batch_removal_weight, # we take the opposite because we need to maximize this loss... except we don't...
                                       'reconstruction' : 1-network.batch_removal_weight},
                       optimizer = optimizer) 
     else:
@@ -81,10 +82,6 @@ def train(adata, network, class_key, output_dir=None, optimizer='adam', learning
     if early_stop:
         es_cb = EarlyStopping(monitor='loss', patience=early_stop, verbose=verbose)
         callbacks.append(es_cb)
-    if tensorboard:
-        tb_log_dir = os.path.join(output_dir, 'tb')
-        tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1, write_grads=True)
-        callbacks.append(tb_cb)
 
     if verbose: model.summary()
 ##### Addded Antoine Collin ######
@@ -100,7 +97,8 @@ def train(adata, network, class_key, output_dir=None, optimizer='adam', learning
                                                            batch_key = batch_key,
                                                            change_perm = change_perm,
                                                            use_raw_as_output = use_raw_as_output, 
-                                                           unlabeled_category=unlabeled_category),
+                                                           unlabeled_category=unlabeled_category,
+                                                           ret_input_only = False),
                          epochs=epochs,
                          steps_per_epoch = samples_per_epoch // batch_size + 1,
                          callbacks=callbacks,
@@ -110,7 +108,7 @@ def train(adata, network, class_key, output_dir=None, optimizer='adam', learning
 ##### End Addded Antoine Collin ######
                   
     else:
-        inputs = {'count': adata.X, 'size_factors': adata.obs.size_factors}
+        inputs = {'counts': adata.X, 'size_factors': adata.obs.size_factors}
 
         if output_subset:
             gene_idx = [np.where(adata.raw.var_names == x)[0][0] for x in output_subset]
@@ -200,8 +198,7 @@ def train_with_args(args):
                    output_subset=genelist,
                    optimizer=args.optimizer,
                    clip_grad=args.gradclip,
-                   save_weights=args.saveweights,
-                   tensorboard=args.tensorboard)
+                   save_weights=args.saveweights)
 
     if genelist:
         predict_columns = adata.var_names[[np.where(adata.var_names==x)[0][0] for x in genelist]]

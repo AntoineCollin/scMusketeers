@@ -355,8 +355,8 @@ class Workflow:
 #             self.predicted_class = self.predictor.y_pred
 #             self.latent_space.obs[f'{self.class_key}_pred'] = self.predicted_class
         if type(self.run_file[model_spec][hidden_size]) == tuple:
-            self.run_file[model_spec][hidden_size] = str(self.run_file[model_spec][hidden_size])
-        self.latent_space.uns['runfile_dict'] = self.run_file
+            stored_rf = str(self.run_file[model_spec][hidden_size])
+        self.latent_space.uns['runfile_dict'] = stored_rf
         self.run_done = True
         self.stop_time = time.time()
 
