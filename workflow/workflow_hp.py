@@ -4,7 +4,7 @@ try :
     from .predictor import MLP_Predictor
     from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
     from .utils import get_optimizer, scanpy_to_input, default_value
-    
+
     
 except ImportError:
     from load import load_runfile
@@ -12,6 +12,8 @@ except ImportError:
     from predictor import MLP_Predictor
     from model import DCA_Permuted,Scanvi
     from utils import get_optimizer, scanpy_to_input, default_value
+from dca.utils import str2bool,tuple_to_scalar
+import argparse
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from dca.scPermut_subclassing import DANN_AE
 from dca.permutation import batch_generator_training_permuted
@@ -167,13 +169,13 @@ class Workflow:
         # self.init = self.run_file[model_spec][init] # TODO : remove, obsolete in the case of DANN_AE
         # self.batch_removal_weight = self.run_file[model_spec][batch_removal_weight] # TODO : remove, obsolete in the case of DANN_AE
         # model training parameters
-        self.epochs = self.run_file[model_training_spec][epochs]
-        self.reduce_lr = self.run_file[model_training_spec][reduce_lr]
-        self.early_stop = self.run_file[model_training_spec][early_stop]
+        self.epochs = self.run_file[model_training_spec][epochs] # TODO : remove, obsolete in the case of DANN_AE, we use training scheme
+        self.reduce_lr = self.run_file[model_training_spec][reduce_lr] # TODO : not implemented yet for DANN_AE 
+        self.early_stop = self.run_file[model_training_spec][early_stop] # TODO : not implemented yet for DANN_AE 
         self.batch_size = self.run_file[model_training_spec][batch_size]
         self.optimizer = self.run_file[model_training_spec][optimizer]
-        self.verbose = self.run_file[model_training_spec][verbose]
-        self.threads = self.run_file[model_training_spec][threads]
+        # self.verbose = self.run_file[model_training_spec][verbose] # TODO : not implemented yet for DANN_AE 
+        # self.threads = self.run_file[model_training_spec][threads] # TODO : not implemented yet for DANN_AE 
         self.learning_rate = self.run_file[model_training_spec][learning_rate]
         # self.n_perm = self.run_file[model_training_spec][n_perm] # TODO : remove, n_perm is always 1
         # self.permute = self.run_file[model_training_spec][permute] # TODO : remove, obsolete in the case of DANN_AE, handled during training
@@ -467,7 +469,8 @@ class Workflow:
                                      dann_los_fn = self.dann_loss_fn,
                                      rec_loss_fn = self.rec_los_fn)
         opt_metric =  history['val']['mcc'] # Which metric and how should I retrieve it
-        self.run.stop()
+        if self.log_neptune:
+            self.run.stop()
         return opt_metric
     
         self.DR_hist = self.model.train_net(self.dataset)
@@ -494,13 +497,12 @@ class Workflow:
 
         if self.log_neptune:
             for group in history:
-                for par,val in self.run_file[k].items():
-                    self.run[f"training/{k}/{par}"] = [] 
+                for par,val in self.run_file[group].items():
+                    self.run[f"training/{group}/{par}"] = [] 
         i = 0
         
         total_epochs = np.sum([n_epochs for _, n_epochs, _ in training_scheme])
         running_epoch = 0
-
         
         for (strategy, n_epochs, use_perm) in training_scheme:
             if verbose :
@@ -513,8 +515,8 @@ class Workflow:
                 
                 if self.log_neptune:
                     for group in history:
-                        for par,val in self.run_file[k].items():
-                            self.run[f"training/{k}/{par}"].append(val[-1])
+                        for par,value in self.run_file[k].items():
+                            self.run[f"training/{k}/{par}"].append(value[-1])
 
             if verbose:
                 time_out = time.time()
@@ -616,12 +618,21 @@ class Workflow:
             mean_rec_loss = self.mean_rec_loss_fn(rec_loss)
 
             self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
-        history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_los_fn, rec_loss_fn)
+        history, _, clas, dann, rec = self.evaluation_pass_epoch_end(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_los_fn, rec_loss_fn)
 
         return history, _, clas, dann, rec
 
-    def evaluation_pass(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_los_fn, rec_loss_fn):
-        for group in ['train', 'val']: # evaluation round
+    def evaluation_pass(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_los_fn, rec_loss_fn, on = 'epoch_end'):
+        '''
+        evaluate model and logs metrics. Depending on "on parameter, computes it on train and val or train,val and test.
+
+        on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
+        '''
+        if on == "epoch_end":
+            split_groups = ['train', 'val']
+        if on == "training_end": 
+            split_groups = ['train', 'val', 'test']
+        for group in split_groups: # evaluation round
             _, clas, dann, rec = ae.predict(scanpy_to_input(adata_list[group],['size_factors'])).values()
     #         return _, clas, dann, rec 
             clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas))
@@ -636,6 +647,8 @@ class Workflow:
             for metric in self.metrics_list: # only classification metrics ATM
                 history[group][metric] += [self.metrics_list[metric](y_list[group].argmax(axis=1), clas.argmax(axis=1))] # y_list are onehot encoded
         return history, _, clas, dann, rec
+    
+
 
 
     def freeze_layers(self, ae, layers_to_freeze):
@@ -674,6 +687,12 @@ class Workflow:
         for l in ae.layers:
             l.trainable = True
     
+
+    def get_scheme(self):
+        if training_scheme == 'warmup_into_full':
+            pass
+
+
     def get_losses(self):
         if self.rec_loss_fn == 'MSE':
             self.rec_loss_fn = tf.keras.losses.mean_squared_error
@@ -830,3 +849,67 @@ class Workflow:
 
     def __str__(self):
         return str(self.run_file)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    # parser.add_argument('--run_file', type = , default = , help ='')
+    # parser.add_argument('--workflow_ID', type = , default = , help ='')
+    parser.add_argument('--dataset_name', type = str, default = 'disco_ajrccm_downsampled', help ='Name of the dataset to use, should indicate a raw h5ad AnnData file')
+    parser.add_argument('--class_key', type = str, default = 'celltype_lv2_V3', help ='Key of the class to classify')
+    parser.add_argument('--batch_key', type = str, default = 'manip', help ='Key of the batches')
+    parser.add_argument('--filter_min_counts', type=str2bool, nargs='?',const=True, default=True, help ='Filters genes with <1 counts')# TODO :remove, we always want to do that
+    parser.add_argument('--normalize_size_factors', type=str2bool, nargs='?',const=True, default=True, help ='Weither to normalize dataset or not')
+    parser.add_argument('--scale_input', type=str2bool, nargs='?',const=True, default=True, help ='Weither to scale input the count values')
+    parser.add_argument('--logtrans_input', type=str2bool, nargs='?',const=True, default=True, help ='Weither to log transform count values')
+    parser.add_argument('--use_hvg', type=int, nargs='?', const=10000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
+    # parser.add_argument('--reduce_lr', type = , default = , help ='')
+    # parser.add_argument('--early_stop', type = , default = , help ='')
+    parser.add_argument('--batch_size', type = int, nargs='?', default = 128, help ='Training batch size')
+    # parser.add_argument('--verbose', type = , default = , help ='')
+    # parser.add_argument('--threads', type = , default = , help ='')
+    parser.add_argument('--mode', type = str, default = 'percentage', help ='Train test split mode to be used by Dataset.train_split')
+    parser.add_argument('--pct_split', type = float,nargs='?', default = 0.9, help ='')
+    parser.add_argument('--obs_key', type = str,nargs='?', default = 'manip', help ='')
+    parser.add_argument('--n_keep', type = int,nargs='?', default = None, help ='')
+    parser.add_argument('--split_strategy', type = str,nargs='?', default = None, help ='')
+    parser.add_argument('--keep_obs', type = str,nargs='?',default = None, help ='')
+    parser.add_argument('--train_test_random_seed', type = float,nargs='?', default = 0, help ='')
+    parser.add_argument('--obs_subsample', type = str,nargs='?', default = None, help ='')
+    parser.add_argument('--make_fake', type=str2bool, nargs='?',const=False, default=False, help ='')
+    parser.add_argument('--true_celltype', type = str,nargs='?', default = None, help ='')
+    parser.add_argument('--false_celltype', type = str,nargs='?', default = None, help ='')
+    parser.add_argument('--pct_false', type = float,nargs='?', default = None, help ='')
+    parser.add_argument('--clas_loss_fn', type = str,nargs='?', choices = ['MSE'], default = 'MSE' , help ='Loss of the classification branch')
+    parser.add_argument('--dann_los_fn', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
+    parser.add_argument('--rec_loss_fn', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Reconstruction loss of the autoencoder')
+    parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
+    parser.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
+    parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop'], default = 'adam' , help ='Name of the optimizer to use')
+    parser.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Wight of the classification loss')
+    parser.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Wight of the DANN loss')
+    parser.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Wight of the reconstruction loss')
+    parser.add_argument('--ae_hidden_size', type = int,nargs='+', default = [128,64,128], help ='Hidden sizes of the successive ae layers')
+    parser.add_argument('--ae_hidden_dropout', type =float, nargs='?', default = None, help ='')
+    parser.add_argument('--ae_activation', type = str ,nargs='?', default = 'relu' , help ='')
+    parser.add_argument('--ae_output_activation', type = str,nargs='?', default = 'linear', help ='')
+    parser.add_argument('--ae_init', type = str,nargs='?', default = 'glorot_uniform', help ='')
+    parser.add_argument('--ae_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
+    parser.add_argument('--ae_l1_enc_coef', type = float,nargs='?', default = None, help ='')
+    parser.add_argument('--ae_l2_enc_coef', type = float,nargs='?', default = None, help ='')
+    parser.add_argument('--class_hidden_size', type = int,nargs='+', default = [64], help ='Hidden sizes of the successive classification layers')
+    parser.add_argument('--class_hidden_dropout', type =float, nargs='?', default = None, help ='')
+    parser.add_argument('--class_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
+    parser.add_argument('--class_activation', type = str ,nargs='?', default = 'relu' , help ='')
+    parser.add_argument('--class_output_activation', type = str,nargs='?', default = 'softmax', help ='')
+    parser.add_argument('--dann_hidden_size', type = int,nargs='?', default = [64], help ='')
+    parser.add_argument('--dann_hidden_dropout', type =float, nargs='?', default = None, help ='')
+    parser.add_argument('--dann_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
+    parser.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
+    parser.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
+    parser.add_argument('--training_scheme', type = str,nargs='?', default = ' ', help ='')
+    parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
+
+    run_file = parser.parse_args()
+
