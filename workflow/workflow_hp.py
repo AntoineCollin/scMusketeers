@@ -182,6 +182,7 @@ class Workflow:
         # self.verbose = self.run_file[model_training_spec][verbose] # TODO : not implemented yet for DANN_AE
         # self.threads = self.run_file[model_training_spec][threads] # TODO : not implemented yet for DANN_AE
         self.learning_rate = self.run_file.learning_rate
+        self.n_perm = 1
         # self.n_perm = self.run_file[model_training_spec][n_perm] # TODO : remove, n_perm is always 1
         # self.permute = self.run_file[model_training_spec][permute] # TODO : remove, obsolete in the case of DANN_AE, handled during training
         # self.change_perm = self.run_file[model_training_spec][change_perm] # TODO : remove, change_perm is always True
