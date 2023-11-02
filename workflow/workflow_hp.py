@@ -1,18 +1,20 @@
+import sys
+import os
 try :
     from .load import load_runfile
     from .dataset import Dataset
     from .predictor import MLP_Predictor
     from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
-    from .utils import get_optimizer, scanpy_to_input, default_value
+    from .utils import get_optimizer, scanpy_to_input, default_value, str2bool
 
-    
+
 except ImportError:
     from load import load_runfile
     from dataset import Dataset
     from predictor import MLP_Predictor
     from model import DCA_Permuted,Scanvi
-    from utils import get_optimizer, scanpy_to_input, default_value
-from dca.utils import str2bool,tuple_to_scalar
+    from utils import get_optimizer, scanpy_to_input, default_value, str2bool
+# from dca.utils import str2bool,tuple_to_scalar
 import argparse
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from dca.scPermut_subclassing import DANN_AE
@@ -28,12 +30,15 @@ import anndata
 import pandas as pd
 import scanpy as sc
 import anndata
-import numpy as np 
+import numpy as np
 import os
 import sys
 import keras
 import tensorflow as tf
 import neptune
+
+from ax.service.managed_loop import optimize
+# from ax import RangeParameter, SearchSpace, ParameterType, FixedParameter, ChoiceParameter
 
 workflow_ID = 'workflow_ID'
 
@@ -48,7 +53,7 @@ normalize_size_factors = 'normalize_size_factors'
 scale_input = 'scale_input'
 logtrans_input = 'logtrans_input'
 use_hvg = 'use_hvg'
-    
+
 model_spec = 'model_spec'
 model_name = 'model_name'
 ae_type = 'ae_type'
@@ -88,7 +93,7 @@ keep_obs = 'keep_obs'
 train_test_random_seed = 'train_test_random_seed'
 use_TEST = 'use_TEST'
 obs_subsample = 'obs_subsample'
-    
+
 dataset_fake_annotation = 'dataset_fake_annotation'
 make_fake = 'make_fake'
 true_celltype = 'true_celltype'
@@ -96,8 +101,8 @@ false_celltype = 'false_celltype'
 pct_false = 'pct_false'
 
 predictor_spec = 'predictor_spec'
-predictor_model = 'predictor_model' 
-predict_key = 'predict_key' 
+predictor_model = 'predictor_model'
+predict_key = 'predict_key'
 predictor_hidden_sizes = 'predictor_hidden_sizes'
 predictor_epochs = 'predictor_epochs'
 predictor_batch_size = 'predictor_batch_size'
@@ -138,22 +143,22 @@ dann_output_activation = 'dann_output_activation'
 
 
 class Workflow:
-    def __init__(self, run_file, working_dir): 
+    def __init__(self, run_file, working_dir):
         '''
         run_file : a dictionary outputed by the function load_runfile
         '''
         self.run_file = run_file
-        self.workflow_ID = self.run_file[workflow_ID]
+        self.workflow_ID = self.run_file.workflow_id
         # dataset identifiers
-        self.dataset_name = self.run_file[dataset][dataset_name]
-        self.class_key = self.run_file[dataset][class_key]
-        self.batch_key = self.run_file[dataset][batch_key]
+        self.dataset_name = self.run_file.dataset_name
+        self.class_key = self.run_file.class_key
+        self.batch_key = self.run_file.batch_key
         # normalization parameters
-        self.filter_min_counts = self.run_file[dataset_normalize][filter_min_counts] # TODO :remove, we always want to do that
-        self.normalize_size_factors = self.run_file[dataset_normalize][normalize_size_factors]
-        self.scale_input = self.run_file[dataset_normalize][scale_input]
-        self.logtrans_input = self.run_file[dataset_normalize][logtrans_input]
-        self.use_hvg = self.run_file[dataset_normalize][use_hvg]
+        self.filter_min_counts = self.run_file.filter_min_counts # TODO :remove, we always want to do that
+        self.normalize_size_factors = self.run_file.normalize_size_factors
+        self.scale_input = self.run_file.scale_input
+        self.logtrans_input = self.run_file.logtrans_input
+        self.use_hvg = self.run_file.use_hvg
         # model parameters
         # self.model_name = self.run_file[model_spec][model_name] # TODO : remove, obsolete in the case of DANN_AE
         # self.ae_type = self.run_file[model_spec][ae_type] # TODO : remove, obsolete in the case of DANN_AE
@@ -162,21 +167,21 @@ class Workflow:
         #     self.hidden_size = [2*self.hidden_size, self.hidden_size, 2*self.hidden_size] # TODO : remove, obsolete in the case of DANN_AE
         # self.hidden_dropout = self.run_file[model_spec][hidden_dropout] # TODO : remove, obsolete in the case of DANN_AE
         # if not self.hidden_dropout: # TODO : remove, obsolete in the case of DANN_AE
-        #     self.hidden_dropout = 0 
+        #     self.hidden_dropout = 0
         # self.hidden_dropout = len(self.hidden_size) * [self.hidden_dropout] # TODO : remove, obsolete in the case of DANN_AE
         # self.batchnorm = self.run_file[model_spec][batchnorm] # TODO : remove, obsolete in the case of DANN_AE
         # self.activation = self.run_file[model_spec][activation] # TODO : remove, obsolete in the case of DANN_AE
         # self.init = self.run_file[model_spec][init] # TODO : remove, obsolete in the case of DANN_AE
         # self.batch_removal_weight = self.run_file[model_spec][batch_removal_weight] # TODO : remove, obsolete in the case of DANN_AE
         # model training parameters
-        self.epochs = self.run_file[model_training_spec][epochs] # TODO : remove, obsolete in the case of DANN_AE, we use training scheme
-        self.reduce_lr = self.run_file[model_training_spec][reduce_lr] # TODO : not implemented yet for DANN_AE 
-        self.early_stop = self.run_file[model_training_spec][early_stop] # TODO : not implemented yet for DANN_AE 
-        self.batch_size = self.run_file[model_training_spec][batch_size]
-        self.optimizer = self.run_file[model_training_spec][optimizer]
-        # self.verbose = self.run_file[model_training_spec][verbose] # TODO : not implemented yet for DANN_AE 
-        # self.threads = self.run_file[model_training_spec][threads] # TODO : not implemented yet for DANN_AE 
-        self.learning_rate = self.run_file[model_training_spec][learning_rate]
+        # self.epochs = self.run_file.epochs # TODO : remove, obsolete in the case of DANN_AE, we use training scheme
+        # self.reduce_lr = self.run_file.reduce_lr # TODO : not implemented yet for DANN_AE
+        # self.early_stop = self.run_file.early_stop # TODO : not implemented yet for DANN_AE
+        self.batch_size = self.run_file.batch_size
+        # self.optimizer = self.run_file.optimizer
+        # self.verbose = self.run_file[model_training_spec][verbose] # TODO : not implemented yet for DANN_AE
+        # self.threads = self.run_file[model_training_spec][threads] # TODO : not implemented yet for DANN_AE
+        self.learning_rate = self.run_file.learning_rate
         # self.n_perm = self.run_file[model_training_spec][n_perm] # TODO : remove, n_perm is always 1
         # self.permute = self.run_file[model_training_spec][permute] # TODO : remove, obsolete in the case of DANN_AE, handled during training
         # self.change_perm = self.run_file[model_training_spec][change_perm] # TODO : remove, change_perm is always True
@@ -188,20 +193,20 @@ class Workflow:
         # self.same_class_pct=self.run_file[model_training_spec][same_class_pct] # TODO : Not yet handled by DANN_AE, the case where we use constrastive loss
 
         # train test split # TODO : Simplify this, or at first only use the case where data is split according to batch
-        self.mode = self.run_file[dataset_train_split][mode]
-        self.pct_split = self.run_file[dataset_train_split][pct_split]
-        self.obs_key = self.run_file[dataset_train_split][obs_key]
-        self.n_keep = self.run_file[dataset_train_split][n_keep]
-        self.split_strategy = self.run_file[dataset_train_split][split_strategy]
-        self.keep_obs = self.run_file[dataset_train_split][keep_obs]
-        self.train_test_random_seed = self.run_file[dataset_train_split][train_test_random_seed]
+        self.mode = self.run_file.mode
+        self.pct_split = self.run_file.pct_split
+        self.obs_key = self.run_file.obs_key
+        self.n_keep = self.run_file.n_keep
+        self.split_strategy = self.run_file.split_strategy
+        self.keep_obs = self.run_file.keep_obs
+        self.train_test_random_seed = self.run_file.train_test_random_seed
         # self.use_TEST = self.run_file[dataset_train_split][use_TEST] # TODO : remove, obsolete in the case of DANN_AE
-        self.obs_subsample = self.run_file[dataset_train_split][obs_subsample]
+        self.obs_subsample = self.run_file.obs_subsample
         # Create fake annotations
-        self.make_fake = self.run_file[dataset_fake_annotation][make_fake]
-        self.true_celltype = self.run_file[dataset_fake_annotation][true_celltype]
-        self.false_celltype = self.run_file[dataset_fake_annotation][false_celltype]
-        self.pct_false = self.run_file[dataset_fake_annotation][pct_false]
+        self.make_fake = self.run_file.make_fake
+        self.true_celltype = self.run_file.true_celltype
+        self.false_celltype = self.run_file.false_celltype
+        self.pct_false = self.run_file.pct_false
         # predictor parameters # TODO : remove, obsolete in the case of DANN_AE, predictor is directly on the model
         # self.predictor_model = self.run_file[predictor_spec][predictor_model]  # TODO : remove, obsolete in the case of DANN_AE
         # self.predict_key = self.run_file[predictor_spec][predict_key] # TODO : remove, obsolete in the case of DANN_AE
@@ -209,16 +214,16 @@ class Workflow:
         # self.predictor_epochs = self.run_file[predictor_spec][predictor_epochs] # TODO : remove, obsolete in the case of DANN_AE
         # self.predictor_batch_size = self.run_file[predictor_spec][predictor_batch_size] # TODO : remove, obsolete in the case of DANN_AE
         # self.predictor_activation = self.run_file[predictor_spec][predictor_activation] # TODO : remove, obsolete in the case of DANN_AE
-        
+
         # self.latent_space = anndata.AnnData() # TODO : probably unnecessary, should be handled by logging
         # self.corrected_count = anndata.AnnData() # TODO : probably unnecessary, should be handled by logging
         # self.scarches_combined_emb = anndata.AnnData() # TODO : probably unnecessary, should be handled by logging
         # self.DR_hist = dict() # TODO : probably unnecessary, should be handled by logging
         # self.DR_model = None # TODO : probably unnecessary, should be handled by logging
-        
+
         # self.predicted_class = pd.Series() # TODO : probably unnecessary, should be handled by logging
         # self.pred_hist = dict() # TODO : probably unnecessary, should be handled by logging
-        
+
         # Paths used for the analysis workflow, probably unnecessary
         self.data_dir = working_dir + '/data'
         self.result_dir = working_dir + '/results'
@@ -231,7 +236,7 @@ class Workflow:
         self.corrected_count_path = self.result_path + '/corrected_counts.h5ad'
         self.scarches_combined_emb_path = self.result_path + '/combined_emb.h5ad'
         self.metric_path = self.result_path + '/metrics.csv'
-        
+
         # self.run_log_dir = working_dir + '/logs/run' # TODO : probably unnecessary, should be handled by logging
         # self.run_log_path = self.run_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt' # TODO : probably unnecessary, should be handled by logging
         # self.predict_log_dir = working_dir + '/logs/predicts' # TODO : probably unnecessary, should be handled by logging
@@ -240,84 +245,84 @@ class Workflow:
         # self.umap_log_path = self.umap_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt' # TODO : probably unnecessary, should be handled by logging
         # self.metrics_log_dir = working_dir + '/logs/metrics' # TODO : probably unnecessary, should be handled by logging
         # self.metrics_log_path = self.metrics_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt' # TODO : probably unnecessary, should be handled by logging
-        
+
         self.start_time = time.time()
         self.stop_time = time.time()
         self.runtime_path = self.result_path + '/runtime.txt'
 
-        self.run_done = False 
-        self.predict_done = False 
-        self.umap_done = False 
+        self.run_done = False
+        self.predict_done = False
+        self.umap_done = False
 
         self.dataset = None
         self.model = None
         self.predictor = None
-        
+
         self.training_kwds = {}
         self.network_kwds = {}
-    
+
         ##### TODO : Add to runfile
-        
-        
-        
+
+
+
         self.clas_loss_fn = self.run_file[model_training_spec][clas_loss_fn]
         self.clas_loss_fn = default_value(self.clas_loss_fn, 'MSE')
-        self.dann_los_fn = self.run_file[model_training_spec][dann_los_fn]
+        self.dann_los_fn = self.run_file.dann_los_fn
         self.dann_los_fn = default_value(self.dann_los_fn ,'categorical_crossentropy')
-        self.rec_loss_fn = self.run_file[model_training_spec][rec_loss_fn]
+        self.rec_loss_fn = self.run_file.rec_loss_fn
         self.rec_loss_fn = default_value(self.rec_loss_fn , 'categorical_crossentropy')
-        
-        self.weight_decay = self.run_file[model_training_spec][weight_decay]
-        self.weight_decay = default_value(self.weight_decay , None)
-        self.optimizer_type = self.run_file[model_training_spec][optimizer_type]
+
+        # self.weight_decay = self.run_file.weight_decay
+        self.weight_decay = None
+        self.optimizer_type = self.run_file.optimizer_type
         self.optimizer_type = default_value(self.optimizer_type , 'adam')
 
-        self.clas_w = self.run_file[model_training_spec][clas_w]
-        self.dann_w = self.run_file[model_training_spec][dann_w]
-        self.rec_w = self.run_file[model_training_spec][rec_w]
-        
+        self.clas_w = None
+        self.dann_w = None
+        self.rec_w = None
+
         self.num_classes = None
         self.num_batches = None
-        
-        self.ae_hidden_size = self.run_file[model_spec][ae_hidden_size]
+
+        self.ae_hidden_size = self.run_file.ae_hidden_size
         self.ae_hidden_size = default_value(self.ae_hidden_size , (128,64,128))
-        self.ae_hidden_dropout = self.run_file[model_spec][ae_hidden_dropout]
-        self.ae_hidden_dropout = default_value(self.ae_hidden_dropout , None)
-        self.ae_activation = self.run_file[model_spec][ae_activation]
+        self.ae_hidden_dropout = None
+        # self.ae_hidden_dropout = default_value(self.ae_hidden_dropout , None)
+        self.ae_activation = self.run_file.ae_activation
         self.ae_activation = default_value(self.ae_activation , "relu")
-        self.ae_output_activation = self.run_file[model_spec][ae_output_activation]
+        self.ae_output_activation = self.run_file.ae_output_activation
         self.ae_output_activation = default_value(self.ae_output_activation , "linear")
-        self.ae_init = self.run_file[model_spec][ae_init]
+        self.ae_init = self.run_file.ae_init
         self.ae_init = default_value(self.ae_init , 'glorot_uniform')
-        self.ae_batchnorm = self.run_file[model_spec][ae_batchnorm]
+        self.ae_batchnorm = self.run_file.ae_batchnorm
         self.ae_batchnorm = default_value(self.ae_batchnorm , True)
-        self.ae_l1_enc_coef = self.run_file[model_spec][ae_l1_enc_coef]
+        self.ae_l1_enc_coef = self.run_file.ae_l1_enc_coef
         self.ae_l1_enc_coef = default_value(self.ae_l1_enc_coef , 0)
-        self.ae_l2_enc_coef = self.run_file[model_spec][ae_l2_enc_coef]
+        self.ae_l2_enc_coef = self.run_file.ae_l2_enc_coef
         self.ae_l2_enc_coef = default_value(self.ae_l2_enc_coef , 0)
-        
-        self.class_hidden_size = self.run_file[model_spec][class_hidden_size]
+
+        self.class_hidden_size = self.run_file.class_hidden_size
         self.class_hidden_size = default_value(self.class_hidden_size , None) # default value will be initialize as [(bottleneck_size + num_classes)/2] once we'll know num_classes
-        self.class_hidden_dropout = self.run_file[model_spec][class_hidden_dropout]
-        self.class_hidden_dropout = default_value(self.class_hidden_dropout , None) 
-        self.class_batchnorm = self.run_file[model_spec][class_batchnorm]
+        self.class_hidden_dropout = None
+        self.class_hidden_dropout = None
+        self.class_batchnorm = self.run_file.class_batchnorm
         self.class_batchnorm = default_value(self.class_batchnorm , True)
-        self.class_activation = self.run_file[model_spec][class_activation]
+        self.class_activation = self.run_file.class_activation
         self.class_activation = default_value(self.class_activation , 'relu')
-        self.class_output_activation = self.run_file[model_spec][class_output_activation]
+        self.class_output_activation = self.run_file.class_output_activation
         self.class_output_activation = default_value(self.class_output_activation , 'softmax')
 
-        self.dann_hidden_size = self.run_file[model_spec][dann_hidden_size]
+        self.dann_hidden_size = self.run_file.dann_hidden_size
         self.dann_hidden_size = default_value(self.dann_hidden_size , None) # default value will be initialize as [(bottleneck_size + num_batches)/2] once we'll know num_classes
-        self.dann_hidden_dropout = self.run_file[model_spec][dann_hidden_dropout]
-        self.dann_hidden_dropout = default_value(self.dann_hidden_dropout , None)
-        self.dann_batchnorm = self.run_file[model_spec][dann_batchnorm]
+        self.dann_hidden_dropout = None
+        self.dann_hidden_dropout = None
+        self.dann_batchnorm = self.run_file.dann_batchnorm
         self.dann_batchnorm = default_value(self.dann_batchnorm , True)
-        self.dann_activation = self.run_file[model_spec][dann_activation]
+        self.dann_activation = self.run_file.dann_activation
         self.dann_activation = default_value(self.dann_activation , 'relu')
-        self.dann_output_activation =  self.run_file[model_spec][dann_output_activation]
+        self.dann_output_activation =  self.run_file.dann_output_activation
         self.dann_output_activation = default_value(self.dann_output_activation , 'softmax')
-        
+
         self.dann_ae = None
 
         self.metrics_list = {'balanced_acc' : balanced_accuracy_score, 'mcc' : matthews_corrcoef}
@@ -325,9 +330,9 @@ class Workflow:
         self.metrics = []
 
         self.mean_loss_fn = keras.metrics.Mean(name='total loss') # This is a running average : it keeps the previous values in memory when it's called ie computes the previous and current values
-        self.mean_clas_loss_fn = keras.metrics.Mean(name='classification loss') 
-        self.mean_dann_loss_fn = keras.metrics.Mean(name='dann loss') 
-        self.mean_rec_loss_fn = keras.metrics.Mean(name='reconstruction loss') 
+        self.mean_clas_loss_fn = keras.metrics.Mean(name='classification loss')
+        self.mean_dann_loss_fn = keras.metrics.Mean(name='dann loss')
+        self.mean_rec_loss_fn = keras.metrics.Mean(name='reconstruction loss')
 
         self.training_scheme = None
 
@@ -336,26 +341,26 @@ class Workflow:
 
     def write_metric_log(self):
         open(self.metrics_log_path, 'a').close()
-    
+
     def check_metric_log(self):
         return os.path.isfile(self.metrics_log_path)
 
     def write_run_log(self):
         open(self.run_log_path, 'a').close()
-        
+
     def write_predict_log(self):
         open(self.predict_log_path, 'a').close()
-    
+
     def write_umap_log(self):
         open(self.umap_log_path, 'a').close()
 
-    
+
     def check_run_log(self):
         return os.path.isfile(self.run_log_path)
-        
+
     def check_predict_log(self):
         return os.path.isfile(self.predict_log_path)
-    
+
     def check_umap_log(self):
         return os.path.isfile(self.umap_log_path)
 
@@ -363,7 +368,15 @@ class Workflow:
         print(params)
         self.clas_w = params['clas_w']
         self.dann_w = params['dann_w']
-        self.rec_w = params['rec_w']
+        self.rec_w = 1
+        self.weight_decay = params['wd']
+        self.warmup_epoch = params['warmup_epoch']
+        self.dropout = params['dropout']
+        self.layer1 = params['layer1']
+        self.layer2 = params['layer2']
+        self.bottleneck = params['bottleneck']
+
+        self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
 
         self.dataset = Dataset(dataset_dir = self.data_dir,
                                dataset_name = self.dataset_name,
@@ -394,41 +407,41 @@ class Workflow:
                                     train_test_random_seed = self.train_test_random_seed)
         print('dataset has been preprocessed')
         self.dataset.create_inputs()
-        
+
 
         adata_list = {'full': self.dataset.adata,
                       'train': self.dataset.adata_train,
                       'val': self.dataset.adata_val,
                       'test': self.dataset.adata_test}
-        
+
         X_list = {'full': self.dataset.X,
                 'train': self.dataset.X_train,
                 'val': self.dataset.X_val,
                 'test': self.dataset.X_test}
-        
+
         y_list = {'full': self.dataset.y,
                       'train': self.dataset.y_train,
                       'val': self.dataset.y_val,
                       'test': self.dataset.y_test}
-        
+
         batch_list = {'full': self.dataset.batch,
                       'train': self.dataset.batchtrain,
                       'val': self.dataset.batch_val,
                       'test': self.dataset.batch_test}
-        
+
         self.num_classes = len(np.unique(y_list['train']))
         self.num_batches = len(np.unique(batch_list['full']))
-        
+
         bottleneck_size = self.ae_hidden_size[int(len(self.ae_hidden_size)/2)]
 
         self.class_hidden_size = default_value(self.class_hidden_size , (bottleneck_size + num_classes)/2) # default value [(bottleneck_size + num_classes)/2]
         self.dann_hidden_size = default_value(self.dann_hidden_size , (bottleneck_size + num_batches)/2) # default value [(bottleneck_size + num_batches)/2]
 
-        if self.log_neptune : 
+        if self.log_neptune :
             self.run = neptune.init_run(
                     project="blaireaufurtif/scPermut",
                     api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
-)           
+)
             for k in self.run_file:
                 for par,val in self.run_file[k].items():
                     self.run[f"parameters/{k}/{par}"] = val
@@ -470,7 +483,7 @@ class Workflow:
                                      clas_loss_fn = self.clas_loss_fn,
                                      dann_los_fn = self.dann_loss_fn,
                                      rec_loss_fn = self.rec_los_fn)
-        
+
         if self.log_neptune:
             for group in ['full', 'train', 'val', 'test']:
                 _, clas, dann, rec = self.dann_ae.predict(scanpy_to_input(adata_list[group],['size_factors'])).values()
@@ -484,9 +497,9 @@ class Workflow:
         if self.log_neptune:
             self.run.stop()
         return opt_metric
-        
-    def train_scheme(self, 
-                    training_scheme, 
+
+    def train_scheme(self,
+                    training_scheme,
                     verbose = True ,
                     **loop_params):
         """
@@ -505,12 +518,12 @@ class Workflow:
         if self.log_neptune:
             for group in history:
                 for par,val in self.run_file[group].items():
-                    self.run[f"training/{group}/{par}"] = [] 
+                    self.run[f"training/{group}/{par}"] = []
         i = 0
-        
+
         total_epochs = np.sum([n_epochs for _, n_epochs, _ in training_scheme])
         running_epoch = 0
-        
+
         for (strategy, n_epochs, use_perm) in training_scheme:
             if verbose :
                 print(f"Step number {i}, running {strategy} strategy with permuation = {use_perm} for {n_epochs} epochs")
@@ -528,7 +541,7 @@ class Workflow:
                 running_epoch +=1
                 print(f"Epoch {running_epoch}/{total_epochs}, Current strat Epoch {epoch}/{n_epochs}")
                 history, bot, cl, d ,re = self.training_loop(history=history,training_strategy=strategy,use_perm=use_perm, **loop_params)
-                
+
                 if self.log_neptune:
                     for group in history:
                         for par,value in self.run_file[group].items():
@@ -537,7 +550,7 @@ class Workflow:
                 # Early stopping
                 wait += 1
                 monitored_value = history['val'][monitored][-1]
-                
+
                 if monitored_value < es_best:
                     best_epoch = epoch
                     es_best = monitored_value
@@ -554,7 +567,7 @@ class Workflow:
 
         # dann_ae.set_weights(best_weights)
         return history
-    
+
 
     def training_loop(self, history,
                             ae,
@@ -566,11 +579,11 @@ class Workflow:
                             clas_loss_fn,
                             dann_los_fn,
                             rec_loss_fn,
-                            use_perm=None, 
+                            use_perm=None,
                             training_strategy="full_model"):
         '''
         A consolidated training loop function that covers common logic used in different training strategies.
-        
+
         training_strategy : one of ["full", "warmup_dann", "warmup_dann_no_rec", "classifier_branch", "permutation_only"]
             - full_model : trains the whole model, optimizing the 3 losses (reconstruction, classification, anti batch discrimination ) at once
             - warmup_dann : trains the dann, encoder and decoder with reconstruction (no permutation because unsupervised), maximizing the dann loss and minimizing the reconstruction loss
@@ -580,7 +593,7 @@ class Workflow:
             - permutation_only : trains the autoencoder with permutations, optimizing the reconstruction loss without the classifier
         use_perm : True by default except form "warmup_dann" training strategy. Note that for training strategies that don't involve the reconstruction, this parameter has no impact on training
         '''
-        
+
         self.unfreeze_all(ae) # resetting freeze state
         if training_strategy == "full_model":
             adata = adata_list['train']
@@ -601,7 +614,7 @@ class Workflow:
         elif training_strategy == "permutation_only":
             adata = adata_list['train']
             self.freeze_block(ae, 'all_but_autoencoder')
-        
+
         if not use_perm:
             use_perm = True
 
@@ -662,7 +675,7 @@ class Workflow:
         '''
         for group in ['train', 'val']: # evaluation round
             _, clas, dann, rec = ae.predict(scanpy_to_input(adata_list[group],['size_factors'])).values()
-    #         return _, clas, dann, rec 
+    #         return _, clas, dann, rec
             clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas))
             history[group]['clas_loss'] += [clas_loss.numpy()]
             dann_loss = tf.reduce_mean(dann_los_fn(batch_list[group], dann))
@@ -670,16 +683,16 @@ class Workflow:
             rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group], rec))
             history[group]['rec_loss'] += [rec_loss.numpy()]
             history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
-            
+
             clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
             for metric in self.metrics_list: # only classification metrics ATM
                 history[group][metric] += [self.metrics_list[metric](y_list[group].argmax(axis=1), clas.argmax(axis=1))] # y_list are onehot encoded
         return history, _, clas, dann, rec
-    
+
     def freeze_layers(self, ae, layers_to_freeze):
         '''
         Freezes specified layers in the model.
-        
+
         ae: Model to freeze layers in.
         layers_to_freeze: List of layers to freeze.
         '''
@@ -700,9 +713,9 @@ class Workflow:
             layers_to_freeze = [ae.classifier, ae.dann_discriminator]
         else:
             raise ValueError("Unknown freeze strategy: " + strategy)
-        
+
         self.freeze_layers(ae, layers_to_freeze)
-        
+
 
     def freeze_all(self, ae):
         for l in ae.layers:
@@ -711,7 +724,7 @@ class Workflow:
     def unfreeze_all(self, ae):
         for l in ae.layers:
             l.trainable = True
-    
+
 
     def get_scheme(self):
         if self.training_scheme == 'training_scheme_1':
@@ -722,8 +735,8 @@ class Workflow:
                                 ("permutation_only", 30, True),
                                 ("classifier_branch", 100, False)] # This will end with a callback
         return self.training_scheme
-        
-            
+
+
 
     def get_losses(self):
         if self.rec_loss_fn == 'MSE':
@@ -739,12 +752,12 @@ class Workflow:
         else:
             print(self.dann_los_fn + ' loss not supported for dann')
         return self.rec_loss_fn,self.clas_loss_fn,self.dann_los_fn
-    
+
 
     def print_status_bar(iteration, total, loss, metrics=None):
         metrics = ' - '.join(['{}: {:.4f}'.format(m.name, m.result())
                             for m in loss + (metrics or [])])
-        
+
         end = "" if iteration < total else "\n"
     #     print(f"{iteration}/{total} - "+metrics ,end="\r")
     #     print(f"\r{iteration}/{total} - " + metrics, end=end)
@@ -769,8 +782,8 @@ class Workflow:
             self.predicted_class = self.predictor.y_pred
             self.latent_space.obs[f'{self.class_key}_pred'] = self.predicted_class
             self.predict_done = True
-        
-    
+
+
     def compute_umap(self):
         sc.tl.pca(self.latent_space)
         sc.pp.neighbors(self.latent_space, use_rep = 'X', key_added = f'neighbors_{self.model_name}')
@@ -785,11 +798,11 @@ class Workflow:
     def predict_knn_classifier(self, n_neighbors = 50, embedding_key=None, return_clustering = False):
         adata_train = self.latent_space[self.latent_space.obs['TRAIN_TEST_split'] == 'train']
         adata_train = adata_train[adata_train.obs[self.class_key] != self.unlabeled_category]
-       
+
         knn_class = KNeighborsClassifier(n_neighbors = n_neighbors)
-        
+
         if embedding_key:
-            knn_class.fit(adata_train.obsm[embedding_key], adata_train.obs[self.class_key])        
+            knn_class.fit(adata_train.obsm[embedding_key], adata_train.obs[self.class_key])
             pred_clusters = knn_class.predict(self.latent_space.X)
             if return_clustering:
                 return pred_clusters
@@ -808,7 +821,7 @@ class Workflow:
         n_clusters = len(np.unique(self.latent_space.obs[self.class_key]))
 
         kmeans = KMeans(n_clusters = n_clusters)
-        
+
         if embedding_key:
             kmeans.fit_predict(self.latent_space.obsm[embedding_key])
             self.latent_space.obs[f'{embedding_key}_kmeans_pred'] = kmeans.predict(self.latent_space.obsm[embedding_key])
@@ -818,7 +831,7 @@ class Workflow:
 
     def compute_leiden(self, **kwargs):
         sc.tl.leiden(self.latent_space, key_added = 'leiden_latent', neighbors_key = f'neighbors_{self.model_name}', **kwargs)
-    
+
     def save_results(self):
         if not os.path.isdir(self.result_path):
             os.makedirs(self.result_path)
@@ -870,7 +883,7 @@ class Workflow:
             self.predict_done = True
         if self.check_umap_log():
             self.umap_done = True
-            
+
     def load_corrected(self):
         if os.path.isdir(self.result_path):
             self.corrected_count = sc.read_h5ad(self.corrected_count_path)
@@ -916,7 +929,7 @@ if __name__ == '__main__':
     parser.add_argument('--clas_loss_fn', type = str,nargs='?', choices = ['MSE'], default = 'MSE' , help ='Loss of the classification branch')
     parser.add_argument('--dann_los_fn', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
     parser.add_argument('--rec_loss_fn', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Reconstruction loss of the autoencoder')
-    parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
+    # parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
     parser.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
     parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop'], default = 'adam' , help ='Name of the optimizer to use')
     parser.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Wight of the classification loss')
@@ -940,11 +953,36 @@ if __name__ == '__main__':
     parser.add_argument('--dann_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
     parser.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
-    parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
-    parser.add_argument('--warmup_epoch', type = int,nargs='?', default = 30, help ='')
+    parser.add_argument('--training_scheme', type = str,nargs='?', default = ' ', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
-    
+    parser.add_argument('--workflow_id', type=str, nargs='?', default='default', help ='')
+    # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
+
     run_file = parser.parse_args()
-    working_dir = ...
+    working_dir = '.'
     workflow = Workflow(run_file=run_file, working_dir=working_dir)
-    workflow.make_experiment(params)
+
+    hparams = [
+        {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+        {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+        {"name": "lr", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
+        {"name": "wd", "type": "range", "bounds": [1e-8, 1e-5], "log_scale": True},
+        {"name": "warmup_epoch", "type": "range", "bounds": [1, 100]},
+        {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
+        {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
+        {"name": "layer2", "type": "range", "bounds": [64, 512]},
+        {"name": "layer1", "type": "range", "bounds": [512, 1024]},
+
+    ]
+
+    # workflow.make_experiment(hparams)
+
+    best_parameters, values, experiment, model = optimize(
+        parameters=hparams,
+        evaluation_function=workflow.make_experiment,
+        objective_name='mcc',
+        minimize=False,
+        total_trials=100,
+        random_seed=41,
+
+    )
