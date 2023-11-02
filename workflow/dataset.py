@@ -111,6 +111,7 @@ class Dataset:
                 dataset_dir,
                 dataset_name,
                 class_key,
+                batch_key,
                 filter_min_counts,
                 normalize_size_factors,
                 scale_input,
@@ -126,6 +127,7 @@ class Dataset:
         self.adata_val = anndata.AnnData()
         self.adata_test = anndata.AnnData()
         self.class_key = class_key
+        self.batch_key = batch_key
         self.filter_min_counts = filter_min_counts
         self.normalize_size_factors = normalize_size_factors
         self.scale_input = scale_input
@@ -170,25 +172,25 @@ class Dataset:
                              'pbmc8k_68k_augmented':'pbmc8k_68k_augmented',
                              'pbmc8k_68k_downsampled':'pbmc8k_68k_downsampled',
                              'htap_final_ajrccm': 'htap_final_ajrccm'}
-        self.batch_key = {'htap': 'place_holder',
-                            'discovair': 'sample',
-                            'ajrccm': 'manip',
-                            'pbmc8k':'dataset',
-                            'pbmc68k':'dataset',
-                            'pbmc8k_68k':'dataset',
-                            'pbmc8k_68k_augmented':'dataset',
-                            'pbmc8k_68k_downsampled':'dataset',
-                            'disco_htap_ajrccm': 'sample',
-                            'disco_htap': 'sample',
-                            'disco_ajrccm': 'manip',
-                            'disco_ajrccm_downsampled': 'manip',
-                            'htap_ajrccm': 'place_holder',
-                            'pbmc3k_processed': 'manip',
-                            'htap_final': 'sample',
-                            'htap_final_C1_C5':'sample',
-                            'discovair_ajrccm_small' : 'manip',
-                            'htap_final_ajrccm': 'place_holder'}
-        self.batch_key = self.batch_key[self.dataset_name]
+        # self.batch_key = {'htap': 'place_holder',
+        #                     'discovair': 'sample',
+        #                     'ajrccm': 'manip',
+        #                     'pbmc8k':'dataset',
+        #                     'pbmc68k':'dataset',
+        #                     'pbmc8k_68k':'dataset',
+        #                     'pbmc8k_68k_augmented':'dataset',
+        #                     'pbmc8k_68k_downsampled':'dataset',
+        #                     'disco_htap_ajrccm': 'sample',
+        #                     'disco_htap': 'sample',
+        #                     'disco_ajrccm': 'manip',
+        #                     'disco_ajrccm_downsampled': 'manip',
+        #                     'htap_ajrccm': 'place_holder',
+        #                     'pbmc3k_processed': 'manip',
+        #                     'htap_final': 'sample',
+        #                     'htap_final_C1_C5':'sample',
+        #                     'discovair_ajrccm_small' : 'manip',
+        #                     'htap_final_ajrccm': 'place_holder'}
+        # self.batch_key = self.batch_key[self.dataset_name]
         self.dataset_path = self.dataset_dir + '/' + self.dataset_names[self.dataset_name] + '.h5ad'
         
         self.markers_path = self.dataset_dir + '/' + f'markers/markers_{dataset_name}.csv'
@@ -218,7 +220,7 @@ class Dataset:
             self.adata.raw = self.adata
 
         if self.normalize_size_factors:
-            sc.pp.normalize_per_cell(self.adata)
+            sc.pp.normalize_total(self.adata)
             self.adata.obs['size_factors'] = self.adata.obs.n_counts / np.median(self.adata.obs.n_counts)
         else:
             self.adata.obs['size_factors'] = 1.0
@@ -413,6 +415,7 @@ class Dataset:
         self.batch_train_one_hot = ohe_batches.transform(self.batch_train)
         self.batch_val_one_hot = ohe_batches.transform(self.batch_val)
         self.batch_test_one_hot = ohe_batches.transform(self.batch_test)
+
         
     def fake_annotation(self,true_celltype,false_celltype,pct_false, train_test_random_seed=None):
         '''

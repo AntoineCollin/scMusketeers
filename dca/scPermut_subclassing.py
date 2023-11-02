@@ -20,6 +20,10 @@ class Encoder(keras.Model):
         super().__init__(**kwargs)
         if not hidden_dropout:
             hidden_dropout = [0]*len(hidden_size)
+        if type(hidden_dropout) == float:
+            hidden_dropout = [hidden_dropout]*len(hidden_size)
+        if len(hidden_dropout) == 1:
+            hidden_dropout = hidden_dropout*len(hidden_size)
         self.hidden = []
         self.hidden_activations = []
         self.hidden_batchnorm = []
@@ -84,6 +88,10 @@ class Decoder(keras.layers.Layer):
         super().__init__(**kwargs)
         if not hidden_dropout:
             hidden_dropout = [0]*len(hidden_size)
+        if type(hidden_dropout) == float:
+            hidden_dropout = [hidden_dropout]*len(hidden_size)
+        if len(hidden_dropout) == 1:
+            hidden_dropout = hidden_dropout*len(hidden_size)
         self.hidden = []
         self.hidden_activations = []
         self.hidden_batchnorm = []
@@ -138,6 +146,10 @@ class Classifier(keras.Model):
         super().__init__(**kwargs)
         if not hidden_dropout:
             hidden_dropout = [0]*len(hidden_size)
+        if type(hidden_dropout) == float:
+            hidden_dropout = [hidden_dropout]*len(hidden_size)
+        if len(hidden_dropout) == 1:
+            hidden_dropout = hidden_dropout*len(hidden_size)
         self.hidden = []
         self.hidden_activations = []
         self.hidden_batchnorm = []
@@ -192,6 +204,10 @@ class Autoencoder(keras.Model):
         center_idx = int(np.floor(len(ae_hidden_size) / 2.0)) # index of the bottleneck layer
         if not ae_hidden_dropout:
             ae_hidden_dropout = [0]*len(ae_hidden_size)
+        if type(ae_hidden_dropout) == float:
+            ae_hidden_dropout = [ae_hidden_dropout]*len(ae_hidden_size)
+        if len(ae_hidden_dropout) == 1:
+            ae_hidden_dropout = ae_hidden_dropout*len(ae_hidden_size)
         self.enc_hidden_size = ae_hidden_size[:center_idx+1]
         self.dec_hidden_size = ae_hidden_size[center_idx+1:]
         self.enc_hidden_dropout = ae_hidden_dropout[:center_idx+1]
@@ -248,6 +264,10 @@ class Classif_Autoencoder(Autoencoder):
         super().__init__(**kwargs)
         if not class_hidden_dropout:
             class_hidden_dropout = [0]*len(class_hidden_size)
+        if type(class_hidden_dropout) == float:
+            class_hidden_dropout = [class_hidden_dropout]*len(class_hidden_size)
+        if len(class_hidden_dropout) == 1:
+            class_hidden_dropout = class_hidden_dropout*len(class_hidden_size)
         self.classifier = Classifier(num_classes=num_classes,
                                      hidden_size=class_hidden_size,
                                      prefix = 'classifier', #
@@ -282,6 +302,10 @@ class DANN_AE(Classif_Autoencoder):
         super().__init__(**kwargs)
         if not dann_hidden_dropout:
             dann_hidden_dropout = [0]*len(dann_hidden_size)
+        if type(dann_hidden_dropout) == float:
+            dann_hidden_dropout = [dann_hidden_dropout]*len(dann_hidden_size)
+        if len(dann_hidden_dropout) == 1:
+            dann_hidden_dropout = dann_hidden_dropout*len(dann_hidden_size)
         self.dann_discriminator = Classifier(num_classes=num_batches,
                                              hidden_size=dann_hidden_size,
                                              prefix = 'dann_discriminator',

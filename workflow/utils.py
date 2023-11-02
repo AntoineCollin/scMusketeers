@@ -36,6 +36,33 @@ def input_to_scanpy(count_matrix, obs_df, obs_names=None):
         ad.obs_names = obs_names
     return ad
 
+def default_value(var, val):
+            """
+            Returns var when val is None
+            """
+            if not var:
+                return val
+            else:
+                return var
+            
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def tuple_to_scalar(v):
+    if isinstance(v, int) or isinstance(v, float):
+        return v
+    elif len(v) == 1: 
+        return float(v[0])
+    else :
+        return [float(i) for i in v]
+
 def get_optimizer(learning_rate, weight_decay, optimizer_type, momentum=0.9):
     """
     This function takes a  learning rate, weight decay and optionally momentum and returns an optimizer object
