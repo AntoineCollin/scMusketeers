@@ -17,7 +17,8 @@ From: tensorflow/tensorflow:2.14.0-gpu-jupyter
     pip install scanpy
     pip install jupyterlab
     pip install keras
-    pip install neptune    
+    pip install neptune
+    pip install ax-platform
 
 %environment
     export PATH="/root/.local/bin:$PATH"

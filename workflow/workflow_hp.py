@@ -318,6 +318,8 @@ class Workflow:
         self.dann_output_activation =  self.run_file[model_spec][dann_output_activation]
         self.dann_output_activation = default_value(self.dann_output_activation , 'softmax')
         
+        self.dann_ae = None
+
         self.metrics_list = {'balanced_acc' : balanced_accuracy_score, 'mcc' : matthews_corrcoef}
 
         self.metrics = []
@@ -393,7 +395,6 @@ class Workflow:
         print('dataset has been preprocessed')
         self.dataset.create_inputs()
         
-        
 
         adata_list = {'full': self.dataset.adata,
                       'train': self.dataset.adata_train,
@@ -433,7 +434,7 @@ class Workflow:
                     self.run[f"parameters/{k}/{par}"] = val
 
 
-        dann_ae = DANN_AE(ae_hidden_size=self.ae_hidden_size,
+        self.dann_ae = DANN_AE(ae_hidden_size=self.ae_hidden_size,
                         ae_hidden_dropout=self.ae_hidden_dropout,
                         ae_activation=self.ae_activation,
                         ae_output_activation=self.ae_output_activation,
@@ -456,10 +457,11 @@ class Workflow:
 
         self.optimizer = get_optimizer(self.learning_rate, self.weight_decay, self.optimizer_type)
         self.rec_loss_fn, self.clas_loss_fn, self.dann_los_fn = self.get_losses() # redundant
-        
-        history = self.train_scheme(training_scheme=self.train_scheme,
+        self.training_scheme = self.get_scheme(self.training_scheme)
+
+        history = self.train_scheme(training_scheme=self.training_scheme,
                                     verbose = False,
-                                    ae = dann_ae,
+                                    ae = self.dann_ae,
                                      adata_list= adata_list,
                                      X_list= X_list,
                                      y_list= y_list,
@@ -468,15 +470,20 @@ class Workflow:
                                      clas_loss_fn = self.clas_loss_fn,
                                      dann_los_fn = self.dann_loss_fn,
                                      rec_loss_fn = self.rec_los_fn)
-        opt_metric =  history['val']['mcc'] # Which metric and how should I retrieve it
+        
+        if self.log_neptune:
+            for group in ['full', 'train', 'val', 'test']:
+                _, clas, dann, rec = self.dann_ae.predict(scanpy_to_input(adata_list[group],['size_factors'])).values()
+                clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+                for metric in self.metrics_list: # only classification metrics ATM
+                    self.run[f"evaluation/{group}/{metric}"] = self.metrics_list[metric](y_list[group].argmax(axis=1), clas.argmax(axis=1))
+
+        _, clas, dann, rec = self.dann_ae.predict(scanpy_to_input(adata_list['val'],['size_factors'])).values()
+        clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+        opt_metric = self.metrics_list['mcc'](y_list['val'].argmax(axis=1), clas.argmax(axis=1)) # We retrieve the last metric of interest
         if self.log_neptune:
             self.run.stop()
         return opt_metric
-    
-        self.DR_hist = self.model.train_net(self.dataset)
-        
-        self.run_done = True
-        self.stop_time = time.time()
         
     def train_scheme(self, 
                     training_scheme, 
@@ -508,6 +515,15 @@ class Workflow:
             if verbose :
                 print(f"Step number {i}, running {strategy} strategy with permuation = {use_perm} for {n_epochs} epochs")
                 time_in = time.time()
+
+                # Early stopping for those strategies only
+            if strategy in  ['full_model', 'classifier_branch']:
+                wait = 0
+                best_epoch = 0
+                es_best = np.inf # initialize early_stopping
+                patience = 2
+                monitored = 'mcc'
+
             for epoch in range(1, n_epochs+1):
                 running_epoch +=1
                 print(f"Epoch {running_epoch}/{total_epochs}, Current strat Epoch {epoch}/{n_epochs}")
@@ -515,25 +531,41 @@ class Workflow:
                 
                 if self.log_neptune:
                     for group in history:
-                        for par,value in self.run_file[k].items():
-                            self.run[f"training/{k}/{par}"].append(value[-1])
+                        for par,value in self.run_file[group].items():
+                            self.run[f"training/{group}/{par}"].append(value[-1])
+
+                # Early stopping
+                wait += 1
+                monitored_value = history['val'][monitored][-1]
+                
+                if monitored_value < es_best:
+                    best_epoch = epoch
+                    es_best = monitored_value
+                    wait = 0
+                    best_model = self.dann_ae.get_weights()
+                if wait >= patience:
+                    print(f'Early stopping at epoch {best_epoch}, restoring model parameters from this epoch')
+                    self.dann_ae.set_weights(best_model)
+                    break
 
             if verbose:
                 time_out = time.time()
                 print(f"Epoch duration : {time_out - time_in} s")
+
+        # dann_ae.set_weights(best_weights)
         return history
     
 
-    def training_loop(self, history, 
+    def training_loop(self, history,
                             ae,
                             adata_list,
                             X_list,
-                            y_list, 
-                            batch_list, 
-                            optimizer, 
-                            clas_loss_fn, 
+                            y_list,
+                            batch_list,
+                            optimizer,
+                            clas_loss_fn,
                             dann_los_fn,
-                            rec_loss_fn, 
+                            rec_loss_fn,
                             use_perm=None, 
                             training_strategy="full_model"):
         '''
@@ -622,17 +654,13 @@ class Workflow:
 
         return history, _, clas, dann, rec
 
-    def evaluation_pass(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_los_fn, rec_loss_fn, on = 'epoch_end'):
+    def evaluation_pass(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_los_fn, rec_loss_fn):
         '''
         evaluate model and logs metrics. Depending on "on parameter, computes it on train and val or train,val and test.
 
         on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
         '''
-        if on == "epoch_end":
-            split_groups = ['train', 'val']
-        if on == "training_end": 
-            split_groups = ['train', 'val', 'test']
-        for group in split_groups: # evaluation round
+        for group in ['train', 'val']: # evaluation round
             _, clas, dann, rec = ae.predict(scanpy_to_input(adata_list[group],['size_factors'])).values()
     #         return _, clas, dann, rec 
             clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas))
@@ -648,9 +676,6 @@ class Workflow:
                 history[group][metric] += [self.metrics_list[metric](y_list[group].argmax(axis=1), clas.argmax(axis=1))] # y_list are onehot encoded
         return history, _, clas, dann, rec
     
-
-
-
     def freeze_layers(self, ae, layers_to_freeze):
         '''
         Freezes specified layers in the model.
@@ -689,9 +714,16 @@ class Workflow:
     
 
     def get_scheme(self):
-        if training_scheme == 'warmup_into_full':
-            pass
-
+        if self.training_scheme == 'training_scheme_1':
+            self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
+                                  ("full_model", 100, False)] # This will end with a callback
+        if self.training_scheme == 'training_scheme_2':
+            self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
+                                ("permutation_only", 30, True),
+                                ("classifier_branch", 100, False)] # This will end with a callback
+        return self.training_scheme
+        
+            
 
     def get_losses(self):
         if self.rec_loss_fn == 'MSE':
@@ -908,9 +940,10 @@ if __name__ == '__main__':
     parser.add_argument('--dann_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
     parser.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
-    parser.add_argument('--training_scheme', type = str,nargs='?', default = ' ', help ='')
+    parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
+    parser.add_argument('--warmup_epoch', type = int,nargs='?', default = 30, help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
-
+    
     run_file = parser.parse_args()
     working_dir = ...
     workflow = Workflow(run_file=run_file, working_dir=working_dir)

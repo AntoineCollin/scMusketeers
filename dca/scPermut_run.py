@@ -57,5 +57,6 @@ parser.add_argument('--dann_hidden_dropout', type =float, nargs='?', default = N
 parser.add_argument('--dann_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
 parser.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
 parser.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
+parser.add_argument('--training_scheme', type = str,nargs='?', default = ' ', help ='')
 
 args = parser.parse_args()
