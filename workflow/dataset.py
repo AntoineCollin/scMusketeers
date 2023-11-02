@@ -165,6 +165,7 @@ class Dataset:
                                 'htap_ajrccm': 'htap_ajrccm_raw',
                              'pbmc3k_processed':'pbmc_3k',
                              'htap_final':'htap_final',
+                             'htap_final_by_batch':'htap_final_by_batch',
                              'htap_final_C1_C5':'htap_final_C1_C5',
                              'pbmc8k':'pbmc8k',
                              'pbmc68k':'pbmc68k',

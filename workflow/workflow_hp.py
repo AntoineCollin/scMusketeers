@@ -376,6 +376,8 @@ class Workflow:
         self.layer2 = params['layer2']
         self.bottleneck = params['bottleneck']
 
+        self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer1, self.layer2]
+        
         self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
 
         self.dataset = Dataset(dataset_dir = self.data_dir,
@@ -906,7 +908,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_key', type = str, default = 'manip', help ='Key of the batches')
     parser.add_argument('--filter_min_counts', type=str2bool, nargs='?',const=True, default=True, help ='Filters genes with <1 counts')# TODO :remove, we always want to do that
     parser.add_argument('--normalize_size_factors', type=str2bool, nargs='?',const=True, default=True, help ='Weither to normalize dataset or not')
-    parser.add_argument('--scale_input', type=str2bool, nargs='?',const=True, default=True, help ='Weither to scale input the count values')
+    parser.add_argument('--scale_input', type=str2bool, nargs='?',const=False, default=False, help ='Weither to scale input the count values')
     parser.add_argument('--logtrans_input', type=str2bool, nargs='?',const=True, default=True, help ='Weither to log transform count values')
     parser.add_argument('--use_hvg', type=int, nargs='?', const=10000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
     # parser.add_argument('--reduce_lr', type = , default = , help ='')
@@ -919,7 +921,7 @@ if __name__ == '__main__':
     parser.add_argument('--obs_key', type = str,nargs='?', default = 'manip', help ='')
     parser.add_argument('--n_keep', type = int,nargs='?', default = None, help ='')
     parser.add_argument('--split_strategy', type = str,nargs='?', default = None, help ='')
-    parser.add_argument('--keep_obs', type = str,nargs='?',default = None, help ='')
+    parser.add_argument('--keep_obs', type = str,nargs='+',default = None, help ='')
     parser.add_argument('--train_test_random_seed', type = float,nargs='?', default = 0, help ='')
     parser.add_argument('--obs_subsample', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--make_fake', type=str2bool, nargs='?',const=False, default=False, help ='')
@@ -953,7 +955,7 @@ if __name__ == '__main__':
     parser.add_argument('--dann_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
     parser.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
-    parser.add_argument('--training_scheme', type = str,nargs='?', default = ' ', help ='')
+    parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--workflow_id', type=str, nargs='?', default='default', help ='')
     # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
