@@ -265,7 +265,7 @@ class Workflow:
 
 
 
-        self.clas_loss_fn = self.run_file[model_training_spec][clas_loss_fn]
+        self.clas_loss_fn = self.run_file.clas_loss_fn
         self.clas_loss_fn = default_value(self.clas_loss_fn, 'MSE')
         self.dann_los_fn = self.run_file.dann_los_fn
         self.dann_los_fn = default_value(self.dann_los_fn ,'categorical_crossentropy')

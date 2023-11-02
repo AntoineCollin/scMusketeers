@@ -12,7 +12,6 @@ working_dir="/home/acollin/dca_permuted_workflow"
 singularity_working_dir="/data/dca_permuted_workflow"
 singularity_path=$working_dir"/singularity_scPermut.sif"
 
-singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path
+module load singularity
 
-
-singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python /home/acollin/dca_permuted_workflow/workflow/workflow_hp.py --dataset_name htap_final_by_batch --class_key celltype --batch_key donor --use_hvg 5000 --mode entire_condition --obs_key donor --keep_obs PRC_5 PAH_675093 PRC_2 --training_scheme training_scheme_1
+singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python /home/acollin/dca_permuted_workflow/workflow/workflow_hp.py --dataset_name htap_final_by_batch --class_key celltype --batch_key donor --use_hvg 5000 --mode entire_condition --obs_key donor --keep_obs PRC_5 PAH_675093 PRC_2 --training_scheme training_scheme_1 &> /home/acollin/dca_permuted_workflow/experiment_script/htap_hyperparam.log
