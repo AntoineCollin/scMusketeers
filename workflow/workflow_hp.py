@@ -912,4 +912,6 @@ if __name__ == '__main__':
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
 
     run_file = parser.parse_args()
-
+    working_dir = ...
+    workflow = Workflow(run_file=run_file, working_dir=working_dir)
+    workflow.make_experiment(params)
