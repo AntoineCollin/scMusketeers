@@ -157,6 +157,7 @@ class Dataset:
                               'discovair_V7_filtered':'discovair_V7_filtered_raw', # Filtered version with doublets, made lighter to pass through the model
                               'discovair_V7_filtered_no_D53':'discovair_V7_filtered_raw_no_D53',
                                 'ajrccm':'HCA_Barbry_Grch38_Raw',
+                                "ajrccm_by_batch":"ajrccm_by_batch",
                                 "disco_htap_ajrccm":'discovair_htap_ajrccm',
                                 "disco_htap": 'discovair_htap',
                                 "disco_ajrccm": 'discovair_ajrccm',
@@ -350,39 +351,43 @@ class Dataset:
             to_keep[remove_idx] = 'val'
             self.adata_train_extended.obs['train_split'] = to_keep
         # removing unnanotated cells
-        if not self.semi_sup:
-            to_keep = self.adata_train_extended.obs['train_split']
-            UNK_cells = self.adata_train_extended.obs[self.class_key] == self.unlabeled_category
-            to_keep[UNK_cells] = 'val' # Change unknown cells to val
-            self.adata_train_extended.obs['train_split'] = to_keep
+        # if not self.semi_sup:
+        #     to_keep = self.adata_train_extended.obs['train_split']
+        #     UNK_cells = self.adata_train_extended.obs[self.class_key] == self.unlabeled_category
+        #     to_keep[UNK_cells] = 'val' # Change unknown cells to val
+        #     self.adata_train_extended.obs['train_split'] = to_keep
 
-            obs = self.adata_train_extended.obs[self.class_key].astype('str')
-            obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # hiding val celltypes with UNK for prediction by scanvi
-            self.adata_train_extended.obs[self.class_key] = obs
-            self.adata.obs.loc[self.adata_train_extended.obs_names,self.class_key] = obs # replace val celltypes in the original adata
+        #     obs = self.adata_train_extended.obs[self.class_key].astype('str')
+        #     obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # hiding val celltypes with UNK for prediction by scanvi
+        #     self.adata_train_extended.obs[self.class_key] = obs
+        #     self.adata.obs.loc[self.adata_train_extended.obs_names,self.class_key] = obs # replace val celltypes in the original adata
 
-            self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'train'].copy() # in full supervised training set is only annotated cells
-            self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
-            train_split = self.adata.obs['TRAIN_TEST_split'].astype('str') # Replace the test, train, val values in the global adata object
-            train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
-            self.adata.obs['train_split'] = train_split 
-            # print(f'train split, train : {self.adata_train}')
-            # print(self.adata_train.obs[self.class_key].value_counts())
-        elif self.semi_sup:
-            obs = self.adata_train_extended.obs[self.class_key].astype('str')
-            obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # hiding val celltypes with UNK for semi-supervised training
-            self.adata_train_extended.obs[self.class_key] = obs
-            self.adata.obs.loc[self.adata_train_extended.obs_names,self.class_key] = obs # Hiding val celltypes in the global adata (necessary for scanvi)
+        #     self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'train'].copy() # in full supervised training set is only annotated cells
+        #     self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
+        #     train_split = self.adata.obs['TRAIN_TEST_split'].astype('str') # Replace the test, train, val values in the global adata object
+        #     train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
+        #     self.adata.obs['train_split'] = train_split 
+        #     # print(f'train split, train : {self.adata_train}')
+        #     # print(self.adata_train.obs[self.class_key].value_counts())
+        # elif self.semi_sup:
+        #     obs = self.adata_train_extended.obs[self.class_key].astype('str')
+        #     obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # hiding val celltypes with UNK for semi-supervised training
+        #     self.adata_train_extended.obs[self.class_key] = obs
+        #     self.adata.obs.loc[self.adata_train_extended.obs_names,self.class_key] = obs # Hiding val celltypes in the global adata (necessary for scanvi)
             
-            # print(self.adata_train_extended.obs['train_split'].value_counts())
-            self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'].isin(['train', 'val'])].copy() #we keep the validation data as unsupervised training cells. both side of the = are equal here...
-            self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
-            # print(f'train split, train : {self.adata_train}')
-            # print(self.adata_train.obs[self.class_key].value_counts())
-            train_split = self.adata.obs['TRAIN_TEST_split'].astype('str')
-            train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
-            self.adata.obs['train_split'] = train_split # Replace the test, train, val values in the global adata object
+        #     # print(self.adata_train_extended.obs['train_split'].value_counts())
+        #     self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'].isin(['train', 'val'])].copy() #we keep the validation data as unsupervised training cells. both side of the = are equal here...
+        #     self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
+        #     # print(f'train split, train : {self.adata_train}')
+        #     # print(self.adata_train.obs[self.class_key].value_counts())
+        #     train_split = self.adata.obs['TRAIN_TEST_split'].astype('str')
+        #     train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
+        #     self.adata.obs['train_split'] = train_split # Replace the test, train, val values in the global adata object
 
+        train_split = self.adata.obs['TRAIN_TEST_split'].astype('str') # Replace the test, train, val values in the global adata object
+        train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
+        self.adata.obs['train_split'] = train_split
+        
         self.adata_train = self.adata[self.adata.obs['train_split'] == 'train'].copy()
         self.adata_val = self.adata[self.adata.obs['train_split'] == 'val'].copy()
         self.adata_test = self.adata[self.adata.obs['train_split'] == 'test'].copy()
@@ -396,26 +401,28 @@ class Dataset:
         self.X_train = self.adata_train.X
         self.X_val = self.adata_val.X
         self.X_test = self.adata_test.X
-        self.y = self.adata.y
+        self.y = self.adata.obs[self.class_key]
         self.y_train = self.adata_train.obs[self.class_key]
         self.y_val = self.adata_val.obs[self.class_key]
         self.y_test = self.adata_test.obs[self.class_key]
-        ohe_celltype = OneHotEncoder(handle_unknown='ignore') # TODO : handle the case where there can be unknown celltypes in val, pex adding an output node for 'UNK'
-        y = np.array(self.y_train).reshape(-1,1) 
-        ohe_celltype.fit(y)
-        y = ohe_celltype.fit_transform(y).astype(float).todense()
-        self.y_train_onehot = ohe_celltype.transform(self.y_train)
-        self.y_val_onehot = ohe_celltype.transform(self.y_val)
-        self.y_test_onehot = ohe_celltype.transform(self.y_test)
+        self.ohe_celltype = OneHotEncoder(handle_unknown='ignore') # TODO : handle the case where there can be unknown celltypes in val, pex adding an output node for 'UNK'
+        y = np.array(self.y_train).reshape(-1,1)
+        self.ohe_celltype.fit(y)
+        self.y_one_hot = self.ohe_celltype.transform(np.array(self.y).reshape(-1,1)).astype(float).todense()
+        self.y_train_one_hot = self.ohe_celltype.transform(np.array(self.y_train).reshape(-1,1)).astype(float).todense()
+        self.y_val_one_hot = self.ohe_celltype.transform(np.array(self.y_val).reshape(-1,1)).astype(float).todense()
+        self.y_test_one_hot = self.ohe_celltype.transform(np.array(self.y_test).reshape(-1,1)).astype(float).todense()
+        self.batch = self.adata.obs[self.batch_key]
         self.batch_train = self.adata_train.obs[self.batch_key]
         self.batch_val = self.adata_val.obs[self.batch_key]
         self.batch_test = self.adata_test.obs[self.batch_key]
-        ohe_batches = OneHotEncoder()
-        batch_ID = np.array(self.batch_train).reshape(-1,1) 
-        ohe_batches.fit_transform(batch_ID).astype(float).todense()
-        self.batch_train_one_hot = ohe_batches.transform(self.batch_train)
-        self.batch_val_one_hot = ohe_batches.transform(self.batch_val)
-        self.batch_test_one_hot = ohe_batches.transform(self.batch_test)
+        self.ohe_batches = OneHotEncoder()
+        batch_ID = np.array(self.batch).reshape(-1,1) # We know batches from the whole dataset so we fit on the entire dataset
+        self.ohe_batches.fit_transform(batch_ID).astype(float).todense()
+        self.batch_one_hot = self.ohe_batches.transform(np.array(self.batch).reshape(-1,1)).astype(float).todense()
+        self.batch_train_one_hot = self.ohe_batches.transform(np.array(self.batch_train).reshape(-1,1)).astype(float).todense()
+        self.batch_val_one_hot = self.ohe_batches.transform(np.array(self.batch_val).reshape(-1,1)).astype(float).todense()
+        self.batch_test_one_hot = self.ohe_batches.transform(np.array(self.batch_test).reshape(-1,1)).astype(float).todense()
 
         
     def fake_annotation(self,true_celltype,false_celltype,pct_false, train_test_random_seed=None):

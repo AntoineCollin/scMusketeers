@@ -36,6 +36,7 @@ import sys
 import keras
 import tensorflow as tf
 import neptune
+from neptune.utils import stringify_unsupported
 
 from ax.service.managed_loop import optimize
 # from ax import RangeParameter, SearchSpace, ParameterType, FixedParameter, ChoiceParameter
@@ -109,7 +110,7 @@ predictor_batch_size = 'predictor_batch_size'
 predictor_activation = 'predictor_activation'
 
 clas_loss_fn = 'clas_loss_fn'
-dann_los_fn = 'dann_los_fn'
+dann_loss_fn = 'dann_loss_fn'
 rec_loss_fn = 'rec_loss_fn'
 
 weight_decay = 'weight_decay'
@@ -183,11 +184,11 @@ class Workflow:
         # self.threads = self.run_file[model_training_spec][threads] # TODO : not implemented yet for DANN_AE
         self.learning_rate = self.run_file.learning_rate
         self.n_perm = 1
+        self.semi_sup = False # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
+        self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         # self.n_perm = self.run_file[model_training_spec][n_perm] # TODO : remove, n_perm is always 1
         # self.permute = self.run_file[model_training_spec][permute] # TODO : remove, obsolete in the case of DANN_AE, handled during training
         # self.change_perm = self.run_file[model_training_spec][change_perm] # TODO : remove, change_perm is always True
-        # self.semi_sup = self.run_file[model_training_spec][semi_sup] # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
-        # self.unlabeled_category = self.run_file[model_training_spec][unlabeled_category] # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         # self.save_zinb_param = self.run_file[model_training_spec][save_zinb_param] # TODO : remove, obsolete in the case of DANN_AE
         # self.use_raw_as_output = self.run_file[model_training_spec][use_raw_as_output]
         # self.contrastive_margin =self.run_file[model_training_spec][contrastive_margin] # TODO : Not yet handled by DANN_AE, the case where we use constrastive loss
@@ -266,21 +267,25 @@ class Workflow:
 
 
 
-        self.clas_loss_fn = self.run_file.clas_loss_fn
-        self.clas_loss_fn = default_value(self.clas_loss_fn, 'MSE')
-        self.dann_los_fn = self.run_file.dann_los_fn
-        self.dann_los_fn = default_value(self.dann_los_fn ,'categorical_crossentropy')
-        self.rec_loss_fn = self.run_file.rec_loss_fn
-        self.rec_loss_fn = default_value(self.rec_loss_fn , 'categorical_crossentropy')
+        self.clas_loss_name = self.run_file.clas_loss_name
+        self.clas_loss_name = default_value(self.clas_loss_name, 'MSE')
+        self.dann_loss_name = self.run_file.dann_loss_name
+        self.dann_loss_name = default_value(self.dann_loss_name ,'categorical_crossentropy')
+        self.rec_loss_name = self.run_file.rec_loss_name
+        self.rec_loss_name = default_value(self.rec_loss_name , 'categorical_crossentropy')
+
+        self.clas_loss_fn = None
+        self.dann_loss_fn = None
+        self.rec_loss_fn = None
 
         # self.weight_decay = self.run_file.weight_decay
         self.weight_decay = None
         self.optimizer_type = self.run_file.optimizer_type
         self.optimizer_type = default_value(self.optimizer_type , 'adam')
 
-        self.clas_w = None
-        self.dann_w = None
-        self.rec_w = None
+        self.clas_w = self.run_file.clas_w
+        self.dann_w = self.run_file.dann_w
+        self.rec_w = self.run_file.rec_w
 
         self.num_classes = None
         self.num_batches = None
@@ -335,9 +340,9 @@ class Workflow:
         self.mean_dann_loss_fn = keras.metrics.Mean(name='dann loss')
         self.mean_rec_loss_fn = keras.metrics.Mean(name='reconstruction loss')
 
-        self.training_scheme = None
+        self.training_scheme = self.run_file.training_scheme
 
-        self.log_neptune = False
+        self.log_neptune = self.run_file.log_neptune
         self.run = None
 
     def write_metric_log(self):
@@ -367,18 +372,19 @@ class Workflow:
 
     def make_experiment(self, params):
         print(params)
-        self.clas_w = params['clas_w']
+#        self.use_hvg = params['use_hvg']
+        self.clas_w =  params['clas_w']
         self.dann_w = params['dann_w']
-        self.rec_w = 1
-        self.weight_decay = params['wd']
-        self.warmup_epoch = params['warmup_epoch']
-        self.dropout = params['dropout']
+        self.rec_w =  1
+        self.weight_decay =  params['wd']
+        self.warmup_epoch =  params['warmup_epoch']
+        self.dropout =  params['dropout']
         self.layer1 = params['layer1']
-        self.layer2 = params['layer2']
+        self.layer2 =  params['layer2']
         self.bottleneck = params['bottleneck']
 
         self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer1, self.layer2]
-        
+
         self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
 
         self.dataset = Dataset(dataset_dir = self.data_dir,
@@ -422,33 +428,35 @@ class Workflow:
                 'val': self.dataset.X_val,
                 'test': self.dataset.X_test}
 
-        y_list = {'full': self.dataset.y,
-                      'train': self.dataset.y_train,
-                      'val': self.dataset.y_val,
-                      'test': self.dataset.y_test}
+        y_list = {'full': self.dataset.y_one_hot,
+                      'train': self.dataset.y_train_one_hot,
+                      'val': self.dataset.y_val_one_hot,
+                      'test': self.dataset.y_test_one_hot}
 
-        batch_list = {'full': self.dataset.batch,
-                      'train': self.dataset.batchtrain,
-                      'val': self.dataset.batch_val,
-                      'test': self.dataset.batch_test}
+        batch_list = {'full': self.dataset.batch_one_hot,
+                      'train': self.dataset.batch_train_one_hot,
+                      'val': self.dataset.batch_val_one_hot,
+                      'test': self.dataset.batch_test_one_hot}
 
-        self.num_classes = len(np.unique(y_list['train']))
-        self.num_batches = len(np.unique(batch_list['full']))
+        self.num_classes = len(np.unique(self.dataset.y_train))
+        self.num_batches = len(np.unique(self.dataset.batch))
 
-        bottleneck_size = self.ae_hidden_size[int(len(self.ae_hidden_size)/2)]
+        bottleneck_size = int(self.ae_hidden_size[int(len(self.ae_hidden_size)/2)])
 
-        self.class_hidden_size = default_value(self.class_hidden_size , (bottleneck_size + num_classes)/2) # default value [(bottleneck_size + num_classes)/2]
-        self.dann_hidden_size = default_value(self.dann_hidden_size , (bottleneck_size + num_batches)/2) # default value [(bottleneck_size + num_batches)/2]
+        self.class_hidden_size = default_value(self.class_hidden_size , (bottleneck_size + self.num_classes)/2) # default value [(bottleneck_size + num_classes)/2]
+        self.dann_hidden_size = default_value(self.dann_hidden_size , (bottleneck_size + self.num_batches)/2) # default value [(bottleneck_size + num_batches)/2]
 
         if self.log_neptune :
             self.run = neptune.init_run(
                     project="blaireaufurtif/scPermut",
                     api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
 )
-            for k in self.run_file:
-                for par,val in self.run_file[k].items():
-                    self.run[f"parameters/{k}/{par}"] = val
+            for par,val in self.run_file.__dict__.items():
+                self.run[f"parameters/{par}"] = stringify_unsupported(val)
 
+            for par,val in params.items():
+                self.run[f"parameters/{par}"] = stringify_unsupported(val)
+            self.run[f'parameters/ae_hidden_size'] = stringify_unsupported(self.ae_hidden_size)
 
         self.dann_ae = DANN_AE(ae_hidden_size=self.ae_hidden_size,
                         ae_hidden_dropout=self.ae_hidden_dropout,
@@ -472,8 +480,8 @@ class Workflow:
                         dann_output_activation=self.dann_output_activation)
 
         self.optimizer = get_optimizer(self.learning_rate, self.weight_decay, self.optimizer_type)
-        self.rec_loss_fn, self.clas_loss_fn, self.dann_los_fn = self.get_losses() # redundant
-        self.training_scheme = self.get_scheme(self.training_scheme)
+        self.rec_loss_fn, self.clas_loss_fn, self.dann_loss_fn = self.get_losses() # redundant
+        self.training_scheme = self.get_scheme()
 
         history = self.train_scheme(training_scheme=self.training_scheme,
                                     verbose = False,
@@ -482,21 +490,46 @@ class Workflow:
                                      X_list= X_list,
                                      y_list= y_list,
                                      batch_list= batch_list,
-                                     optimizer= self.optimizer,
+                                    #  optimizer= self.optimizer, # not an **loop_param since it resets between strategies
                                      clas_loss_fn = self.clas_loss_fn,
-                                     dann_los_fn = self.dann_loss_fn,
-                                     rec_loss_fn = self.rec_los_fn)
+                                     dann_loss_fn = self.dann_loss_fn,
+                                     rec_loss_fn = self.rec_loss_fn)
 
         if self.log_neptune:
+            neptune_run_id = self.run['sys/id'].fetch()
             for group in ['full', 'train', 'val', 'test']:
-                _, clas, dann, rec = self.dann_ae.predict(scanpy_to_input(adata_list[group],['size_factors'])).values()
+                enc, clas, dann, rec = self.dann_ae.predict(scanpy_to_input(adata_list[group],['size_factors'])).values()
                 clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
                 for metric in self.metrics_list: # only classification metrics ATM
-                    self.run[f"evaluation/{group}/{metric}"] = self.metrics_list[metric](y_list[group].argmax(axis=1), clas.argmax(axis=1))
+                    self.run[f"evaluation/{group}/{metric}"] = self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))
+                if group == 'full':
+                    save_dir = '/home/acollin/dca_permuted_workflow/experiment_script/results/' + str(neptune_run_id) + '/'
+                    if not os.path.exists(save_dir):
+                        os.makedirs(save_dir)
+                    y_pred = pd.DataFrame(self.dataset.ohe_celltype.inverse_transform(clas), index = adata_list[group].obs_names)
+                    np.save(save_dir + f'latent_space_{group}.npy', enc)
+                    y_pred.to_csv(save_dir + f'predictions_{group}.csv')
+                    self.run[f'evaluation/{group}/latent_space'].track_files(save_dir + f'latent_space_{group}.npy')
+                    self.run[f'evaluation/{group}/predictions'].track_files(save_dir + f'predictions_{group}.csv')
+                    
+                    pred_adata = sc.AnnData(X = adata_list[group].X, obs = adata_list[group].obs, var = adata_list[group].var)
+                    pred_adata.obs[f'{class_key}_pred'] = y_pred
+                    pred_adata.obsm['latent_space'] = enc
+                    sc.pp.neighbors(pred_adata, use_rep = 'latent_space')
+                    sc.tl.umap(pred_adata)
+                    np.save(save_dir + f'umap_{group}.npy', pred_adata.obsm['X_umap'])
+                    self.run[f'evaluation/{group}/umap'].track_files(save_dir + f'umap_{group}.npy')
+                    sc.set_figure_params(figsize=(15, 10), dpi = 300)
+                    fig_class = sc.pl.umap(pred_adata, color = self.class_key, size = 5,return_fig = True)
+                    fig_batch = sc.pl.umap(pred_adata, color = self.batch_key, size = 5,return_fig = True)
+                    fig_split = sc.pl.umap(pred_adata, color = 'train_split', size = 5,return_fig = True)
+                    self.run[f'evaluation/{group}/classif_umap'].upload(fig_class)
+                    self.run[f'evaluation/{group}/batch_umap'].upload(fig_batch)
+                    self.run[f'evaluation/{group}/split_umap'].upload(fig_batch)
 
         _, clas, dann, rec = self.dann_ae.predict(scanpy_to_input(adata_list['val'],['size_factors'])).values()
         clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-        opt_metric = self.metrics_list['mcc'](y_list['val'].argmax(axis=1), clas.argmax(axis=1)) # We retrieve the last metric of interest
+        opt_metric = self.metrics_list['mcc'](np.asarray(y_list['val'].argmax(axis=1)), clas.argmax(axis=1)) # We retrieve the last metric of interest
         if self.log_neptune:
             self.run.stop()
         return opt_metric
@@ -518,16 +551,17 @@ class Workflow:
             for m in self.metrics_list:
                 history[group][m] = []
 
-        if self.log_neptune:
-            for group in history:
-                for par,val in self.run_file[group].items():
-                    self.run[f"training/{group}/{par}"] = []
+        # if self.log_neptune:
+        #     for group in history:
+        #         for par,val in history[group].items():
+        #             self.run[f"training/{group}/{par}"] = []
         i = 0
 
         total_epochs = np.sum([n_epochs for _, n_epochs, _ in training_scheme])
         running_epoch = 0
 
         for (strategy, n_epochs, use_perm) in training_scheme:
+            optimizer = get_optimizer(self.learning_rate, self.weight_decay, self.optimizer_type) # resetting optimizer state when switching strategy
             if verbose :
                 print(f"Step number {i}, running {strategy} strategy with permuation = {use_perm} for {n_epochs} epochs")
                 time_in = time.time()
@@ -537,32 +571,37 @@ class Workflow:
                 wait = 0
                 best_epoch = 0
                 es_best = np.inf # initialize early_stopping
-                patience = 2
+                patience = 20
                 monitored = 'mcc'
 
             for epoch in range(1, n_epochs+1):
                 running_epoch +=1
                 print(f"Epoch {running_epoch}/{total_epochs}, Current strat Epoch {epoch}/{n_epochs}")
-                history, bot, cl, d ,re = self.training_loop(history=history,training_strategy=strategy,use_perm=use_perm, **loop_params)
+                history, bot, cl, d ,re = self.training_loop(history=history,
+                                                             training_strategy=strategy,
+                                                             use_perm=use_perm,
+                                                             optimizer=optimizer,
+                                                               **loop_params)
 
                 if self.log_neptune:
                     for group in history:
-                        for par,value in self.run_file[group].items():
+                        for par,value in history[group].items():
                             self.run[f"training/{group}/{par}"].append(value[-1])
 
-                # Early stopping
-                wait += 1
-                monitored_value = history['val'][monitored][-1]
+                if strategy in  ['full_model', 'classifier_branch']:
+                    # Early stopping
+                    wait += 1
+                    monitored_value = history['val'][monitored][-1]
 
-                if monitored_value < es_best:
-                    best_epoch = epoch
-                    es_best = monitored_value
-                    wait = 0
-                    best_model = self.dann_ae.get_weights()
-                if wait >= patience:
-                    print(f'Early stopping at epoch {best_epoch}, restoring model parameters from this epoch')
-                    self.dann_ae.set_weights(best_model)
-                    break
+                    if monitored_value < es_best:
+                        best_epoch = epoch
+                        es_best = monitored_value
+                        wait = 0
+                        best_model = self.dann_ae.get_weights()
+                    if wait >= patience:
+                        print(f'Early stopping at epoch {best_epoch}, restoring model parameters from this epoch')
+                        self.dann_ae.set_weights(best_model)
+                        break
 
             if verbose:
                 time_out = time.time()
@@ -580,7 +619,7 @@ class Workflow:
                             batch_list,
                             optimizer,
                             clas_loss_fn,
-                            dann_los_fn,
+                            dann_loss_fn,
                             rec_loss_fn,
                             use_perm=None,
                             training_strategy="full_model"):
@@ -599,32 +638,38 @@ class Workflow:
 
         self.unfreeze_all(ae) # resetting freeze state
         if training_strategy == "full_model":
-            adata = adata_list['train']
+            group = 'train'
         elif training_strategy == "warmup_dann":
-            adata = adata_list['full'] # unsupervised setting
+            group = 'full' # unsupervised setting
             ae.classifier.trainable = False # Freezing classifier just to be sure but should not be necessary since gradient won't be propagating in this branch
             use_perm = False # no permutation for warming up the dann. No need to specify it in the no rec version since we don't reconstruct
         elif training_strategy == "warmup_dann_no_rec":
-            adata = adata_list['full']
+            group = 'full'
             self.freeze_block(ae, 'all_but_dann')
         elif training_strategy == "dann_with_ae":
-            adata = adata_list['train']
+            group = 'train'
             ae.classifier.trainable = False
             use_perm = True
         elif training_strategy == "classifier_branch":
-            adata = adata_list['train']
+            group = 'train'
             self.freeze_block(ae, 'all_but_classifier_branch') # traning only classifier branch
         elif training_strategy == "permutation_only":
-            adata = adata_list['train']
+            group = 'train'
             self.freeze_block(ae, 'all_but_autoencoder')
 
         if not use_perm:
             use_perm = True
 
-        batch_generator = batch_generator_training_permuted(adata, class_key=self.class_key, batch_key=self.batch_key,
-                                                            ret_input_only=False, batch_size=batch_size, n_perm=1, use_raw_as_output=False, use_perm=use_perm)
-        n_obs = adata.n_obs
-        steps = n_obs // batch_size + 1
+        batch_generator = batch_generator_training_permuted(X = X_list[group],
+                                                            y = y_list[group],
+                                                            batch_ID = batch_list[group],
+                                                            sf = adata_list[group].obs['size_factors'],                    
+                                                            ret_input_only=False,
+                                                            batch_size=self.batch_size,
+                                                            n_perm=1, 
+                                                            use_perm=use_perm)
+        n_obs = adata_list[group].n_obs
+        steps = n_obs // self.batch_size + 1
         n_steps = steps
         n_samples = 0
 
@@ -641,7 +686,7 @@ class Workflow:
             with tf.GradientTape() as tape:
                 enc, clas, dann, rec = ae(input_batch, training=True).values()
                 clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
-                dann_loss = tf.reduce_mean(dann_los_fn(dann_batch, dann))
+                dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
                 rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
                 if training_strategy == "full_model":
                     loss = tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses)
@@ -666,30 +711,34 @@ class Workflow:
             mean_rec_loss = self.mean_rec_loss_fn(rec_loss)
 
             self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
-        history, _, clas, dann, rec = self.evaluation_pass_epoch_end(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_los_fn, rec_loss_fn)
+        history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn)
 
         return history, _, clas, dann, rec
 
-    def evaluation_pass(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_los_fn, rec_loss_fn):
+    def evaluation_pass(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn):
         '''
         evaluate model and logs metrics. Depending on "on parameter, computes it on train and val or train,val and test.
 
         on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
         '''
         for group in ['train', 'val']: # evaluation round
-            _, clas, dann, rec = ae.predict(scanpy_to_input(adata_list[group],['size_factors'])).values()
+            # with tf.device('CPU'):
+            inp = scanpy_to_input(adata_list[group],['size_factors'])
+            _, clas, dann, rec = ae.predict(inp).values()
     #         return _, clas, dann, rec
-            clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas))
-            history[group]['clas_loss'] += [clas_loss.numpy()]
-            dann_loss = tf.reduce_mean(dann_los_fn(batch_list[group], dann))
-            history[group]['dann_loss'] += [dann_loss.numpy()]
-            rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group], rec))
-            history[group]['rec_loss'] += [rec_loss.numpy()]
-            history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
+            clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas)).numpy()
+            history[group]['clas_loss'] += [clas_loss]
+            dann_loss = tf.reduce_mean(dann_loss_fn(batch_list[group], dann)).numpy()
+            history[group]['dann_loss'] += [dann_loss]
+            with tf.device('CPU'): # Otherwise, risks of memory allocation errors
+                rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group].todense(), rec)).numpy()
+            history[group]['rec_loss'] += [rec_loss]
+            history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
+            # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
 
             clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
             for metric in self.metrics_list: # only classification metrics ATM
-                history[group][metric] += [self.metrics_list[metric](y_list[group].argmax(axis=1), clas.argmax(axis=1))] # y_list are onehot encoded
+                history[group][metric] += [self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))] # y_list are onehot encoded
         return history, _, clas, dann, rec
 
     def freeze_layers(self, ae, layers_to_freeze):
@@ -735,29 +784,31 @@ class Workflow:
                                   ("full_model", 100, False)] # This will end with a callback
         if self.training_scheme == 'training_scheme_2':
             self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
-                                ("permutation_only", 30, True),
-                                ("classifier_branch", 100, False)] # This will end with a callback
+                                ("permutation_only", 100, True),
+                                ("classifier_branch", 30, False)] # This will end with a callback
         return self.training_scheme
 
 
 
     def get_losses(self):
-        if self.rec_loss_fn == 'MSE':
+        if self.rec_loss_name == 'MSE':
             self.rec_loss_fn = tf.keras.losses.mean_squared_error
         else:
-            print(self.rec_loss_fn + ' loss not supported for rec')
-        if self.clas_loss_fn == 'categorical_crossentropy':
+            print(self.rec_loss_name + ' loss not supported for rec')
+
+        if self.clas_loss_name == 'categorical_crossentropy':
             self.clas_loss_fn = tf.keras.losses.categorical_crossentropy
         else:
-            print(self.clas_loss_fn + ' loss not supported for classif')
-        if self.dann_los_fn == 'categorical_crossentropy':
-            self.dann_los_fn = tf.keras.losses.categorical_crossentropy
+            print(self.clas_loss_name + ' loss not supported for classif')
+        
+        if self.dann_loss_name == 'categorical_crossentropy':
+            self.dann_loss_fn = tf.keras.losses.categorical_crossentropy
         else:
-            print(self.dann_los_fn + ' loss not supported for dann')
-        return self.rec_loss_fn,self.clas_loss_fn,self.dann_los_fn
+            print(self.dann_loss_name + ' loss not supported for dann')
+        return self.rec_loss_fn,self.clas_loss_fn,self.dann_loss_fn
 
 
-    def print_status_bar(iteration, total, loss, metrics=None):
+    def print_status_bar(self, iteration, total, loss, metrics=None):
         metrics = ' - '.join(['{}: {:.4f}'.format(m.name, m.result())
                             for m in loss + (metrics or [])])
 
@@ -914,7 +965,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_hvg', type=int, nargs='?', const=10000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
     # parser.add_argument('--reduce_lr', type = , default = , help ='')
     # parser.add_argument('--early_stop', type = , default = , help ='')
-    parser.add_argument('--batch_size', type = int, nargs='?', default = 128, help ='Training batch size')
+    parser.add_argument('--batch_size', type = int, nargs='?', default = 256, help ='Training batch size')
     # parser.add_argument('--verbose', type = , default = , help ='')
     # parser.add_argument('--threads', type = , default = , help ='')
     parser.add_argument('--mode', type = str, default = 'percentage', help ='Train test split mode to be used by Dataset.train_split')
@@ -929,9 +980,9 @@ if __name__ == '__main__':
     parser.add_argument('--true_celltype', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--false_celltype', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--pct_false', type = float,nargs='?', default = None, help ='')
-    parser.add_argument('--clas_loss_fn', type = str,nargs='?', choices = ['MSE'], default = 'MSE' , help ='Loss of the classification branch')
-    parser.add_argument('--dann_los_fn', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
-    parser.add_argument('--rec_loss_fn', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Reconstruction loss of the autoencoder')
+    parser.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
+    parser.add_argument('--dann_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
+    parser.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
     # parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
     parser.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
     parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop'], default = 'adam' , help ='Name of the optimizer to use')
@@ -962,15 +1013,16 @@ if __name__ == '__main__':
     # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
 
     run_file = parser.parse_args()
-    working_dir = '.'
+    working_dir = '/home/acollin/dca_permuted_workflow/'
     workflow = Workflow(run_file=run_file, working_dir=working_dir)
 
     hparams = [
+        #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
         {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
         {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
         {"name": "lr", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
-        {"name": "wd", "type": "range", "bounds": [1e-8, 1e-5], "log_scale": True},
-        {"name": "warmup_epoch", "type": "range", "bounds": [1, 100]},
+        {"name": "wd", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
+        {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
         {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
         {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
         {"name": "layer2", "type": "range", "bounds": [64, 512]},
@@ -985,7 +1037,10 @@ if __name__ == '__main__':
         evaluation_function=workflow.make_experiment,
         objective_name='mcc',
         minimize=False,
-        total_trials=100,
-        random_seed=41,
+        total_trials=30,
+        random_seed=40,
 
     )
+
+print(best_parameters)
+

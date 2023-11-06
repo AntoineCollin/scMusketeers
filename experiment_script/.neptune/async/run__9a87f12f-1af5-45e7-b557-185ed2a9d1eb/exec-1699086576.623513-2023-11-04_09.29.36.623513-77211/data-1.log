@@ -1,0 +1,12 @@
+{"obj": {"type": "AssignString", "path": ["sys", "name"], "value": "Untitled"}, "version": 1}
+{"obj": {"type": "AssignString", "path": ["sys", "description"], "value": ""}, "version": 2}
+{"obj": {"type": "AssignString", "path": ["monitoring", "592a53e7", "hostname"], "value": "gpu01"}, "version": 3}
+{"obj": {"type": "AssignString", "path": ["sys", "hostname"], "value": "gpu01"}, "version": 4}
+{"obj": {"type": "AssignString", "path": ["monitoring", "592a53e7", "pid"], "value": "77211"}, "version": 5}
+{"obj": {"type": "AssignString", "path": ["monitoring", "592a53e7", "tid"], "value": "46912499926144"}, "version": 6}
+{"obj": {"type": "AssignBool", "path": ["sys", "failed"], "value": false}, "version": 7}
+{"obj": {"type": "ClearStringLog", "path": ["monitoring", "592a53e7", "stdout"]}, "version": 8}
+{"obj": {"type": "ClearStringLog", "path": ["monitoring", "592a53e7", "stderr"]}, "version": 9}
+{"obj": {"type": "AssignString", "path": ["source_code", "entrypoint"], "value": "workflow_hp.py"}, "version": 10}
+{"obj": {"type": "UploadFileSet", "path": ["source_code", "files"], "file_globs": ["/home/acollin/dca_permuted_workflow/workflow/workflow_hp.py"], "reset": "False"}, "version": 11}
+{"obj": {"type": "UploadFile", "path": ["source_code", "diff"], "ext": "patch", "file_path": null, "tmp_file_name": "source_code_diff-1699086577.566117-2023-11-04_09.29.37.566117.patch", "clean_after_upload": false}, "version": 12}

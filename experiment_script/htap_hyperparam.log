@@ -1,41 +1,146 @@
-2023-11-02 20:08:56.218472: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2023-11-02 20:08:57.809699: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2023-11-02 20:08:57.809743: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2023-11-02 20:08:57.809770: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2023-11-02 20:08:58.156804: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2023-11-03 11:39:04.539796: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2023-11-03 11:39:06.183246: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2023-11-03 11:39:06.183282: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2023-11-03 11:39:06.183305: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2023-11-03 11:39:06.449847: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2023-11-02 20:09:05.570200: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 31141 MB memory:  -> device: 0, name: Tesla V100-SXM2-32GB, pci bus id: 0000:1a:00.0, compute capability: 7.0
-[INFO 11-02 20:09:05] ax.service.utils.instantiation: Inferred value type of ParameterType.FLOAT for parameter clas_w. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
-[INFO 11-02 20:09:05] ax.service.utils.instantiation: Inferred value type of ParameterType.FLOAT for parameter dann_w. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
-[INFO 11-02 20:09:05] ax.service.utils.instantiation: Inferred value type of ParameterType.FLOAT for parameter lr. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
-[INFO 11-02 20:09:05] ax.service.utils.instantiation: Inferred value type of ParameterType.FLOAT for parameter wd. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+2023-11-03 11:39:32.398193: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 31141 MB memory:  -> device: 0, name: Tesla V100-SXM2-32GB, pci bus id: 0000:1d:00.0, compute capability: 7.0
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Inferred value type of ParameterType.FLOAT for parameter clas_w. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Inferred value type of ParameterType.FLOAT for parameter dann_w. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Inferred value type of ParameterType.FLOAT for parameter lr. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Inferred value type of ParameterType.FLOAT for parameter wd. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Inferred value type of ParameterType.INT for parameter warmup_epoch. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Inferred value type of ParameterType.FLOAT for parameter dropout. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Inferred value type of ParameterType.INT for parameter bottleneck. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Inferred value type of ParameterType.INT for parameter layer2. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Inferred value type of ParameterType.INT for parameter layer1. If that is not the expected value type, you can explicity specify 'value_type' ('int', 'float', 'bool' or 'str') in parameter dict.
+[INFO 11-03 11:39:32] ax.service.utils.instantiation: Created search space: SearchSpace(parameters=[RangeParameter(name='clas_w', parameter_type=FLOAT, range=[0.0001, 100.0]), RangeParameter(name='dann_w', parameter_type=FLOAT, range=[0.0001, 100.0]), RangeParameter(name='lr', parameter_type=FLOAT, range=[0.0001, 0.01], log_scale=True), RangeParameter(name='wd', parameter_type=FLOAT, range=[1e-08, 0.0001], log_scale=True), RangeParameter(name='warmup_epoch', parameter_type=INT, range=[1, 100]), RangeParameter(name='dropout', parameter_type=FLOAT, range=[0.0, 0.5]), RangeParameter(name='bottleneck', parameter_type=INT, range=[32, 64]), RangeParameter(name='layer2', parameter_type=INT, range=[64, 512]), RangeParameter(name='layer1', parameter_type=INT, range=[512, 1024])], parameter_constraints=[]).
+[INFO 11-03 11:39:32] ax.modelbridge.dispatch_utils: Using Models.GPEI since there are more ordered parameters than there are categories for the unordered categorical parameters.
+[INFO 11-03 11:39:32] ax.modelbridge.dispatch_utils: Calculating the number of remaining initialization trials based on num_initialization_trials=None max_initialization_trials=None num_tunable_parameters=9 num_trials=None use_batch_trials=False
+[INFO 11-03 11:39:32] ax.modelbridge.dispatch_utils: calculated num_initialization_trials=18
+[INFO 11-03 11:39:32] ax.modelbridge.dispatch_utils: num_completed_initialization_trials=0 num_remaining_initialization_trials=18
+[INFO 11-03 11:39:32] ax.modelbridge.dispatch_utils: Using Bayesian Optimization generation strategy: GenerationStrategy(name='Sobol+GPEI', steps=[Sobol for 18 trials, GPEI for subsequent trials]). Iterations after 18 will take longer to generate due to model-fitting.
+[INFO 11-03 11:39:32] ax.service.managed_loop: Started full optimization with 100 steps.
+[INFO 11-03 11:39:32] ax.service.managed_loop: Running optimization trial 1...
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:215: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  disp_grouped = df.groupby('mean_bin')['dispersions']
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:494: FutureWarning: The provided callable <function nanmean at 0x2aaaaec02c00> is currently using SeriesGroupBy.mean. In a future version of pandas, the provided callable will be used directly. To keep current behavior pass the string "mean" instead.
+  df = df.groupby('gene').agg(
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:494: FutureWarning: The provided callable <function nanmean at 0x2aaaaec02c00> is currently using SeriesGroupBy.mean. In a future version of pandas, the provided callable will be used directly. To keep current behavior pass the string "mean" instead.
+  df = df.groupby('gene').agg(
+/usr/local/lib/python3.11/dist-packages/scanpy/preprocessing/_highly_variable_genes.py:494: FutureWarning: The provided callable <function nansum at 0x2aaaaec02700> is currently using SeriesGroupBy.sum. In a future version of pandas, the provided callable will be used directly. To keep current behavior pass the string "sum" instead.
+  df = df.groupby('gene').agg(
+WARNING: adata.X seems to be already log-transformed.
+/home/acollin/dca_permuted_workflow/workflow/dataset.py:324: ImplicitModificationWarning: Trying to modify attribute `.obs` of view, initializing view as actual.
+  self.adata_train_extended.obs['train_split'] = to_keep
+/home/acollin/dca_permuted_workflow/workflow/dataset.py:356: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  to_keep[UNK_cells] = 'val' # Change unknown cells to val
+{'clas_w': 57.62209361696243, 'dann_w': 22.870513440331816, 'lr': 0.003611960175887472, 'wd': 1.666747896585222e-08, 'warmup_epoch': 97, 'dropout': 0.18118499219417572, 'bottleneck': 42, 'layer2': 203, 'layer1': 783}
+Searching for highly variable genes in 14 batches
+Found 794 highly variable genes using 14 batches
+Searching for highly variable genes in 13 batches
+Found 377 highly variable genes using 13 batches
+Searching for highly variable genes in 12 batches
+Found 352 highly variable genes using 12 batches
+Searching for highly variable genes in 11 batches
+Found 296 highly variable genes using 11 batches
+Searching for highly variable genes in 10 batches
+Found 334 highly variable genes using 10 batches
+Searching for highly variable genes in 9 batches
+Found 336 highly variable genes using 9 batches
+Searching for highly variable genes in 8 batches
+Found 370 highly variable genes using 8 batches
+Searching for highly variable genes in 7 batches
+Found 416 highly variable genes using 7 batches
+Searching for highly variable genes in 6 batches
+Found 553 highly variable genes using 6 batches
+Searching for highly variable genes in 5 batches
+Found 696 highly variable genes using 5 batches
+Searching for highly variable genes in 4 batches
+Found 1247 highly variable genes using 4 batches. Selecting top 476
+train, test, val proportions : PRC_2_AAACCCAGTACAACGG-1         train
+PRC_2_AAACCCATCAAGATAG-1         train
+PRC_2_AAACCCATCAAGGTGG-1         train
+PRC_2_AAACGAACACCACTGG-1         train
+PRC_2_AAACGAACATAGGAGC-1         train
+                                 ...  
+PAH_688194_TTTGGTTTCAGCAGAG-1      val
+PAH_688194_TTTGTTGCACCGGCTA-1      val
+PAH_688194_TTTGTTGCATGGGCAA-1      val
+PAH_688194_TTTGTTGGTAAGTAGT-1      val
+PAH_688194_TTTGTTGGTGGGAGAG-1      val
+Name: train_split, Length: 69949, dtype: object
+dataset has been preprocessed
+[64]
+https://app.neptune.ai/blaireaufurtif/scPermut/e/SCPER-2
+[ERROR 11-03 11:40:18] ax.service.managed_loop: Encountered exception during optimization: 
 Traceback (most recent call last):
-  File "/home/acollin/dca_permuted_workflow/workflow/workflow_hp.py", line 982, in <module>
+  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/managed_loop.py", line 228, in full_run
+    self.run_trial()
+  File "/home/acollin/.local/lib/python3.11/site-packages/ax/utils/common/executils.py", line 161, in actual_wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/managed_loop.py", line 206, in run_trial
+    raw_data={
+             ^
+  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/managed_loop.py", line 207, in <dictcomp>
+    arm.name: self._call_evaluation_function(arm.parameters, weight)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/managed_loop.py", line 146, in _call_evaluation_function
+    evaluation = self.evaluation_function(parameterization)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/acollin/dca_permuted_workflow/workflow/workflow_hp.py", line 450, in make_experiment
+    for par,val in self.run_file.__dict__[k].items():
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'items'
+Traceback (most recent call last):
+  File "/home/acollin/dca_permuted_workflow/workflow/workflow_hp.py", line 984, in <module>
     best_parameters, values, experiment, model = optimize(
                                                  ^^^^^^^^^
-  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/managed_loop.py", line 284, in optimize
-    loop = OptimizationLoop.with_evaluation_function(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/managed_loop.py", line 100, in with_evaluation_function
-    experiment = InstantiationBase.make_experiment(
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/utils/instantiation.py", line 908, in make_experiment
-    search_space=cls.make_search_space(parameters, parameter_constraints),
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/utils/instantiation.py", line 687, in make_search_space
-    typed_parameters = [cls.parameter_from_json(p) for p in parameters]
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/utils/instantiation.py", line 687, in <listcomp>
-    typed_parameters = [cls.parameter_from_json(p) for p in parameters]
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/utils/instantiation.py", line 309, in parameter_from_json
-    return cls._make_range_param(
-           ^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/utils/instantiation.py", line 207, in _make_range_param
-    return RangeParameter(
-           ^^^^^^^^^^^^^^^
-  File "/home/acollin/.local/lib/python3.11/site-packages/ax/core/parameter.py", line 202, in __init__
-    self._validate_range_param(
-  File "/home/acollin/.local/lib/python3.11/site-packages/ax/core/parameter.py", line 240, in _validate_range_param
-    raise UserInputError(
-ax.exceptions.core.UserInputError: Parameter range (9.990000000000001e-06) is very small and likely to cause numerical errors. Consider reparameterizing your problem by scaling the parameter.
+  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/managed_loop.py", line 298, in optimize
+    parameterization, values = loop.get_best_point()
+                               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/managed_loop.py", line 251, in get_best_point
+    parameterization, values = get_best_raw_objective_point(
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/utils/best_point.py", line 135, in get_best_raw_objective_point
+    _, parameterization, vals = get_best_raw_objective_point_with_trial_index(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/acollin/.local/lib/python3.11/site-packages/ax/service/utils/best_point.py", line 92, in get_best_raw_objective_point_with_trial_index
+    raise ValueError("Cannot identify best point if experiment contains no data.")
+ValueError: Cannot identify best point if experiment contains no data.
+Shutting down background jobs, please wait a moment...
+Done!
+Waiting for the remaining 319 operations to synchronize with Neptune. Do not kill this process.
+All 319 operations synced, thanks for waiting!
+Explore the metadata in the Neptune app:
+https://app.neptune.ai/blaireaufurtif/scPermut/e/SCPER-2/metadata
