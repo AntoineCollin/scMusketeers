@@ -7,7 +7,7 @@ build
 docs/build
 data/simulation/
 
-.neptune/*
+.neptune/
 mars/
 logs/
 metrics/
