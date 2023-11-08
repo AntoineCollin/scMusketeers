@@ -622,7 +622,8 @@ class Workflow:
                             dann_loss_fn,
                             rec_loss_fn,
                             use_perm=None,
-                            training_strategy="full_model"):
+                            training_strategy="full_model",
+                            verbose=False):
         '''
         A consolidated training loop function that covers common logic used in different training strategies.
 
@@ -709,8 +710,8 @@ class Workflow:
             mean_clas_loss = self.mean_clas_loss_fn(clas_loss)
             mean_dann_loss = self.mean_dann_loss_fn(dann_loss)
             mean_rec_loss = self.mean_rec_loss_fn(rec_loss)
-
-            self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
+            if verbose:
+                self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
         history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn)
 
         return history, _, clas, dann, rec
@@ -722,9 +723,13 @@ class Workflow:
         on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
         '''
         for group in ['train', 'val']: # evaluation round
-            # with tf.device('CPU'):
+            
             inp = scanpy_to_input(adata_list[group],['size_factors'])
-            _, clas, dann, rec = ae.predict(inp).values()
+            try :
+                _, clas, dann, rec = ae.predict(inp).values()
+            except:
+                with tf.device('CPU'):
+                    _, clas, dann, rec = ae.predict(inp).values()
     #         return _, clas, dann, rec
             clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas)).numpy()
             history[group]['clas_loss'] += [clas_loss]

@@ -34,12 +34,17 @@ import numpy as np
 import os
 import sys
 import keras
+import gc
 import tensorflow as tf
 import neptune
 from neptune.utils import stringify_unsupported
 
 from ax.service.managed_loop import optimize
 # from ax import RangeParameter, SearchSpace, ParameterType, FixedParameter, ChoiceParameter
+
+physical_devices = tf.config.list_physical_devices('GPU')
+for gpu_instance in physical_devices:
+    tf.config.experimental.set_memory_growth(gpu_instance, True)
 
 workflow_ID = 'workflow_ID'
 
@@ -227,6 +232,7 @@ class Workflow:
         # self.pred_hist = dict() # TODO : probably unnecessary, should be handled by logging
 
         # Paths used for the analysis workflow, probably unnecessary
+        self.working_dir = working_dir
         self.data_dir = working_dir + '/data'
         self.result_dir = working_dir + '/results'
         self.result_path = self.result_dir + f'/result_ID_{self.workflow_ID}'
@@ -386,7 +392,7 @@ class Workflow:
         self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer1, self.layer2]
 
         self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
-
+        
         self.dataset = Dataset(dataset_dir = self.data_dir,
                                dataset_name = self.dataset_name,
                                class_key = self.class_key,
@@ -503,7 +509,7 @@ class Workflow:
                 for metric in self.metrics_list: # only classification metrics ATM
                     self.run[f"evaluation/{group}/{metric}"] = self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))
                 if group == 'full':
-                    save_dir = '/home/acollin/dca_permuted_workflow/experiment_script/results/' + str(neptune_run_id) + '/'
+                    save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
                     y_pred = pd.DataFrame(self.dataset.ohe_celltype.inverse_transform(clas), index = adata_list[group].obs_names)
@@ -525,13 +531,16 @@ class Workflow:
                     fig_split = sc.pl.umap(pred_adata, color = 'train_split', size = 5,return_fig = True)
                     self.run[f'evaluation/{group}/classif_umap'].upload(fig_class)
                     self.run[f'evaluation/{group}/batch_umap'].upload(fig_batch)
-                    self.run[f'evaluation/{group}/split_umap'].upload(fig_batch)
-
-        _, clas, dann, rec = self.dann_ae.predict(scanpy_to_input(adata_list['val'],['size_factors'])).values()
+                    self.run[f'evaluation/{group}/split_umap'].upload(fig_split)
+        inp = scanpy_to_input(adata_list['val'],['size_factors'])
+        inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
+        _, clas, dann, rec = self.dann_ae(inp, training=False).values()
         clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
         opt_metric = self.metrics_list['mcc'](np.asarray(y_list['val'].argmax(axis=1)), clas.argmax(axis=1)) # We retrieve the last metric of interest
         if self.log_neptune:
             self.run.stop()
+        gc.collect()
+        tf.keras.backend.clear_session()
         return opt_metric
 
     def train_scheme(self,
@@ -567,12 +576,16 @@ class Workflow:
                 time_in = time.time()
 
                 # Early stopping for those strategies only
-            if strategy in  ['full_model', 'classifier_branch']:
+            if strategy in  ['full_model', 'classifier_branch', 'permutation_only']:
                 wait = 0
                 best_epoch = 0
                 es_best = np.inf # initialize early_stopping
                 patience = 20
-                monitored = 'mcc'
+                if strategy == 'permutation_only':
+                    monitored = 'rec_loss'
+                else:
+                    monitored = 'mcc'
+
 
             for epoch in range(1, n_epochs+1):
                 running_epoch +=1
@@ -588,7 +601,7 @@ class Workflow:
                         for par,value in history[group].items():
                             self.run[f"training/{group}/{par}"].append(value[-1])
 
-                if strategy in  ['full_model', 'classifier_branch']:
+                if strategy in ['full_model', 'classifier_branch', 'permutation_only']:
                     # Early stopping
                     wait += 1
                     monitored_value = history['val'][monitored][-1]
@@ -605,11 +618,10 @@ class Workflow:
 
             if verbose:
                 time_out = time.time()
-                print(f"Epoch duration : {time_out - time_in} s")
+                print(f"Strategy duration : {time_out - time_in} s")
 
         # dann_ae.set_weights(best_weights)
         return history
-
 
     def training_loop(self, history,
                             ae,
@@ -622,7 +634,8 @@ class Workflow:
                             dann_loss_fn,
                             rec_loss_fn,
                             use_perm=None,
-                            training_strategy="full_model"):
+                            training_strategy="full_model",
+                            verbose = False):
         '''
         A consolidated training loop function that covers common logic used in different training strategies.
 
@@ -684,6 +697,7 @@ class Workflow:
             clas_batch, dann_batch, rec_batch = output_batch.values()
 
             with tf.GradientTape() as tape:
+                input_batch = {k:tf.convert_to_tensor(v) for k,v in input_batch.items()}
                 enc, clas, dann, rec = ae(input_batch, training=True).values()
                 clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
                 dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
@@ -709,8 +723,9 @@ class Workflow:
             mean_clas_loss = self.mean_clas_loss_fn(clas_loss)
             mean_dann_loss = self.mean_dann_loss_fn(dann_loss)
             mean_rec_loss = self.mean_rec_loss_fn(rec_loss)
-
-            self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
+            if verbose :
+                self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
+        self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
         history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn)
 
         return history, _, clas, dann, rec
@@ -722,9 +737,14 @@ class Workflow:
         on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
         '''
         for group in ['train', 'val']: # evaluation round
-            # with tf.device('CPU'):
             inp = scanpy_to_input(adata_list[group],['size_factors'])
-            _, clas, dann, rec = ae.predict(inp).values()
+            inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
+            try :
+                _, clas, dann, rec = ae(inp, training=False).values()
+            except:
+                with tf.device('CPU'):
+                    _, clas, dann, rec = ae(inp, training=False).values()
+
     #         return _, clas, dann, rec
             clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas)).numpy()
             history[group]['clas_loss'] += [clas_loss]
@@ -784,8 +804,11 @@ class Workflow:
                                   ("full_model", 100, False)] # This will end with a callback
         if self.training_scheme == 'training_scheme_2':
             self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
-                                ("permutation_only", 100, True),
-                                ("classifier_branch", 30, False)] # This will end with a callback
+                                ("permutation_only", 100, True),  # This will end with a callback
+                                ("classifier_branch", 50, False)] # This will end with a callback
+        if self.training_scheme == 'training_scheme_3':
+            self.training_scheme = [("permutation_only", 100, True),  # This will end with a callback
+                                ("classifier_branch", 50, False)]
         return self.training_scheme
 
 
@@ -812,7 +835,7 @@ class Workflow:
         metrics = ' - '.join(['{}: {:.4f}'.format(m.name, m.result())
                             for m in loss + (metrics or [])])
 
-        end = "" if iteration < total else "\n"
+        end = "" if int(iteration) < int(total) else "\n"
     #     print(f"{iteration}/{total} - "+metrics ,end="\r")
     #     print(f"\r{iteration}/{total} - " + metrics, end=end)
         print("\r{}/{} - ".format(iteration,total) + metrics, end =end)

@@ -106,6 +106,43 @@ def sum_marker_score(markers, adata, obs_key):
         sum_scores[sub_adata.obs_names] = marker_scores.sum(axis = 1)
     adata.obs['sum_marker_score'] = sum_scores
 
+def load_dataset(dataset_name,dataset_dir):
+        dataset_names = {'htap':'htap_annotated',
+                            'lca' : 'LCA_log1p',
+                            'discovair':'discovair_V6',
+                            'discovair_V7':'discovair_V7',
+                            'discovair_V7_filtered':'discovair_V7_filtered_raw', # Filtered version with doublets, made lighter to pass through the model
+                            'discovair_V7_filtered_no_D53':'discovair_V7_filtered_raw_no_D53',
+                            'ajrccm':'HCA_Barbry_Grch38_Raw',
+                            "ajrccm_by_batch":"ajrccm_by_batch",
+                            "disco_htap_ajrccm":'discovair_htap_ajrccm',
+                            "disco_htap": 'discovair_htap',
+                            "disco_ajrccm": 'discovair_ajrccm',
+                            "disco_ajrccm_downsampled":'discovair_ajrccm_downsampled',
+                            "discovair_ajrccm_small" : "discovair_ajrccm_small",
+                            'htap_ajrccm': 'htap_ajrccm_raw',
+                            'pbmc3k_processed':'pbmc_3k',
+                            'htap_final':'htap_final',
+                            'htap_final_by_batch':'htap_final_by_batch',
+                            'htap_final_C1_C5':'htap_final_C1_C5',
+                            'pbmc8k':'pbmc8k',
+                            'pbmc68k':'pbmc68k',
+                            'pbmc8k_68k':'pbmc8k_68k',
+                            'pbmc8k_68k_augmented':'pbmc8k_68k_augmented',
+                            'pbmc8k_68k_downsampled':'pbmc8k_68k_downsampled',
+                            'htap_final_ajrccm': 'htap_final_ajrccm',
+                            'hlca_par_sample_harmonized':'hlca_par_sample_harmonized',
+                            'hlca_par_dataset_harmonized':'hlca_par_dataset_harmonized',
+                            'hlca_trac_sample_harmonized':'hlca_trac_sample_harmonized',
+                            'hlca_trac_dataset_harmonized':'hlca_trac_dataset_harmonized'}
+        dataset_path = dataset_dir + '/' + dataset_names[dataset_name] + '.h5ad'
+        adata = sc.read_h5ad(dataset_path)
+        if not adata.raw:
+            adata.raw = adata
+        return adata
+
+
+
 class Dataset:
     def __init__(self, 
                 dataset_dir,
@@ -173,7 +210,11 @@ class Dataset:
                              'pbmc8k_68k':'pbmc8k_68k',
                              'pbmc8k_68k_augmented':'pbmc8k_68k_augmented',
                              'pbmc8k_68k_downsampled':'pbmc8k_68k_downsampled',
-                             'htap_final_ajrccm': 'htap_final_ajrccm'}
+                             'htap_final_ajrccm': 'htap_final_ajrccm',
+                             'hlca_par_sample_harmonized':'hlca_par_sample_harmonized',
+                             'hlca_par_dataset_harmonized':'hlca_par_dataset_harmonized',
+                             'hlca_trac_sample_harmonized':'hlca_trac_sample_harmonized',
+                             'hlca_trac_dataset_harmonized':'hlca_trac_dataset_harmonized'}
         # self.batch_key = {'htap': 'place_holder',
         #                     'discovair': 'sample',
         #                     'ajrccm': 'manip',
@@ -388,15 +429,15 @@ class Dataset:
         train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
         self.adata.obs['train_split'] = train_split
         
-        self.adata_train = self.adata[self.adata.obs['train_split'] == 'train'].copy()
-        self.adata_val = self.adata[self.adata.obs['train_split'] == 'val'].copy()
-        self.adata_test = self.adata[self.adata.obs['train_split'] == 'test'].copy()
         print(f'train, test, val proportions : {self.adata.obs["train_split"]}')
 
     def create_inputs(self):
         '''
         Must be called after train_split
         '''
+        self.adata_train = self.adata[self.adata.obs['train_split'] == 'train'].copy()
+        self.adata_val = self.adata[self.adata.obs['train_split'] == 'val'].copy()
+        self.adata_test = self.adata[self.adata.obs['train_split'] == 'test'].copy()
         self.X = self.adata.X
         self.X_train = self.adata_train.X
         self.X_val = self.adata_val.X
