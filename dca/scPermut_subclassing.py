@@ -194,7 +194,7 @@ class Autoencoder(keras.Model):
                 ae_hidden_size,
                 ae_hidden_dropout=None,
                 ae_activation='relu',
-                ae_output_activation='linear',
+                ae_output_activation='relu',
                 ae_init='glorot_uniform',
                 ae_batchnorm=True,
                 ae_l1_enc_coef=0,

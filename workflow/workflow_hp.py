@@ -2,7 +2,7 @@ import sys
 import os
 try :
     from .load import load_runfile
-    from .dataset import Dataset
+    from .dataset import Dataset, load_dataset
     from .predictor import MLP_Predictor
     from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
     from .utils import get_optimizer, scanpy_to_input, default_value, str2bool
@@ -10,7 +10,7 @@ try :
 
 except ImportError:
     from load import load_runfile
-    from dataset import Dataset
+    from dataset import Dataset, load_dataset
     from predictor import MLP_Predictor
     from model import DCA_Permuted,Scanvi
     from utils import get_optimizer, scanpy_to_input, default_value, str2bool
@@ -389,12 +389,14 @@ class Workflow:
         self.layer2 =  params['layer2']
         self.bottleneck = params['bottleneck']
 
-        self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer1, self.layer2]
+        self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer2, self.layer1]
 
         self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
+
+        adata = load_dataset(dataset_dir = self.data_dir,
+                               dataset_name = self.dataset_name)
         
-        self.dataset = Dataset(dataset_dir = self.data_dir,
-                               dataset_name = self.dataset_name,
+        self.dataset = Dataset(adata = adata,
                                class_key = self.class_key,
                                batch_key= self.batch_key,
                                filter_min_counts = self.filter_min_counts,
@@ -405,7 +407,6 @@ class Workflow:
                                n_perm = self.n_perm,
                                semi_sup = self.semi_sup,
                                unlabeled_category = self.unlabeled_category)
-        self.dataset.load_dataset()
         self.dataset.normalize()
         self.dataset.train_split(mode = self.mode,
                             pct_split = self.pct_split,
@@ -526,12 +527,13 @@ class Workflow:
                     np.save(save_dir + f'umap_{group}.npy', pred_adata.obsm['X_umap'])
                     self.run[f'evaluation/{group}/umap'].track_files(save_dir + f'umap_{group}.npy')
                     sc.set_figure_params(figsize=(15, 10), dpi = 300)
-                    fig_class = sc.pl.umap(pred_adata, color = self.class_key, size = 5,return_fig = True)
+                    fig_class = sc.pl.umap(pred_adata, color = f'true_{self.class_key}', size = 5,return_fig = True)
                     fig_batch = sc.pl.umap(pred_adata, color = self.batch_key, size = 5,return_fig = True)
                     fig_split = sc.pl.umap(pred_adata, color = 'train_split', size = 5,return_fig = True)
                     self.run[f'evaluation/{group}/classif_umap'].upload(fig_class)
                     self.run[f'evaluation/{group}/batch_umap'].upload(fig_batch)
                     self.run[f'evaluation/{group}/split_umap'].upload(fig_split)
+
         inp = scanpy_to_input(adata_list['val'],['size_factors'])
         inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
         _, clas, dann, rec = self.dann_ae(inp, training=False).values()
@@ -539,8 +541,19 @@ class Workflow:
         opt_metric = self.metrics_list['mcc'](np.asarray(y_list['val'].argmax(axis=1)), clas.argmax(axis=1)) # We retrieve the last metric of interest
         if self.log_neptune:
             self.run.stop()
+        del self.dann_ae
+        del self.dataset
+        del history
+        del self.optimizer
+        del self.rec_loss_fn
+        del self.clas_loss_fn
+        del self.dann_loss_fn
+        del self.metric_list
+
         gc.collect()
         tf.keras.backend.clear_session()
+        tf.clear_default_graph()
+
         return opt_metric
 
     def train_scheme(self,
@@ -669,6 +682,7 @@ class Workflow:
         elif training_strategy == "permutation_only":
             group = 'train'
             self.freeze_block(ae, 'all_but_autoencoder')
+            use_perm = True
 
         if not use_perm:
             use_perm = True
@@ -719,10 +733,11 @@ class Workflow:
             gradients = tape.gradient(loss, ae.trainable_variables)
             optimizer.apply_gradients(zip(gradients, ae.trainable_variables))
 
-            mean_loss = self.mean_loss_fn(loss)
-            mean_clas_loss = self.mean_clas_loss_fn(clas_loss)
-            mean_dann_loss = self.mean_dann_loss_fn(dann_loss)
-            mean_rec_loss = self.mean_rec_loss_fn(rec_loss)
+            self.mean_loss_fn(loss)
+            self.mean_clas_loss_fn(clas_loss)
+            self.mean_dann_loss_fn(dann_loss)
+            self.mean_rec_loss_fn(rec_loss)
+
             if verbose :
                 self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
         self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
@@ -1038,6 +1053,7 @@ if __name__ == '__main__':
     run_file = parser.parse_args()
     working_dir = '/home/acollin/dca_permuted_workflow/'
     workflow = Workflow(run_file=run_file, working_dir=working_dir)
+    print("Workflow loaded")
 
     hparams = [
         #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},

@@ -1,8 +1,8 @@
 #!/bin/sh
 #
 #SBATCH --account=cell     # The account name for the job.
-#SBATCH --job-name=htap_2      # The job name.
-#SBATCH --gres=gpu:1           # Request 1 gpu (Up to 2 gpus per GPU node)
+#SBATCH --job-name=htap_2   # The job name.
+#SBATCH --gres=gpu:1        # Request 1 gpu (Up to 2 gpus per GPU node)
 #SBATCH --partition=gpu
 #SBATCH --time=35:00:00           # The time the job will take to run in D-HH:MM
 #SBATCH --output=/home/acollin/htap_hyperparam.log # Important to retrieve the port where the notebook is running, if not included a slurm file with the job-id will be outputted. 

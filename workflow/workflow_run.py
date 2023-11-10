@@ -187,7 +187,7 @@ class Workflow:
         # self.optimizer = self.run_file.optimizer
         # self.verbose = self.run_file[model_training_spec][verbose] # TODO : not implemented yet for DANN_AE
         # self.threads = self.run_file[model_training_spec][threads] # TODO : not implemented yet for DANN_AE
-        self.learning_rate = self.run_file.learning_rate
+        self.learning_rate = self.run_file.lr
         self.n_perm = 1
         self.semi_sup = False # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
@@ -271,7 +271,7 @@ class Workflow:
 
         ##### TODO : Add to runfile
 
-
+        self.warmup_epoch = self.run_file.warmup_epoch
 
         self.clas_loss_name = self.run_file.clas_loss_name
         self.clas_loss_name = default_value(self.clas_loss_name, 'MSE')
@@ -285,7 +285,7 @@ class Workflow:
         self.rec_loss_fn = None
 
         # self.weight_decay = self.run_file.weight_decay
-        self.weight_decay = None
+        self.weight_decay = self.run_file.wd
         self.optimizer_type = self.run_file.optimizer_type
         self.optimizer_type = default_value(self.optimizer_type , 'adam')
 
@@ -303,7 +303,7 @@ class Workflow:
         self.ae_activation = self.run_file.ae_activation
         self.ae_activation = default_value(self.ae_activation , "relu")
         self.ae_output_activation = self.run_file.ae_output_activation
-        self.ae_output_activation = default_value(self.ae_output_activation , "linear")
+        self.ae_output_activation = default_value(self.ae_output_activation , "relu")
         self.ae_init = self.run_file.ae_init
         self.ae_init = default_value(self.ae_init , 'glorot_uniform')
         self.ae_batchnorm = self.run_file.ae_batchnorm
@@ -376,23 +376,8 @@ class Workflow:
     def check_umap_log(self):
         return os.path.isfile(self.umap_log_path)
 
-    def make_experiment(self, params):
-        print(params)
+    def make_experiment(self):
 #        self.use_hvg = params['use_hvg']
-        self.clas_w =  params['clas_w']
-        self.dann_w = params['dann_w']
-        self.rec_w =  1
-        self.weight_decay =  params['wd']
-        self.warmup_epoch =  params['warmup_epoch']
-        self.dropout =  params['dropout']
-        self.layer1 = params['layer1']
-        self.layer2 =  params['layer2']
-        self.bottleneck = params['bottleneck']
-
-        self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer1, self.layer2]
-
-        self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
-
         adata = load_dataset(dataset_dir = self.data_dir,
                                dataset_name = self.dataset_name)
         
@@ -461,9 +446,9 @@ class Workflow:
             for par,val in self.run_file.__dict__.items():
                 self.run[f"parameters/{par}"] = stringify_unsupported(val)
 
-            for par,val in params.items():
-                self.run[f"parameters/{par}"] = stringify_unsupported(val)
-            self.run[f'parameters/ae_hidden_size'] = stringify_unsupported(self.ae_hidden_size)
+            # for par,val in params.items():
+            #     self.run[f"parameters/{par}"] = stringify_unsupported(val)
+            # self.run[f'parameters/ae_hidden_size'] = stringify_unsupported(self.ae_hidden_size)
 
         self.dann_ae = DANN_AE(ae_hidden_size=self.ae_hidden_size,
                         ae_hidden_dropout=self.ae_hidden_dropout,
@@ -544,10 +529,14 @@ class Workflow:
         del self.dann_ae
         del self.dataset
         del history
+        del self.optimizer
+        del self.rec_loss_fn
+        del self.clas_loss_fn
+        del self.dann_loss_fn
         gc.collect()
         tf.keras.backend.clear_session()
         
-        
+
         return opt_metric
 
     def train_scheme(self,
@@ -587,7 +576,7 @@ class Workflow:
                 wait = 0
                 best_epoch = 0
                 es_best = np.inf # initialize early_stopping
-                patience = 0
+                patience = 20
                 if strategy == 'permutation_only':
                     monitored = 'rec_loss'
                 else:
@@ -731,6 +720,7 @@ class Workflow:
             self.mean_clas_loss_fn(clas_loss)
             self.mean_dann_loss_fn(dann_loss)
             self.mean_rec_loss_fn(rec_loss)
+
             if verbose :
                 self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
         self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
@@ -993,7 +983,8 @@ if __name__ == '__main__':
     parser.add_argument('--normalize_size_factors', type=str2bool, nargs='?',const=True, default=True, help ='Weither to normalize dataset or not')
     parser.add_argument('--scale_input', type=str2bool, nargs='?',const=False, default=False, help ='Weither to scale input the count values')
     parser.add_argument('--logtrans_input', type=str2bool, nargs='?',const=True, default=True, help ='Weither to log transform count values')
-    parser.add_argument('--use_hvg', type=int, nargs='?', const=10000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
+    parser.add_argument('--use_hvg', type=int, nargs='?', const=5000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
+
     # parser.add_argument('--reduce_lr', type = , default = , help ='')
     # parser.add_argument('--early_stop', type = , default = , help ='')
     parser.add_argument('--batch_size', type = int, nargs='?', default = 256, help ='Training batch size')
@@ -1011,19 +1002,21 @@ if __name__ == '__main__':
     parser.add_argument('--true_celltype', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--false_celltype', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--pct_false', type = float,nargs='?', default = None, help ='')
+
+    parser.add_argument('--warmup_epoch', type=int, nargs='?', default=50, help ='Number of dann warmup epochs')
     parser.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
     parser.add_argument('--dann_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
     parser.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
-    # parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
-    parser.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
+    parser.add_argument('--wd', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by the optimizer')
+    parser.add_argument('--lr', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
     parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop'], default = 'adam' , help ='Name of the optimizer to use')
     parser.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Wight of the classification loss')
     parser.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Wight of the DANN loss')
     parser.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Wight of the reconstruction loss')
-    parser.add_argument('--ae_hidden_size', type = int,nargs='+', default = [128,64,128], help ='Hidden sizes of the successive ae layers')
+    parser.add_argument('--ae_hidden_size', type = int,nargs='+', default = [512,256,64,256,512], help ='Hidden sizes of the successive ae layers')
     parser.add_argument('--ae_hidden_dropout', type =float, nargs='?', default = None, help ='')
     parser.add_argument('--ae_activation', type = str ,nargs='?', default = 'relu' , help ='')
-    parser.add_argument('--ae_output_activation', type = str,nargs='?', default = 'linear', help ='')
+    parser.add_argument('--ae_output_activation', type = str,nargs='?', default = 'relu', help ='')
     parser.add_argument('--ae_init', type = str,nargs='?', default = 'glorot_uniform', help ='')
     parser.add_argument('--ae_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--ae_l1_enc_coef', type = float,nargs='?', default = None, help ='')
@@ -1041,38 +1034,9 @@ if __name__ == '__main__':
     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--workflow_id', type=str, nargs='?', default='default', help ='')
-    # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
 
     run_file = parser.parse_args()
     working_dir = '/home/acollin/dca_permuted_workflow/'
     workflow = Workflow(run_file=run_file, working_dir=working_dir)
     print("Workflow loaded")
-
-    hparams = [
-        #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
-        {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-        {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-        {"name": "lr", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
-        {"name": "wd", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
-        {"name": "warmup_epoch", "type": "range", "bounds": [1, 3]},
-        {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
-        {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
-        {"name": "layer2", "type": "range", "bounds": [64, 512]},
-        {"name": "layer1", "type": "range", "bounds": [512, 1024]},
-
-    ]
-
-    # workflow.make_experiment(hparams)
-
-    best_parameters, values, experiment, model = optimize(
-        parameters=hparams,
-        evaluation_function=workflow.make_experiment,
-        objective_name='mcc',
-        minimize=False,
-        total_trials=30,
-        random_seed=40,
-
-    )
-
-print(best_parameters)
-
+    workflow.make_experiment()

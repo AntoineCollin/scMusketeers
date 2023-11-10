@@ -142,11 +142,9 @@ def load_dataset(dataset_name,dataset_dir):
         return adata
 
 
-
 class Dataset:
     def __init__(self, 
-                dataset_dir,
-                dataset_name,
+                adata,
                 class_key,
                 batch_key,
                 filter_min_counts,
@@ -157,13 +155,13 @@ class Dataset:
                 n_perm,
                 semi_sup,
                 unlabeled_category):
-        self.dataset_name = dataset_name
-        self.adata = anndata.AnnData()
+        self.adata = adata
         self.adata_train_extended = anndata.AnnData()
         self.adata_train = anndata.AnnData()
         self.adata_val = anndata.AnnData()
         self.adata_test = anndata.AnnData()
         self.class_key = class_key
+        self.adata.obs[f'true_{self.class_key}'] = self.adata.obs[self.class_key] # Duplicate original annotation in true_class_key
         self.batch_key = batch_key
         self.filter_min_counts = filter_min_counts
         self.normalize_size_factors = normalize_size_factors
@@ -185,66 +183,10 @@ class Dataset:
         self.true_celltype=str()
         self.false_celltype=str()
         self.pct_false=float()
+                
+        # self.markers_path = self.dataset_dir + '/' + f'markers/markers_{dataset_name}.csv'
         
-        self.dataset_dir = dataset_dir
-        self.dataset_names = {'htap':'htap_annotated',
-                                'lca' : 'LCA_log1p',
-                                'discovair':'discovair_V6',
-                              'discovair_V7':'discovair_V7',
-                              'discovair_V7_filtered':'discovair_V7_filtered_raw', # Filtered version with doublets, made lighter to pass through the model
-                              'discovair_V7_filtered_no_D53':'discovair_V7_filtered_raw_no_D53',
-                                'ajrccm':'HCA_Barbry_Grch38_Raw',
-                                "ajrccm_by_batch":"ajrccm_by_batch",
-                                "disco_htap_ajrccm":'discovair_htap_ajrccm',
-                                "disco_htap": 'discovair_htap',
-                                "disco_ajrccm": 'discovair_ajrccm',
-                                "disco_ajrccm_downsampled":'discovair_ajrccm_downsampled',
-                                "discovair_ajrccm_small" : "discovair_ajrccm_small",
-                                'htap_ajrccm': 'htap_ajrccm_raw',
-                             'pbmc3k_processed':'pbmc_3k',
-                             'htap_final':'htap_final',
-                             'htap_final_by_batch':'htap_final_by_batch',
-                             'htap_final_C1_C5':'htap_final_C1_C5',
-                             'pbmc8k':'pbmc8k',
-                             'pbmc68k':'pbmc68k',
-                             'pbmc8k_68k':'pbmc8k_68k',
-                             'pbmc8k_68k_augmented':'pbmc8k_68k_augmented',
-                             'pbmc8k_68k_downsampled':'pbmc8k_68k_downsampled',
-                             'htap_final_ajrccm': 'htap_final_ajrccm',
-                             'hlca_par_sample_harmonized':'hlca_par_sample_harmonized',
-                             'hlca_par_dataset_harmonized':'hlca_par_dataset_harmonized',
-                             'hlca_trac_sample_harmonized':'hlca_trac_sample_harmonized',
-                             'hlca_trac_dataset_harmonized':'hlca_trac_dataset_harmonized'}
-        # self.batch_key = {'htap': 'place_holder',
-        #                     'discovair': 'sample',
-        #                     'ajrccm': 'manip',
-        #                     'pbmc8k':'dataset',
-        #                     'pbmc68k':'dataset',
-        #                     'pbmc8k_68k':'dataset',
-        #                     'pbmc8k_68k_augmented':'dataset',
-        #                     'pbmc8k_68k_downsampled':'dataset',
-        #                     'disco_htap_ajrccm': 'sample',
-        #                     'disco_htap': 'sample',
-        #                     'disco_ajrccm': 'manip',
-        #                     'disco_ajrccm_downsampled': 'manip',
-        #                     'htap_ajrccm': 'place_holder',
-        #                     'pbmc3k_processed': 'manip',
-        #                     'htap_final': 'sample',
-        #                     'htap_final_C1_C5':'sample',
-        #                     'discovair_ajrccm_small' : 'manip',
-        #                     'htap_final_ajrccm': 'place_holder'}
-        # self.batch_key = self.batch_key[self.dataset_name]
-        self.dataset_path = self.dataset_dir + '/' + self.dataset_names[self.dataset_name] + '.h5ad'
-        
-        self.markers_path = self.dataset_dir + '/' + f'markers/markers_{dataset_name}.csv'
-        
-    def load_dataset(self):
-        self.adata = sc.read_h5ad(self.dataset_path)
-        self.adata.obs[f'true_{self.class_key}'] = self.adata.obs[self.class_key] # Duplicate original annotation in true_class_key
-#         if type(self.adata.X) != np.ndarray :
-#             self.adata.X = self.adata.X.toarray()
-        if not self.adata.raw:
-            self.adata.raw = self.adata
+
         
         
     def normalize(self):
