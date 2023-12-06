@@ -4,8 +4,14 @@ import pandas as pd
 import tensorflow as tf
 import scipy
 from sklearn.model_selection import train_test_split
+import argparse
 
-
+def densify(X):
+    if (type(X) == scipy.sparse.csr_matrix) or (type(X) == scipy.sparse.csc_matrix):
+        return X.todense()
+    else :
+        return X
+        
 def scanpy_to_input(adata,keys, use_raw = False):
     '''
     Converts a scanpy object to a csv count matrix + an array for each metadata specified in *args 
@@ -75,6 +81,7 @@ def get_optimizer(learning_rate, weight_decay, optimizer_type, momentum=0.9):
         an optimizer object
     """
     # TODO Add more optimizers
+    print(optimizer_type)
     if optimizer_type == 'adam':
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate,
                                      weight_decay=weight_decay
@@ -88,6 +95,10 @@ def get_optimizer(learning_rate, weight_decay, optimizer_type, momentum=0.9):
                                                 weight_decay=weight_decay,
                                                 momentum=momentum 
                                                 )
+    elif optimizer_type == 'adafactor':
+        optimizer = tf.keras.optimizers.Adafactor(learning_rate=learning_rate,
+                                    weight_decay=weight_decay,
+                                        )
     else:
         optimizer = tf.keras.optimizers(learning_rate=learning_rate,
                                         weight_decay=weight_decay,

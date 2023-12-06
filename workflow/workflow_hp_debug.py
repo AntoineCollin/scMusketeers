@@ -5,7 +5,7 @@ try :
     from .dataset import Dataset, load_dataset
     from .predictor import MLP_Predictor
     from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
-    from .utils import get_optimizer, scanpy_to_input, default_value, str2bool
+    from .utils import get_optimizer, scanpy_to_input, default_value, str2bool, densify
 
 
 except ImportError:
@@ -13,7 +13,7 @@ except ImportError:
     from dataset import Dataset, load_dataset
     from predictor import MLP_Predictor
     from model import DCA_Permuted,Scanvi
-    from utils import get_optimizer, scanpy_to_input, default_value, str2bool
+    from utils import get_optimizer, scanpy_to_input, default_value, str2bool, densify
 # from dca.utils import str2bool,tuple_to_scalar
 import argparse
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
@@ -24,7 +24,6 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cluster import KMeans
 from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef
 import time
-import yaml
 import pickle
 import anndata
 import pandas as pd
@@ -37,14 +36,39 @@ import keras
 import gc
 import tensorflow as tf
 import neptune
+from numba import cuda
 from neptune.utils import stringify_unsupported
+import subprocess
 
 from ax.service.managed_loop import optimize
 # from ax import RangeParameter, SearchSpace, ParameterType, FixedParameter, ChoiceParameter
 
+import multiprocessing
+
 physical_devices = tf.config.list_physical_devices('GPU')
 for gpu_instance in physical_devices:
     tf.config.experimental.set_memory_growth(gpu_instance, True)
+    
+# Reset Keras Session
+def reset_keras():
+    sess = tf.compat.v1.keras.backend.get_session()
+    tf.compat.v1.keras.backend.clear_session()
+    sess.close()
+    sess = tf.compat.v1.keras.backend.get_session()
+
+    try:
+        del classifier # this is from global space - change this as you need
+    except:
+        pass
+
+    print(gc.collect())
+
+    # use the same config as you used to create the session
+    config = tf.compat.v1.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 1
+    config.gpu_options.visible_device_list = "0"
+    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+
 
 workflow_ID = 'workflow_ID'
 
@@ -124,7 +148,7 @@ optimizer_type = 'optimizer_type'
 clas_w = 'clas_w'
 dann_w = 'dann_w'
 rec_w = 'rec_w'
-
+warmup_epoch = 'warmup_epoch'
 
 ae_hidden_size = 'ae_hidden_size'
 ae_hidden_dropout = 'ae_hidden_dropout'
@@ -292,13 +316,14 @@ class Workflow:
         self.clas_w = self.run_file.clas_w
         self.dann_w = self.run_file.dann_w
         self.rec_w = self.run_file.rec_w
+        self.warmup_epoch = self.run_file.warmup_epoch
 
         self.num_classes = None
         self.num_batches = None
 
         self.ae_hidden_size = self.run_file.ae_hidden_size
         self.ae_hidden_size = default_value(self.ae_hidden_size , (128,64,128))
-        self.ae_hidden_dropout = None
+        self.ae_hidden_dropout = self.run_file.ae_hidden_dropout
         # self.ae_hidden_dropout = default_value(self.ae_hidden_dropout , None)
         self.ae_activation = self.run_file.ae_activation
         self.ae_activation = default_value(self.ae_activation , "relu")
@@ -315,8 +340,7 @@ class Workflow:
 
         self.class_hidden_size = self.run_file.class_hidden_size
         self.class_hidden_size = default_value(self.class_hidden_size , None) # default value will be initialize as [(bottleneck_size + num_classes)/2] once we'll know num_classes
-        self.class_hidden_dropout = None
-        self.class_hidden_dropout = None
+        self.class_hidden_dropout = self.run_file.class_hidden_dropout
         self.class_batchnorm = self.run_file.class_batchnorm
         self.class_batchnorm = default_value(self.class_batchnorm , True)
         self.class_activation = self.run_file.class_activation
@@ -326,8 +350,7 @@ class Workflow:
 
         self.dann_hidden_size = self.run_file.dann_hidden_size
         self.dann_hidden_size = default_value(self.dann_hidden_size , None) # default value will be initialize as [(bottleneck_size + num_batches)/2] once we'll know num_classes
-        self.dann_hidden_dropout = None
-        self.dann_hidden_dropout = None
+        self.dann_hidden_dropout = self.run_file.dann_hidden_dropout
         self.dann_batchnorm = self.run_file.dann_batchnorm
         self.dann_batchnorm = default_value(self.dann_batchnorm , True)
         self.dann_activation = self.run_file.dann_activation
@@ -382,14 +405,14 @@ class Workflow:
         self.clas_w =  params['clas_w']
         self.dann_w = params['dann_w']
         self.rec_w =  1
-        self.weight_decay =  params['wd']
+        self.weight_decay =  params['weight_decay']
         self.warmup_epoch =  params['warmup_epoch']
         self.dropout =  params['dropout']
         self.layer1 = params['layer1']
         self.layer2 =  params['layer2']
         self.bottleneck = params['bottleneck']
 
-        self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer1, self.layer2]
+        self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer2, self.layer1]
 
         self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
 
@@ -444,6 +467,11 @@ class Workflow:
                       'train': self.dataset.batch_train_one_hot,
                       'val': self.dataset.batch_val_one_hot,
                       'test': self.dataset.batch_test_one_hot}
+        
+        sf_list = {'full': self.dataset.sf,
+                      'train': self.dataset.sf_train,
+                      'val': self.dataset.sf_val,
+                      'test': self.dataset.sf_test}
 
         self.num_classes = len(np.unique(self.dataset.y_train))
         self.num_batches = len(np.unique(self.dataset.batch))
@@ -505,7 +533,8 @@ class Workflow:
         if self.log_neptune:
             neptune_run_id = self.run['sys/id'].fetch()
             for group in ['full', 'train', 'val', 'test']:
-                enc, clas, dann, rec = self.dann_ae.predict(scanpy_to_input(adata_list[group],['size_factors'])).values()
+                input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(adata_list[group],['size_factors']).items()}
+                enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values()                
                 clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
                 for metric in self.metrics_list: # only classification metrics ATM
                     self.run[f"evaluation/{group}/{metric}"] = self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))
@@ -514,20 +543,20 @@ class Workflow:
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
                     y_pred = pd.DataFrame(self.dataset.ohe_celltype.inverse_transform(clas), index = adata_list[group].obs_names)
-                    np.save(save_dir + f'latent_space_{group}.npy', enc)
+                    np.save(save_dir + f'latent_space_{group}.npy', enc.numpy())
                     y_pred.to_csv(save_dir + f'predictions_{group}.csv')
                     self.run[f'evaluation/{group}/latent_space'].track_files(save_dir + f'latent_space_{group}.npy')
                     self.run[f'evaluation/{group}/predictions'].track_files(save_dir + f'predictions_{group}.csv')
                     
                     pred_adata = sc.AnnData(X = adata_list[group].X, obs = adata_list[group].obs, var = adata_list[group].var)
                     pred_adata.obs[f'{class_key}_pred'] = y_pred
-                    pred_adata.obsm['latent_space'] = enc
+                    pred_adata.obsm['latent_space'] = enc.numpy()
                     sc.pp.neighbors(pred_adata, use_rep = 'latent_space')
                     sc.tl.umap(pred_adata)
                     np.save(save_dir + f'umap_{group}.npy', pred_adata.obsm['X_umap'])
                     self.run[f'evaluation/{group}/umap'].track_files(save_dir + f'umap_{group}.npy')
                     sc.set_figure_params(figsize=(15, 10), dpi = 300)
-                    fig_class = sc.pl.umap(pred_adata, color = self.class_key, size = 5,return_fig = True)
+                    fig_class = sc.pl.umap(pred_adata, color = f'true_{self.class_key}', size = 5,return_fig = True)
                     fig_batch = sc.pl.umap(pred_adata, color = self.batch_key, size = 5,return_fig = True)
                     fig_split = sc.pl.umap(pred_adata, color = 'train_split', size = 5,return_fig = True)
                     self.run[f'evaluation/{group}/classif_umap'].upload(fig_class)
@@ -541,13 +570,24 @@ class Workflow:
         opt_metric = self.metrics_list['mcc'](np.asarray(y_list['val'].argmax(axis=1)), clas.argmax(axis=1)) # We retrieve the last metric of interest
         if self.log_neptune:
             self.run.stop()
+        gc.collect()
+        tf.keras.backend.clear_session()
+        del enc
+        del clas
+        del dann
+        del rec
+        del _
+        del input_tensor
+        del inp
         del self.dann_ae
         del self.dataset
         del history
-        gc.collect()
-        tf.keras.backend.clear_session()
-        
-        
+        del self.optimizer
+        del self.rec_loss_fn
+        del self.clas_loss_fn
+        del self.dann_loss_fn
+        del self.metrics_list
+
         return opt_metric
 
     def train_scheme(self,
@@ -587,7 +627,7 @@ class Workflow:
                 wait = 0
                 best_epoch = 0
                 es_best = np.inf # initialize early_stopping
-                patience = 0
+                patience = 20
                 if strategy == 'permutation_only':
                     monitored = 'rec_loss'
                 else:
@@ -731,11 +771,13 @@ class Workflow:
             self.mean_clas_loss_fn(clas_loss)
             self.mean_dann_loss_fn(dann_loss)
             self.mean_rec_loss_fn(rec_loss)
+
             if verbose :
                 self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
         self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
         history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn)
-
+        
+        del input_batch
         return history, _, clas, dann, rec
 
     def evaluation_pass(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn):
@@ -745,8 +787,8 @@ class Workflow:
         on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
         '''
         for group in ['train', 'val']: # evaluation round
-            inp = scanpy_to_input(adata_list[group],['size_factors'])
-            inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
+            inp = {'counts':X_list[group], 'size_factors':sf_list[group]}
+            # inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
             try :
                 _, clas, dann, rec = ae(inp, training=False).values()
             except:
@@ -759,7 +801,7 @@ class Workflow:
             dann_loss = tf.reduce_mean(dann_loss_fn(batch_list[group], dann)).numpy()
             history[group]['dann_loss'] += [dann_loss]
             with tf.device('CPU'): # Otherwise, risks of memory allocation errors
-                rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group].todense(), rec)).numpy()
+                rec_loss = tf.reduce_mean(rec_loss_fn(densify(X_list[group]), rec)).numpy()
             history[group]['rec_loss'] += [rec_loss]
             history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
             # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
@@ -767,6 +809,7 @@ class Workflow:
             clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
             for metric in self.metrics_list: # only classification metrics ATM
                 history[group][metric] += [self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))] # y_list are onehot encoded
+        del inp
         return history, _, clas, dann, rec
 
     def freeze_layers(self, ae, layers_to_freeze):
@@ -981,6 +1024,35 @@ class Workflow:
         return str(self.run_file)
 
 
+class MakeExperiment:
+    def __init__(self, run_file, working_dir):
+        # super()._init_()
+        self.run_file = run_file
+        self.working_dir = working_dir
+        self.workflow = None
+
+    def train(self, params):
+        reset_keras()
+        # cuda.select_device(0)
+        self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
+        mcc = self.workflow.make_experiment(params)
+        del self.workflow  # Should not be necessary
+        # cuda.select_device(0)
+        # device = cuda.get_current_device()
+        # device.reset()
+        return mcc
+ 
+    # def train_process(self, params, q):
+    #     q.put(self.train(params))
+
+    # def train_run(self,params):
+    #     q = multiprocessing.Queue()
+    #     p = multiprocessing.Process(target=self.train_process, args=(params, q))
+    #     p.start()
+    #     mcc = q.get()
+    #     return mcc
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -996,13 +1068,13 @@ if __name__ == '__main__':
     parser.add_argument('--use_hvg', type=int, nargs='?', const=10000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
     # parser.add_argument('--reduce_lr', type = , default = , help ='')
     # parser.add_argument('--early_stop', type = , default = , help ='')
-    parser.add_argument('--batch_size', type = int, nargs='?', default = 256, help ='Training batch size')
+    parser.add_argument('--batch_size', type = int, nargs='?', default = 256, help = 'Training batch size')
     # parser.add_argument('--verbose', type = , default = , help ='')
     # parser.add_argument('--threads', type = , default = , help ='')
     parser.add_argument('--mode', type = str, default = 'percentage', help ='Train test split mode to be used by Dataset.train_split')
     parser.add_argument('--pct_split', type = float,nargs='?', default = 0.9, help ='')
     parser.add_argument('--obs_key', type = str,nargs='?', default = 'manip', help ='')
-    parser.add_argument('--n_keep', type = int,nargs='?', default = None, help ='')
+    parser.add_argument('--n_keep', type = int,nargs='?', default = 0, help ='')
     parser.add_argument('--split_strategy', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--keep_obs', type = str,nargs='+',default = None, help ='')
     parser.add_argument('--train_test_random_seed', type = float,nargs='?', default = 0, help ='')
@@ -1010,31 +1082,32 @@ if __name__ == '__main__':
     parser.add_argument('--make_fake', type=str2bool, nargs='?',const=False, default=False, help ='')
     parser.add_argument('--true_celltype', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--false_celltype', type = str,nargs='?', default = None, help ='')
-    parser.add_argument('--pct_false', type = float,nargs='?', default = None, help ='')
+    parser.add_argument('--pct_false', type = float,nargs='?', default = 0, help ='')
     parser.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
     parser.add_argument('--dann_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
     parser.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
-    # parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
+    parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
     parser.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
     parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop'], default = 'adam' , help ='Name of the optimizer to use')
     parser.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Wight of the classification loss')
     parser.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Wight of the DANN loss')
     parser.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Wight of the reconstruction loss')
+    parser.add_argument('--warmup_epoch', type = float,nargs='?', default = 0.8, help ='Wight of the reconstruction loss')
     parser.add_argument('--ae_hidden_size', type = int,nargs='+', default = [128,64,128], help ='Hidden sizes of the successive ae layers')
-    parser.add_argument('--ae_hidden_dropout', type =float, nargs='?', default = None, help ='')
+    parser.add_argument('--ae_hidden_dropout', type =float, nargs='?', default = 0, help ='')
     parser.add_argument('--ae_activation', type = str ,nargs='?', default = 'relu' , help ='')
     parser.add_argument('--ae_output_activation', type = str,nargs='?', default = 'linear', help ='')
     parser.add_argument('--ae_init', type = str,nargs='?', default = 'glorot_uniform', help ='')
     parser.add_argument('--ae_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
-    parser.add_argument('--ae_l1_enc_coef', type = float,nargs='?', default = None, help ='')
-    parser.add_argument('--ae_l2_enc_coef', type = float,nargs='?', default = None, help ='')
+    parser.add_argument('--ae_l1_enc_coef', type = float,nargs='?', default = 0, help ='')
+    parser.add_argument('--ae_l2_enc_coef', type = float,nargs='?', default = 0, help ='')
     parser.add_argument('--class_hidden_size', type = int,nargs='+', default = [64], help ='Hidden sizes of the successive classification layers')
-    parser.add_argument('--class_hidden_dropout', type =float, nargs='?', default = None, help ='')
+    parser.add_argument('--class_hidden_dropout', type =float, nargs='?', default = 0, help ='')
     parser.add_argument('--class_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--class_activation', type = str ,nargs='?', default = 'relu' , help ='')
     parser.add_argument('--class_output_activation', type = str,nargs='?', default = 'softmax', help ='')
     parser.add_argument('--dann_hidden_size', type = int,nargs='?', default = [64], help ='')
-    parser.add_argument('--dann_hidden_dropout', type =float, nargs='?', default = None, help ='')
+    parser.add_argument('--dann_hidden_dropout', type =float, nargs='?', default = 0, help ='')
     parser.add_argument('--dann_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
     parser.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
@@ -1045,34 +1118,65 @@ if __name__ == '__main__':
 
     run_file = parser.parse_args()
     working_dir = '/home/acollin/dca_permuted_workflow/'
-    workflow = Workflow(run_file=run_file, working_dir=working_dir)
+    experiment = MakeExperiment(run_file=run_file, working_dir=working_dir)
+    # workflow = Workflow(run_file=run_file, working_dir=working_dir)
     print("Workflow loaded")
 
     hparams = [
         #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
         {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
         {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-        {"name": "lr", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
-        {"name": "wd", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
-        {"name": "warmup_epoch", "type": "range", "bounds": [1, 3]},
+        {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
+        {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
+        {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
         {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
         {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
         {"name": "layer2", "type": "range", "bounds": [64, 512]},
-        {"name": "layer1", "type": "range", "bounds": [512, 1024]},
+        {"name": "layer1", "type": "range", "bounds": [512, 2048]},
 
     ]
 
     # workflow.make_experiment(hparams)
 
+    # def train(params):
+    #     print(params)
+    #     run_file.clas_w =  params['clas_w']
+    #     run_file.dann_w = params['dann_w']
+    #     run_file.rec_w =  1
+    #     run_file.learning_rate = params['learning_rate']
+    #     run_file.weight_decay =  params['weight_decay']
+    #     run_file.warmup_epoch =  params['warmup_epoch']
+    #     dropout =  params['dropout']
+    #     layer1 = params['layer1']
+    #     layer2 =  params['layer2']
+    #     bottleneck = params['bottleneck']
+
+    #     run_file.ae_hidden_size = [layer1, layer2, bottleneck, layer2, layer1]
+
+    #     run_file.dann_hidden_dropout, run_file.class_hidden_dropout, run_file.ae_hidden_dropout = dropout, dropout, dropout
+        
+    #     cmd = ['sbatch', '--wait', '/home/acollin/dca_permuted_workflow/workflow/run_workflow_cmd.sh']
+    #     for k, v in run_file.__dict__.items():
+    #         cmd += ([f'--{k}'])
+    #         if type(v) == list:
+    #             cmd += ([str(i) for i in v])
+    #         else :
+    #             cmd += ([str(v)])
+    #     print(cmd)
+    #     subprocess.Popen(cmd).wait()
+    #     working_dir = '/home/acollin/dca_permuted_workflow/'
+    #     with open(working_dir + 'mcc_res.txt', 'r') as my_file:
+    #         mcc = float(my_file.read())
+    #     os.remove(working_dir + 'mcc_res.txt')
+    #     return mcc
+
     best_parameters, values, experiment, model = optimize(
         parameters=hparams,
-        evaluation_function=workflow.make_experiment,
+        evaluation_function=experiment.train,
         objective_name='mcc',
         minimize=False,
         total_trials=30,
         random_seed=40,
-
     )
 
-print(best_parameters)
-
+    

@@ -12,6 +12,7 @@ class Encoder(keras.Model):
     def __init__(self, hidden_size,
                     hidden_dropout=None,
                     activation='relu',
+                    bottleneck_activation='linear',
                     init='glorot_uniform',
                     batchnorm=True,
                     l1_enc_coef=0,
@@ -50,6 +51,8 @@ class Encoder(keras.Model):
             # of layers when requested
             if activation in advanced_activations:
                 self.hidden_activations.append(keras.layers.__dict__[activation](name=f'{layer_name}_act'))
+            elif layer_name == center_idx:
+                self.hidden_activations.append(Activation(bottleneck_activation, name=f'{layer_name}_act'))
             else:
                 self.hidden_activations.append(Activation(activation, name=f'{layer_name}_act'))
 
@@ -194,6 +197,7 @@ class Autoencoder(keras.Model):
                 ae_hidden_size,
                 ae_hidden_dropout=None,
                 ae_activation='relu',
+                ae_bottleneck_activation='linear',
                 ae_output_activation='relu',
                 ae_init='glorot_uniform',
                 ae_batchnorm=True,
@@ -215,6 +219,7 @@ class Autoencoder(keras.Model):
         self.enc = Encoder(self.enc_hidden_size,
                 hidden_dropout = self.enc_hidden_dropout,
                 activation=ae_activation,
+                bottleneck_activation=ae_bottleneck_activation,
                 init=ae_init,
                 batchnorm = ae_batchnorm,
                 l1_enc_coef=ae_l1_enc_coef,

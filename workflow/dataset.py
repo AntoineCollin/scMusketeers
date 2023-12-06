@@ -5,7 +5,12 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 import numpy as np
+import scipy
+try :
+    from .utils import densify
 
+except ImportError:
+    from utils import densify
 
 
 def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduce_adata=True): 
@@ -229,8 +234,6 @@ class Dataset:
         # print(self.adata_train_extended.obs[self.class_key].value_counts())
         self.adata_train = self.adata_train_extended.copy()
 
-        
-    
     def train_test_split(self):
         train_idx, val_idx = train_test_split(np.arange(self.adata_train_extended.n_obs), train_size=self.train_size, random_state=self.train_test_random_seed)
         spl = pd.Series(['train'] * self.adata.n_obs, index = self.adata.obs.index)
@@ -333,6 +336,9 @@ class Dataset:
             to_keep = pd.Series(['train'] * self.adata_train_extended.n_obs, index = self.adata_train_extended.obs.index)
             to_keep[remove_idx] = 'val'
             self.adata_train_extended.obs['train_split'] = to_keep
+        else : 
+            print(f"{mode} is not a valid splitting mode")
+            return 
         # removing unnanotated cells
         # if not self.semi_sup:
         #     to_keep = self.adata_train_extended.obs['train_split']
@@ -372,7 +378,7 @@ class Dataset:
         self.adata.obs['train_split'] = train_split
         
         print(f'train, test, val proportions : {self.adata.obs["train_split"]}')
-
+        
     def create_inputs(self):
         '''
         Must be called after train_split
@@ -380,10 +386,10 @@ class Dataset:
         self.adata_train = self.adata[self.adata.obs['train_split'] == 'train'].copy()
         self.adata_val = self.adata[self.adata.obs['train_split'] == 'val'].copy()
         self.adata_test = self.adata[self.adata.obs['train_split'] == 'test'].copy()
-        self.X = self.adata.X
-        self.X_train = self.adata_train.X
-        self.X_val = self.adata_val.X
-        self.X_test = self.adata_test.X
+        self.X = densify(self.adata.X)
+        self.X_train = densify(self.adata_train.X)
+        self.X_val = densify(self.adata_val.X)
+        self.X_test = densify(self.adata_test.X)
         self.y = self.adata.obs[self.class_key]
         self.y_train = self.adata_train.obs[self.class_key]
         self.y_val = self.adata_val.obs[self.class_key]
@@ -406,6 +412,11 @@ class Dataset:
         self.batch_train_one_hot = self.ohe_batches.transform(np.array(self.batch_train).reshape(-1,1)).astype(float).todense()
         self.batch_val_one_hot = self.ohe_batches.transform(np.array(self.batch_val).reshape(-1,1)).astype(float).todense()
         self.batch_test_one_hot = self.ohe_batches.transform(np.array(self.batch_test).reshape(-1,1)).astype(float).todense()
+        self.sf = self.adata.obs['size_factors'].values#.reshape(-1,1)
+        self.sf_train = self.adata_train.obs['size_factors'].values#.reshape(-1,1)
+        self.sf_val = self.adata_val.obs['size_factors'].values#.reshape(-1,1)
+        self.sf_test = self.adata_test.obs['size_factors'].values#.reshape(-1,1)
+
 
         
     def fake_annotation(self,true_celltype,false_celltype,pct_false, train_test_random_seed=None):
