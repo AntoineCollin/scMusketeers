@@ -597,7 +597,7 @@ class Workflow:
 
         gc.collect()
         tf.keras.backend.clear_session()
-        tf.reset_default_graph()
+        # tf.reset_default_graph()
         reset_keras()
         # del enc
         # del clas
@@ -848,11 +848,11 @@ class Workflow:
         for group in ['train', 'val']: # evaluation round
             inp = {'counts':X_list[group], 'size_factors':sf_list[group]}
             # inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
-            try :
+            # try :
+            #     _, clas, dann, rec = ae(inp, training=True).values()
+            # except:
+            with tf.device('CPU'):
                 _, clas, dann, rec = ae(inp, training=True).values()
-            except:
-                with tf.device('CPU'):
-                    _, clas, dann, rec = ae(inp, training=True).values()
             # _, clas, dann, rec = self.dann_ae.predict({'counts':X_list[group], 'size_factors': sf_list[group]}).values()
             
             # for input_batch_val in self.tf_data_val:
@@ -1000,7 +1000,7 @@ if __name__ == '__main__':
     parser.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
     parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
     parser.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
-    parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop','adafactor'], default = 'adafactor' , help ='Name of the optimizer to use')
+    parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','sgd','rmsprop','adafactor'], default = 'sgd' , help ='Name of the optimizer to use')
     parser.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Wight of the classification loss')
     parser.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Wight of the DANN loss')
     parser.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Wight of the reconstruction loss')
@@ -1035,8 +1035,8 @@ if __name__ == '__main__':
     opt_metric = workflow.make_experiment()
 
     while True : # Making sure that we write the files one at the time
-        time.sleep(10)
-        if not os.path.exists(working_dir + '/results/mcc_res.txt'):
-            with open(working_dir + '/results/mcc_res.txt', 'w') as my_file:
+        time.sleep(5)
+        if not os.path.exists(working_dir + '/experiment_script/mcc_res.txt'):
+            with open(working_dir + '/experiment_script/mcc_res.txt', 'w') as my_file:
                 my_file.write(str(opt_metric))
             break

@@ -796,7 +796,7 @@ class Workflow:
             dann_loss = tf.reduce_mean(dann_loss_fn(batch_list[group], dann)).numpy()
             history[group]['dann_loss'] += [dann_loss]
             with tf.device('CPU'): # Otherwise, risks of memory allocation errors
-                rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group].todense(), rec)).numpy()
+                rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group], rec)).numpy()
             history[group]['rec_loss'] += [rec_loss]
             history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
             # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]

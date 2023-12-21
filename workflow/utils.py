@@ -95,6 +95,14 @@ def get_optimizer(learning_rate, weight_decay, optimizer_type, momentum=0.9):
                                                 weight_decay=weight_decay,
                                                 momentum=momentum 
                                                 )
+        
+    elif optimizer_type == 'sgd':
+        optimizer =  tf.keras.optimizers.experimental.SGD(learning_rate=learning_rate,
+                                                weight_decay=weight_decay,
+                                                momentum=momentum 
+                                                )
+
+
     elif optimizer_type == 'adafactor':
         optimizer = tf.keras.optimizers.Adafactor(learning_rate=learning_rate,
                                     weight_decay=weight_decay,

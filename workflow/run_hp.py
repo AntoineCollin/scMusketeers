@@ -4,6 +4,8 @@ from ax.service.managed_loop import optimize
 import os
 import gc
 import time
+from workflow_hp import *
+import tensorflow as tf
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -14,6 +16,71 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+class MakeExperiment:
+    def __init__(self, run_file, working_dir):
+        # super().__init__()
+        self.run_file = run_file
+        self.working_dir = working_dir
+        self.workflow = None
+
+    def train(self, params):
+        # cuda.select_device(0)
+        # device = cuda.get_current_device()
+        # device.reset()
+        
+        self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
+        mcc = self.workflow.make_experiment(params)
+        del self.workflow  # Should not be necessary
+        return mcc
+
+
+n_gpu = '01'
+def train_cmd(params):
+    print(params)
+    run_file.ae_bottleneck_activation =  params['ae_bottleneck_activation']
+    run_file.ae_activation = params['ae_activation']
+    run_file.clas_w =  params['clas_w']
+    run_file.dann_w = params['dann_w']
+    run_file.rec_w =  1
+    run_file.learning_rate = params['learning_rate']
+    run_file.weight_decay =  params['weight_decay']
+    run_file.warmup_epoch =  params['warmup_epoch']
+    dropout =  params['dropout']
+    layer1 = params['layer1']
+    layer2 =  params['layer2']
+    bottleneck = params['bottleneck']
+
+    run_file.ae_hidden_size = [layer1, layer2, bottleneck, layer2, layer1]
+
+    run_file.dann_hidden_dropout, run_file.class_hidden_dropout, run_file.ae_hidden_dropout = dropout, dropout, dropout
+    
+    cmd = ['sbatch', '--wait']
+
+    # global n_gpu
+    # print(n_gpu)
+    # if ("hlca" in run_file.dataset_name) or ("discovair" in run_file.dataset_name) or ("htap" in run_file.dataset_name):
+    #     cmd += ['--nodelist', f'gpu{n_gpu}']
+    #     n_gpu = '01' if n_gpu!='01' else '03'
+        
+    cmd += ['/home/acollin/dca_permuted_workflow/workflow/run_workflow_cmd.sh']
+    for k, v in run_file.__dict__.items():
+        cmd += ([f'--{k}'])
+        if type(v) == list:
+            cmd += ([str(i) for i in v])
+        else :
+            cmd += ([str(v)])
+    print(cmd)
+    subprocess.Popen(cmd).wait()
+    working_dir = '/home/acollin/dca_permuted_workflow/'
+    with open(working_dir + '/experiment_script/mcc_res.txt', 'r') as my_file:
+        mcc = float(my_file.read())
+    os.remove(working_dir + '/experiment_script/mcc_res.txt')
+    gc.collect()
+    time.sleep(10)
+    return mcc
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -50,7 +117,7 @@ if __name__ == '__main__':
     parser.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
     parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
     parser.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
-    parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop', 'adafactor'], default = 'adafactor' , help ='Name of the optimizer to use')
+    parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop', 'sgd', 'adafactor'], default = 'sgd', help ='Name of the optimizer to use')
     parser.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Wight of the classification loss')
     parser.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Wight of the DANN loss')
     parser.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Wight of the reconstruction loss')
@@ -101,54 +168,12 @@ if __name__ == '__main__':
 
     ]
     
-    n_gpu = '01'
-    def train_cmd(params):
-        print(params)
-        run_file.ae_bottleneck_activation =  params['ae_bottleneck_activation']
-        run_file.ae_activation = params['ae_activation']
-        run_file.clas_w =  params['clas_w']
-        run_file.dann_w = params['dann_w']
-        run_file.rec_w =  1
-        run_file.learning_rate = params['learning_rate']
-        run_file.weight_decay =  params['weight_decay']
-        run_file.warmup_epoch =  params['warmup_epoch']
-        dropout =  params['dropout']
-        layer1 = params['layer1']
-        layer2 =  params['layer2']
-        bottleneck = params['bottleneck']
-
-        run_file.ae_hidden_size = [layer1, layer2, bottleneck, layer2, layer1]
-
-        run_file.dann_hidden_dropout, run_file.class_hidden_dropout, run_file.ae_hidden_dropout = dropout, dropout, dropout
-        
-        cmd = ['sbatch', '--wait']
-
-        # global n_gpu
-        # print(n_gpu)
-        # if ("hlca" in run_file.dataset_name) or ("discovair" in run_file.dataset_name) or ("htap" in run_file.dataset_name):
-        #     cmd += ['--nodelist', f'gpu{n_gpu}']
-        #     n_gpu = '01' if n_gpu!='01' else '03'
-            
-        cmd += ['/home/acollin/dca_permuted_workflow/workflow/run_workflow_cmd.sh']
-        for k, v in run_file.__dict__.items():
-            cmd += ([f'--{k}'])
-            if type(v) == list:
-                cmd += ([str(i) for i in v])
-            else :
-                cmd += ([str(v)])
-        print(cmd)
-        subprocess.Popen(cmd).wait()
-        working_dir = '/home/acollin/dca_permuted_workflow/'
-        with open(working_dir + '/results/mcc_res.txt', 'r') as my_file:
-            mcc = float(my_file.read())
-        os.remove(working_dir + '/results/mcc_res.txt')
-        gc.collect()
-        time.sleep(10)
-        return mcc
-
+    working_dir = '/home/acollin/dca_permuted_workflow/'
+    experiment = MakeExperiment(run_file=run_file, working_dir=working_dir)
+    
     best_parameters, values, experiment, model = optimize(
         parameters=hparams,
-        evaluation_function=train_cmd,
+        evaluation_function=experiment.train,
         objective_name='mcc',
         minimize=False,
         total_trials=50,
