@@ -188,12 +188,8 @@ class Dataset:
         self.true_celltype=str()
         self.false_celltype=str()
         self.pct_false=float()
-                
         # self.markers_path = self.dataset_dir + '/' + f'markers/markers_{dataset_name}.csv'
-        
 
-        
-        
     def normalize(self):
         if self.filter_min_counts:
             sc.pp.filter_genes(self.adata, min_counts=1)
@@ -217,10 +213,10 @@ class Dataset:
 
         if self.logtrans_input:
             sc.pp.log1p(self.adata)
- 
+
         if self.scale_input:
             sc.pp.scale(self.adata)
-        
+
         obs = self.adata.obs[self.class_key].astype('str') 
         obs[self.adata.obs['TRAIN_TEST_split'] == 'test'] = self.unlabeled_category 
         self.adata.obs[self.class_key] = obs # hiding test celltypes in the original anndata (necessary for scanvi)
