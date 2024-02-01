@@ -386,10 +386,10 @@ class Dataset:
         self.X_train = densify(self.adata_train.X)
         self.X_val = densify(self.adata_val.X)
         self.X_test = densify(self.adata_test.X)
-        self.y = self.adata.obs[self.class_key]
-        self.y_train = self.adata_train.obs[self.class_key]
-        self.y_val = self.adata_val.obs[self.class_key]
-        self.y_test = self.adata_test.obs[self.class_key]
+        self.y = self.adata.obs[f'true_{self.class_key}']
+        self.y_train = self.adata_train.obs[f'true_{self.class_key}']
+        self.y_val = self.adata_val.obs[f'true_{self.class_key}']
+        self.y_test = self.adata_test.obs[f'true_{self.class_key}']
         self.ohe_celltype = OneHotEncoder(handle_unknown='ignore') # TODO : handle the case where there can be unknown celltypes in val, pex adding an output node for 'UNK'
         y = np.array(self.y_train).reshape(-1,1)
         self.ohe_celltype.fit(y)

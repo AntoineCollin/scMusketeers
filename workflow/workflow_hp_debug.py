@@ -1,3 +1,4 @@
+import keras
 import sys
 import os
 try :
@@ -5,7 +6,8 @@ try :
     from .dataset import Dataset, load_dataset
     from .predictor import MLP_Predictor
     from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
-    from .utils import get_optimizer, scanpy_to_input, default_value, str2bool, densify
+    from .utils import get_optimizer, scanpy_to_input, default_value, str2bool
+    from .clust_compute import nn_overlap, batch_entropy_mixing_score
 
 
 except ImportError:
@@ -13,7 +15,8 @@ except ImportError:
     from dataset import Dataset, load_dataset
     from predictor import MLP_Predictor
     from model import DCA_Permuted,Scanvi
-    from utils import get_optimizer, scanpy_to_input, default_value, str2bool, densify
+    from utils import get_optimizer, scanpy_to_input, default_value, str2bool
+    from clust_compute import nn_overlap, batch_entropy_mixing_score
 # from dca.utils import str2bool,tuple_to_scalar
 import argparse
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
@@ -26,17 +29,17 @@ from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef
 import time
 import pickle
 import anndata
+import json
 import pandas as pd
 import scanpy as sc
 import anndata
 import numpy as np
 import os
 import sys
-import keras
 import gc
 import tensorflow as tf
 import neptune
-from numba import cuda
+# from numba import cuda
 from neptune.utils import stringify_unsupported
 import subprocess
 
@@ -316,7 +319,7 @@ class Workflow:
         self.clas_w = self.run_file.clas_w
         self.dann_w = self.run_file.dann_w
         self.rec_w = self.run_file.rec_w
-        self.warmup_epoch = self.run_file.warmup_epoch
+        # self.warmup_epoch = self.run_file.warmup_epoch
 
         self.num_classes = None
         self.num_batches = None
@@ -374,6 +377,8 @@ class Workflow:
         self.log_neptune = self.run_file.log_neptune
         self.run = None
 
+        self.hparam_path = self.run_file.hparam_path
+
     def write_metric_log(self):
         open(self.metrics_log_path, 'a').close()
 
@@ -401,11 +406,13 @@ class Workflow:
 
     def make_experiment(self, params):
         print(params)
-#        self.use_hvg = params['use_hvg']
+        self.use_hvg = params['use_hvg']
+        self.batch_size = params['batch_size']
         self.clas_w =  params['clas_w']
         self.dann_w = params['dann_w']
         self.rec_w =  1
         self.weight_decay =  params['weight_decay']
+        self.learning_rate = params['learning_rate']
         self.warmup_epoch =  params['warmup_epoch']
         self.dropout =  params['dropout']
         self.layer1 = params['layer1']
@@ -467,11 +474,6 @@ class Workflow:
                       'train': self.dataset.batch_train_one_hot,
                       'val': self.dataset.batch_val_one_hot,
                       'test': self.dataset.batch_test_one_hot}
-        
-        sf_list = {'full': self.dataset.sf,
-                      'train': self.dataset.sf_train,
-                      'val': self.dataset.sf_val,
-                      'test': self.dataset.sf_test}
 
         self.num_classes = len(np.unique(self.dataset.y_train))
         self.num_batches = len(np.unique(self.dataset.batch))
@@ -483,7 +485,7 @@ class Workflow:
 
         if self.log_neptune :
             self.run = neptune.init_run(
-                    project="blaireaufurtif/scPermut",
+                    project="becavin-lab/sc-permut",
                     api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
 )
             for par,val in self.run_file.__dict__.items():
@@ -530,48 +532,53 @@ class Workflow:
                                      dann_loss_fn = self.dann_loss_fn,
                                      rec_loss_fn = self.rec_loss_fn)
 
+        # TODO also make it on gpu with smaller batch size
         if self.log_neptune:
             neptune_run_id = self.run['sys/id'].fetch()
             for group in ['full', 'train', 'val', 'test']:
-                input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(adata_list[group],['size_factors']).items()}
-                enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values()                
-                clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-                for metric in self.metrics_list: # only classification metrics ATM
-                    self.run[f"evaluation/{group}/{metric}"] = self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))
-                if group == 'full':
-                    save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
-                    if not os.path.exists(save_dir):
-                        os.makedirs(save_dir)
-                    y_pred = pd.DataFrame(self.dataset.ohe_celltype.inverse_transform(clas), index = adata_list[group].obs_names)
-                    np.save(save_dir + f'latent_space_{group}.npy', enc.numpy())
-                    y_pred.to_csv(save_dir + f'predictions_{group}.csv')
-                    self.run[f'evaluation/{group}/latent_space'].track_files(save_dir + f'latent_space_{group}.npy')
-                    self.run[f'evaluation/{group}/predictions'].track_files(save_dir + f'predictions_{group}.csv')
-                    
-                    pred_adata = sc.AnnData(X = adata_list[group].X, obs = adata_list[group].obs, var = adata_list[group].var)
-                    pred_adata.obs[f'{class_key}_pred'] = y_pred
-                    pred_adata.obsm['latent_space'] = enc.numpy()
-                    sc.pp.neighbors(pred_adata, use_rep = 'latent_space')
-                    sc.tl.umap(pred_adata)
-                    np.save(save_dir + f'umap_{group}.npy', pred_adata.obsm['X_umap'])
-                    self.run[f'evaluation/{group}/umap'].track_files(save_dir + f'umap_{group}.npy')
-                    sc.set_figure_params(figsize=(15, 10), dpi = 300)
-                    fig_class = sc.pl.umap(pred_adata, color = f'true_{self.class_key}', size = 5,return_fig = True)
-                    fig_batch = sc.pl.umap(pred_adata, color = self.batch_key, size = 5,return_fig = True)
-                    fig_split = sc.pl.umap(pred_adata, color = 'train_split', size = 5,return_fig = True)
-                    self.run[f'evaluation/{group}/classif_umap'].upload(fig_class)
-                    self.run[f'evaluation/{group}/batch_umap'].upload(fig_batch)
-                    self.run[f'evaluation/{group}/split_umap'].upload(fig_split)
+                with tf.device('CPU'):
+                    input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(adata_list[group],['size_factors']).items()}
+                    enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values()                
+                    clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+                    if group in ['train', 'val', 'test']:
+                        for metric in self.metrics_list: # only classification metrics ATM
+                            self.run[f"evaluation/{group}/{metric}"] = self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))
+                            print('Computing batch entropy')
+                        self.run[f'evaluation/{group}/batch_mixing_entropy'] = batch_entropy_mixing_score(enc, batch_list[group])
+                        # self.run[f'evaluation/{group}/knn_overlap'] = nn_overlap(enc, X_list[group])
+                    if group == 'full':
+                        save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
+                        if not os.path.exists(save_dir):
+                            os.makedirs(save_dir)
+                        y_pred = pd.DataFrame(self.dataset.ohe_celltype.inverse_transform(clas), index = adata_list[group].obs_names)
+                        np.save(save_dir + f'latent_space_{group}.npy', enc.numpy())
+                        y_pred.to_csv(save_dir + f'predictions_{group}.csv')
+                        self.run[f'evaluation/{group}/latent_space'].track_files(save_dir + f'latent_space_{group}.npy')
+                        self.run[f'evaluation/{group}/predictions'].track_files(save_dir + f'predictions_{group}.csv')
 
-        inp = scanpy_to_input(adata_list['val'],['size_factors'])
-        inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
-        _, clas, dann, rec = self.dann_ae(inp, training=False).values()
-        clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-        opt_metric = self.metrics_list['mcc'](np.asarray(y_list['val'].argmax(axis=1)), clas.argmax(axis=1)) # We retrieve the last metric of interest
+                        pred_adata = sc.AnnData(X = adata_list[group].X, obs = adata_list[group].obs, var = adata_list[group].var)
+                        pred_adata.obs[f'{class_key}_pred'] = y_pred
+                        pred_adata.obsm['latent_space'] = enc.numpy()
+                        sc.pp.neighbors(pred_adata, use_rep = 'latent_space')
+                        sc.tl.umap(pred_adata)
+                        np.save(save_dir + f'umap_{group}.npy', pred_adata.obsm['X_umap'])
+                        self.run[f'evaluation/{group}/umap'].track_files(save_dir + f'umap_{group}.npy')
+                        sc.set_figure_params(figsize=(15, 10), dpi = 300)
+                        fig_class = sc.pl.umap(pred_adata, color = f'true_{self.class_key}', size = 5,return_fig = True)
+                        fig_batch = sc.pl.umap(pred_adata, color = self.batch_key, size = 5,return_fig = True)
+                        fig_split = sc.pl.umap(pred_adata, color = 'train_split', size = 5,return_fig = True)
+                        self.run[f'evaluation/{group}/classif_umap'].upload(fig_class)
+                        self.run[f'evaluation/{group}/batch_umap'].upload(fig_batch)
+                        self.run[f'evaluation/{group}/split_umap'].upload(fig_split)
+
+        with tf.device('CPU'):
+            inp = scanpy_to_input(adata_list['val'],['size_factors'])
+            inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
+            _, clas, dann, rec = self.dann_ae(inp, training=False).values()
+            clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+            opt_metric = self.metrics_list['mcc'](np.asarray(y_list['val'].argmax(axis=1)), clas.argmax(axis=1)) # We retrieve the last metric of interest
         if self.log_neptune:
             self.run.stop()
-        gc.collect()
-        tf.keras.backend.clear_session()
         del enc
         del clas
         del dann
@@ -587,6 +594,9 @@ class Workflow:
         del self.clas_loss_fn
         del self.dann_loss_fn
         del self.metrics_list
+
+        gc.collect()
+        tf.keras.backend.clear_session()
 
         return opt_metric
 
@@ -741,7 +751,7 @@ class Workflow:
 
         for step in range(1, n_steps + 1):
             input_batch, output_batch = next(batch_generator)
-            X_batch, sf_batch = input_batch.values()
+            # X_batch, sf_batch = input_batch.values()
             clas_batch, dann_batch, rec_batch = output_batch.values()
 
             with tf.GradientTape() as tape:
@@ -767,16 +777,15 @@ class Workflow:
             gradients = tape.gradient(loss, ae.trainable_variables)
             optimizer.apply_gradients(zip(gradients, ae.trainable_variables))
 
-            self.mean_loss_fn(loss)
-            self.mean_clas_loss_fn(clas_loss)
-            self.mean_dann_loss_fn(dann_loss)
-            self.mean_rec_loss_fn(rec_loss)
+            self.mean_loss_fn(loss.__float__())
+            self.mean_clas_loss_fn(clas_loss.__float__())
+            self.mean_dann_loss_fn(dann_loss.__float__())
+            self.mean_rec_loss_fn(rec_loss.__float__())
 
             if verbose :
                 self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
         self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
-        history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn)
-        
+        history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn)      
         del input_batch
         return history, _, clas, dann, rec
 
@@ -787,28 +796,66 @@ class Workflow:
         on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
         '''
         for group in ['train', 'val']: # evaluation round
-            inp = {'counts':X_list[group], 'size_factors':sf_list[group]}
-            # inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
-            try :
+            inp = scanpy_to_input(adata_list[group],['size_factors'])
+            with tf.device('CPU'):
+                inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
                 _, clas, dann, rec = ae(inp, training=False).values()
-            except:
-                with tf.device('CPU'):
-                    _, clas, dann, rec = ae(inp, training=False).values()
 
-    #         return _, clas, dann, rec
-            clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas)).numpy()
-            history[group]['clas_loss'] += [clas_loss]
-            dann_loss = tf.reduce_mean(dann_loss_fn(batch_list[group], dann)).numpy()
-            history[group]['dann_loss'] += [dann_loss]
-            with tf.device('CPU'): # Otherwise, risks of memory allocation errors
-                rec_loss = tf.reduce_mean(rec_loss_fn(densify(X_list[group]), rec)).numpy()
-            history[group]['rec_loss'] += [rec_loss]
-            history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
-            # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
+        #         return _, clas, dann, rec
+                clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas)).numpy()
+                history[group]['clas_loss'] += [clas_loss]
+                dann_loss = tf.reduce_mean(dann_loss_fn(batch_list[group], dann)).numpy()
+                history[group]['dann_loss'] += [dann_loss]
+                rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group], rec)).numpy()
+                history[group]['rec_loss'] += [rec_loss]
+                history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
+                # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
 
-            clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-            for metric in self.metrics_list: # only classification metrics ATM
-                history[group][metric] += [self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))] # y_list are onehot encoded
+                clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+                for metric in self.metrics_list: # only classification metrics ATM
+                    history[group][metric] += [self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))] # y_list are onehot encoded
+        del inp
+        return history, _, clas, dann, rec
+
+    def evaluation_pass_gpu(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn):
+        '''
+        evaluate model and logs metrics. Depending on "on parameter, computes it on train and val or train,val and test.
+
+        on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
+        '''
+        for group in ['train', 'val']: # evaluation round
+            # inp = scanpy_to_input(adata_list[group],['size_factors'])
+            batch_generator = batch_generator_training_permuted(X = X_list[group],
+                                                    y = y_list[group],
+                                                    batch_ID = batch_list[group],
+                                                    sf = adata_list[group].obs['size_factors'],                    
+                                                    ret_input_only=False,
+                                                    batch_size=self.batch_size,
+                                                    n_perm=1, 
+                                                    use_perm=use_perm)
+            n_obs = adata_list[group].n_obs
+            steps = n_obs // self.batch_size + 1
+            n_steps = steps
+            n_samples = 0
+
+            clas_batch, dann_batch, rec_batch = output_batch.values()
+
+            with tf.GradientTape() as tape:
+                input_batch = {k:tf.convert_to_tensor(v) for k,v in input_batch.items()}
+                enc, clas, dann, rec = ae(input_batch, training=True).values()
+                clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas)).numpy()
+                dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann)).numpy()
+                rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec)).numpy()
+        #         return _, clas, dann, rec
+                history[group]['clas_loss'] += [clas_loss]
+                history[group]['dann_loss'] += [dann_loss]
+                history[group]['rec_loss'] += [rec_loss]
+                history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
+                # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
+
+                clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+                for metric in self.metrics_list: # only classification metrics ATM
+                    history[group][metric] += [self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))] # y_list are onehot encoded
         del inp
         return history, _, clas, dann, rec
 
@@ -1023,36 +1070,6 @@ class Workflow:
     def __str__(self):
         return str(self.run_file)
 
-
-class MakeExperiment:
-    def __init__(self, run_file, working_dir):
-        # super()._init_()
-        self.run_file = run_file
-        self.working_dir = working_dir
-        self.workflow = None
-
-    def train(self, params):
-        reset_keras()
-        # cuda.select_device(0)
-        self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
-        mcc = self.workflow.make_experiment(params)
-        del self.workflow  # Should not be necessary
-        # cuda.select_device(0)
-        # device = cuda.get_current_device()
-        # device.reset()
-        return mcc
- 
-    # def train_process(self, params, q):
-    #     q.put(self.train(params))
-
-    # def train_run(self,params):
-    #     q = multiprocessing.Queue()
-    #     p = multiprocessing.Process(target=self.train_process, args=(params, q))
-    #     p.start()
-    #     mcc = q.get()
-    #     return mcc
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -1114,69 +1131,91 @@ if __name__ == '__main__':
     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--workflow_id', type=str, nargs='?', default='default', help ='')
+    parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
     # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
 
     run_file = parser.parse_args()
-    working_dir = '/home/acollin/dca_permuted_workflow/'
-    experiment = MakeExperiment(run_file=run_file, working_dir=working_dir)
+    # working_dir = '/home/acollin/dca_permuted_workflow/'
+    # experiment = MakeExperiment(run_file=run_file, working_dir=working_dir)
     # workflow = Workflow(run_file=run_file, working_dir=working_dir)
     print("Workflow loaded")
-
-    hparams = [
-        #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
-        {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-        {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-        {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
-        {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
-        {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
-        {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
-        {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
-        {"name": "layer2", "type": "range", "bounds": [64, 512]},
-        {"name": "layer1", "type": "range", "bounds": [512, 2048]},
-
-    ]
-
-    # workflow.make_experiment(hparams)
-
-    # def train(params):
-    #     print(params)
-    #     run_file.clas_w =  params['clas_w']
-    #     run_file.dann_w = params['dann_w']
-    #     run_file.rec_w =  1
-    #     run_file.learning_rate = params['learning_rate']
-    #     run_file.weight_decay =  params['weight_decay']
-    #     run_file.warmup_epoch =  params['warmup_epoch']
-    #     dropout =  params['dropout']
-    #     layer1 = params['layer1']
-    #     layer2 =  params['layer2']
-    #     bottleneck = params['bottleneck']
-
-    #     run_file.ae_hidden_size = [layer1, layer2, bottleneck, layer2, layer1]
-
-    #     run_file.dann_hidden_dropout, run_file.class_hidden_dropout, run_file.ae_hidden_dropout = dropout, dropout, dropout
+    if run_file.hparam_path:
+        with open(run_file.hparam_path, 'r') as hparam_json:
+            hparams = json.load(hparam_json)
         
-    #     cmd = ['sbatch', '--wait', '/home/acollin/dca_permuted_workflow/workflow/run_workflow_cmd.sh']
-    #     for k, v in run_file.__dict__.items():
-    #         cmd += ([f'--{k}'])
-    #         if type(v) == list:
-    #             cmd += ([str(i) for i in v])
-    #         else :
-    #             cmd += ([str(v)])
-    #     print(cmd)
-    #     subprocess.Popen(cmd).wait()
-    #     working_dir = '/home/acollin/dca_permuted_workflow/'
-    #     with open(working_dir + 'mcc_res.txt', 'r') as my_file:
-    #         mcc = float(my_file.read())
-    #     os.remove(working_dir + 'mcc_res.txt')
-    #     return mcc
+    else:
+        hparams = [ # round 1
+            #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
+            {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+            {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+            {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
+            {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
+            {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
+            {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
+            {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
+            {"name": "layer2", "type": "range", "bounds": [64, 512]},
+            {"name": "layer1", "type": "range", "bounds": [512, 2048]},
+
+        ]
+
+
+    def train_cmd(params):
+        print(params)
+        run_file.clas_w =  params['clas_w']
+        run_file.dann_w = params['dann_w']
+        run_file.rec_w =  1
+        run_file.learning_rate = params['learning_rate']
+        run_file.weight_decay =  params['weight_decay']
+        run_file.warmup_epoch =  params['warmup_epoch']
+        dropout =  params['dropout']
+        layer1 = params['layer1']
+        layer2 =  params['layer2']
+        bottleneck = params['bottleneck']
+
+        run_file.ae_hidden_size = [layer1, layer2, bottleneck, layer2, layer1]
+
+        run_file.dann_hidden_dropout, run_file.class_hidden_dropout, run_file.ae_hidden_dropout = dropout, dropout, dropout
+        
+        cmd = ['sbatch', '--wait', '/home/simonp/dca_permuted_workflow/workflow/run_workflow_cmd.sh']
+        for k, v in run_file.__dict__.items():
+            cmd += ([f'--{k}'])
+            if type(v) == list:
+                cmd += ([str(i) for i in v])
+            else :
+                cmd += ([str(v)])
+        print(cmd)
+        subprocess.Popen(cmd).wait()
+        working_dir = '/home/acollin/dca_permuted_workflow/'
+        with open(working_dir + 'mcc_res.txt', 'r') as my_file:
+            mcc = float(my_file.read())
+        os.remove(working_dir + 'mcc_res.txt')
+        return mcc
 
     best_parameters, values, experiment, model = optimize(
         parameters=hparams,
-        evaluation_function=experiment.train,
+        evaluation_function=train_cmd,
         objective_name='mcc',
         minimize=False,
-        total_trials=30,
+        total_trials=50,
         random_seed=40,
     )
 
-    
+    # best_parameters, values, experiment, model = optimize(
+    #     parameters=hparams,
+    #     evaluation_function=workflow.make_experiment,
+    #     objective_name='mcc',
+    #     minimize=False,
+    #     total_trials=30,
+    #     random_seed=40,
+    # )
+
+# print(best_parameters)
+
+
+
+# run_workflow_cmd.py --run_file --wd --args --params
+
+# self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
+# mcc = self.workflow.make_experiment(params)
+# mcc.write('somewhere')
+

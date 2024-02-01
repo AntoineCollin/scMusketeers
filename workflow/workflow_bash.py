@@ -1,5 +1,16 @@
 from workflow_hp import *
 import argparse
+JSON_PATH = '/home/acollin/dca_permuted_workflow/experiment_script/hp_ranges/'
+
+def load_json(p):
+    if not p.startswith('/'):
+        p = JSON_PATH + p
+    if not p.endswith('.json'):
+        p += '.json'
+    with open(p, 'r') as fichier_json:
+        dico = json.load(fichier_json)
+    return dico
+    
 
 class MakeExperiment:
     def __init__(self, run_file, working_dir):
@@ -12,7 +23,7 @@ class MakeExperiment:
         # cuda.select_device(0)
         # device = cuda.get_current_device()
         # device.reset()
-        import tensorflow as tf
+        #import tensorflow as tf
         self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
         mcc = self.workflow.make_experiment(params)
         del self.workflow  # Should not be necessary
@@ -80,26 +91,35 @@ if __name__ == '__main__':
     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--workflow_id', type=str, nargs='?', default='default', help ='')
+    parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
+
     # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
 
     run_file = parser.parse_args()
     print(run_file.class_key, run_file.batch_key)
-    working_dir = '/home/simonp/dca_permuted_workflow/'
+    working_dir = '/home/acollin/dca_permuted_workflow/'
     experiment = MakeExperiment(run_file=run_file, working_dir=working_dir)
 
-    hparams = [
-        #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
-        {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-        {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-        {"name": "lr", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
-        {"name": "wd", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
-        {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
-        {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
-        {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
-        {"name": "layer2", "type": "range", "bounds": [64, 512]},
-        {"name": "layer1", "type": "range", "bounds": [512, 1024]},
-        {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
-    ]
+    if not run_file.hparam_path:
+        hparam_path = 'generic_r1.json'
+    else:
+        hparam_path = run_file.hparam_path
+
+    hparams = load_json(hparam_path)
+        
+    # else:
+    #     hparams = [{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
+    #         {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+    #         {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+    #         {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
+    #         {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
+    #         {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
+    #         {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
+    #         {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
+    #         {"name": "layer2", "type": "range", "bounds": [64, 512]},
+    #         {"name": "layer1", "type": "range", "bounds": [512, 2048]},
+
+    #     ]
 
     # workflow.make_experiment(hparams)
 
@@ -108,7 +128,7 @@ if __name__ == '__main__':
         evaluation_function=experiment.train,
         objective_name='mcc',
         minimize=False,
-        total_trials=30,
+        total_trials=50,
         random_seed=40,
 
     )

@@ -3,7 +3,7 @@ from anndata import AnnData
 import numpy as np
 from sklearn.metrics import davies_bouldin_score, adjusted_mutual_info_score, \
     adjusted_rand_score, fowlkes_mallows_score, v_measure_score, silhouette_score, calinski_harabasz_score
-from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score, plot_confusion_matrix,silhouette_samples
+from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score,silhouette_samples
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import LabelEncoder
 
@@ -313,7 +313,7 @@ from sklearn.neighbors import NearestNeighbors
 # Description:
 """
 
-def batch_entropy_mixing_score(data, batches, n_neighbors=100, n_pools=100, n_samples_per_pool=100, sub_population=None):
+def batch_entropy_mixing_score(data, batches, n_neighbors=100, n_pools=100, n_samples_per_pool=100, sub_population=None, verbose = True):
     """
     Calculate batch entropy mixing score
     
@@ -358,6 +358,8 @@ def batch_entropy_mixing_score(data, batches, n_neighbors=100, n_pools=100, n_sa
         return entropy
 
     n_neighbors = min(n_neighbors, len(data) - 1)
+    if verbose:
+        print("Computing neighborhood graph")
     nne = NearestNeighbors(n_neighbors=1 + n_neighbors, n_jobs=8)
     nne.fit(data)
     kmatrix = nne.kneighbors_graph(data) - scipy.sparse.identity(data.shape[0])
@@ -372,6 +374,8 @@ def batch_entropy_mixing_score(data, batches, n_neighbors=100, n_pools=100, n_sa
         P[i] = np.mean(batches == batches_[i])
     print(P)
     for t in range(n_pools):
+        if verbose and t%10==0:
+            print(f'Entropy mixing ----- step {t}')
         if sub_population is None :
             indices = np.random.choice(np.arange(data.shape[0]), size=n_samples_per_pool)
         else:

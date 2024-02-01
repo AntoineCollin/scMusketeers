@@ -84,7 +84,7 @@ def get_optimizer(learning_rate, weight_decay, optimizer_type, momentum=0.9):
     print(optimizer_type)
     if optimizer_type == 'adam':
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate,
-                                     decay=weight_decay
+                                    #  decay=weight_decay
                                      )
     elif optimizer_type == 'adamw':
         optimizer = tf.keras.optimizers.AdamW(learning_rate=learning_rate,

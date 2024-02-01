@@ -7,6 +7,7 @@ try :
     from .predictor import MLP_Predictor
     from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
     from .utils import get_optimizer, scanpy_to_input, default_value, str2bool
+    from .clust_compute import nn_overlap, batch_entropy_mixing_score
 
 
 except ImportError:
@@ -15,6 +16,7 @@ except ImportError:
     from predictor import MLP_Predictor
     from model import DCA_Permuted,Scanvi
     from utils import get_optimizer, scanpy_to_input, default_value, str2bool
+    from clust_compute import nn_overlap, batch_entropy_mixing_score
 # from dca.utils import str2bool,tuple_to_scalar
 import argparse
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
@@ -27,6 +29,7 @@ from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef
 import time
 import pickle
 import anndata
+import json
 import pandas as pd
 import scanpy as sc
 import anndata
@@ -374,6 +377,8 @@ class Workflow:
         self.log_neptune = self.run_file.log_neptune
         self.run = None
 
+        self.hparam_path = self.run_file.hparam_path
+
     def write_metric_log(self):
         open(self.metrics_log_path, 'a').close()
 
@@ -401,11 +406,13 @@ class Workflow:
 
     def make_experiment(self, params):
         print(params)
-#        self.use_hvg = params['use_hvg']
+        self.use_hvg = params['use_hvg']
+        self.batch_size = params['batch_size']
         self.clas_w =  params['clas_w']
         self.dann_w = params['dann_w']
         self.rec_w =  1
         self.weight_decay =  params['weight_decay']
+        self.learning_rate = params['learning_rate']
         self.warmup_epoch =  params['warmup_epoch']
         self.dropout =  params['dropout']
         self.layer1 = params['layer1']
@@ -478,7 +485,7 @@ class Workflow:
 
         if self.log_neptune :
             self.run = neptune.init_run(
-                    project="blaireaufurtif/scPermut",
+                    project="becavin-lab/sc-permut",
                     api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
 )
             for par,val in self.run_file.__dict__.items():
@@ -533,9 +540,14 @@ class Workflow:
                     input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(adata_list[group],['size_factors']).items()}
                     enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values()                
                     clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-                    for metric in self.metrics_list: # only classification metrics ATM
-                        self.run[f"evaluation/{group}/{metric}"] = self.metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))
+                    if group in ['train', 'val', 'test']:
+                        for metric in self.metrics_list: # only classification metrics ATM
+                            self.run[f"evaluation/{group}/{metric}"] = self.metrics_list[metric](adata_list[group].obs[f'true_{self.class_key}'], self.dataset.ohe_celltype.inverse_transform(clas))
+                        if len(np.unique(np.asarray(batch_list[group].argmax(axis=1)))) >= 2: # If there are more than 2 batches in this group
+                            self.run[f'evaluation/{group}/batch_mixing_entropy'] = batch_entropy_mixing_score(enc, np.asarray(batch_list[group].argmax(axis=1)))
+                        # self.run[f'evaluation/{group}/knn_overlap'] = nn_overlap(enc, X_list[group])
                     if group == 'full':
+                        self.run[f'evaluation/{group}/batch_mixing_entropy'] = batch_entropy_mixing_score(enc, np.asarray(batch_list[group].argmax(axis=1)))
                         save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
                         if not os.path.exists(save_dir):
                             os.makedirs(save_dir)
@@ -1120,6 +1132,7 @@ if __name__ == '__main__':
     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--workflow_id', type=str, nargs='?', default='default', help ='')
+    parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
     # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
 
     run_file = parser.parse_args()
@@ -1127,20 +1140,25 @@ if __name__ == '__main__':
     # experiment = MakeExperiment(run_file=run_file, working_dir=working_dir)
     # workflow = Workflow(run_file=run_file, working_dir=working_dir)
     print("Workflow loaded")
+    if run_file.hparam_path:
+        with open(run_file.hparam_path, 'r') as hparam_json:
+            hparams = json.load(hparam_json)
+        
+    else:
+        hparams = [ # round 1
+            #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
+            {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+            {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+            {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
+            {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
+            {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
+            {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
+            {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
+            {"name": "layer2", "type": "range", "bounds": [64, 512]},
+            {"name": "layer1", "type": "range", "bounds": [512, 2048]},
 
-    hparams = [
-        #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
-        {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-        {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-        {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
-        {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
-        {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
-        {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
-        {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
-        {"name": "layer2", "type": "range", "bounds": [64, 512]},
-        {"name": "layer1", "type": "range", "bounds": [512, 2048]},
+        ]
 
-    ]
 
     def train_cmd(params):
         print(params)
