@@ -1,17 +1,27 @@
 import scanpy as sc
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 import scipy
 from sklearn.model_selection import train_test_split
 import argparse
 
 def densify(X):
     if (type(X) == scipy.sparse.csr_matrix) or (type(X) == scipy.sparse.csc_matrix):
-        return X.todense()
+        return np.asarray(X.todense())
     else :
-        return X
-        
+        return np.asarray(X)
+
+def check_raw(X,n):
+    return X[:n,:n].todense()
+
+def ann_subset(adata, obs_key, conditions):
+    """
+    Return a subset of the adata for cells with obs_key verifying conditions
+    """
+    if type(conditions) == str:
+        conditions = [conditions]
+    return adata[adata.obs[obs_key].isin(conditions),:].copy()
+
 def scanpy_to_input(adata,keys, use_raw = False):
     '''
     Converts a scanpy object to a csv count matrix + an array for each metadata specified in *args 
@@ -69,42 +79,6 @@ def tuple_to_scalar(v):
     else :
         return [float(i) for i in v]
 
-def get_optimizer(learning_rate, weight_decay, optimizer_type, momentum=0.9):
-    """
-    This function takes a  learning rate, weight decay and optionally momentum and returns an optimizer object
-    Args:
-        learning_rate: The optimizer's learning rate
-        weight_decay: The optimizer's weight decay
-        optimizer_type: The optimizer's type [adam or sgd]
-        momentum: The optimizer's momentum  
-    Returns:
-        an optimizer object
-    """
-    # TODO Add more optimizers
-    print(optimizer_type)
-    if optimizer_type == 'adam':
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate,
-                                    #  decay=weight_decay
-                                     )
-    elif optimizer_type == 'adamw':
-        optimizer = tf.keras.optimizers.AdamW(learning_rate=learning_rate,
-                                     weight_decay=weight_decay
-                                      )
-    elif optimizer_type == 'rmsprop':
-        optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate,
-                                                weight_decay=weight_decay,
-                                                momentum=momentum 
-                                                )
-    elif optimizer_type == 'adafactor':
-        optimizer = tf.keras.optimizers.Adafactor(learning_rate=learning_rate,
-                                    weight_decay=weight_decay,
-                                        )
-    else:
-        optimizer = tf.keras.optimizers(learning_rate=learning_rate,
-                                        weight_decay=weight_decay,
-                                        momentum=momentum
-                                        )
-    return optimizer
 
 def create_meta_stratify(adata, cats):
     obs = adata.obs

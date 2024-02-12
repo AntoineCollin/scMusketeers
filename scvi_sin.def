@@ -15,7 +15,7 @@ From: pytorch/pytorch:1.9.1-cuda11.1-cudnn8-devel
 
     /usr/bin/python3 -m pip install -t $PATH_PIP --upgrade pip
     
-    pip install scanpy
+    pip install scanpy==1.8.2
     pip install jupyterlab
     pip install scvi-tools
    

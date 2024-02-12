@@ -404,7 +404,7 @@ class Workflow:
     def check_umap_log(self):
         return os.path.isfile(self.umap_log_path)
 
-    def make_experiment(self):
+    def make_experiment(self):# -> Any:
         # print(params)
         # self.use_hvg = params['use_hvg']
         # self.batch_size = params['batch_size']

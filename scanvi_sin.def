@@ -1,5 +1,5 @@
 BootStrap: docker
-From: tensorflow/tensorflow:2.14.0-gpu-jupyter
+From: pytorch/pytorch:2.2.0-cuda11.8-cudnn8-devel
 
 %post -c /bin/bash
     apt-get update && apt-get install -y --no-install-recommends --fix-missing software-properties-common
@@ -14,13 +14,8 @@ From: tensorflow/tensorflow:2.14.0-gpu-jupyter
 
     /usr/bin/python3 -m pip install -t $PATH_PIP --upgrade pip
     
-    pip install scanpy==1.9.5
-    pip install jupyterlab
-    pip install keras==2.14.0
-    pip install pyyaml
-    pip install neptune
-    pip install ax-platform
+
+    pip install scvi-tools
 
 %environment
     export PATH="/root/.local/bin:$PATH"
-
