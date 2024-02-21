@@ -1,13 +1,9 @@
 from workflow_hp import *
 import argparse
-JSON_PATH = '/home/acollin/dca_permuted_workflow/experiment_script/hp_ranges/'
+JSON_PATH_DEFAULT = '/home/acollin/dca_permuted_workflow/experiment_script/hp_ranges/'
 
-def load_json(p):
-    if not p.startswith('/'):
-        p = JSON_PATH + p
-    if not p.endswith('.json'):
-        p += '.json'
-    with open(p, 'r') as fichier_json:
+def load_json(json_path):
+    with open(json_path, 'r') as fichier_json:
         dico = json.load(fichier_json)
     return dico
     
@@ -34,6 +30,8 @@ class MakeExperiment:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--working_dir', type=str, nargs='?', default='/home/acollin/dca_permuted_workflow/', help ='')
+    
     # parser.add_argument('--run_file', type = , default = , help ='')
     # parser.add_argument('--workflow_ID', type = , default = , help ='')
     parser.add_argument('--dataset_name', type = str, default = 'htap_final_by_batch', help ='Name of the dataset to use, should indicate a raw h5ad AnnData file')
@@ -98,8 +96,7 @@ if __name__ == '__main__':
 
     run_file = parser.parse_args()
     print(run_file.class_key, run_file.batch_key)
-    working_dir = '/home/acollin/dca_permuted_workflow/'
-    experiment = MakeExperiment(run_file=run_file, working_dir=working_dir)
+    experiment = MakeExperiment(run_file=run_file, working_dir=run_file.working_dir)
 
     if not run_file.hparam_path:
         hparam_path = 'generic_r1.json'

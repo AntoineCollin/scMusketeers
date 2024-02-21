@@ -1,7 +1,12 @@
+############################
+#      A NETTOYER
+############################
+
+
 # from keras.engine.topology import Layer
 from keras.layers import Lambda, Dense
 # from keras.engine.base_layer import InputSpec
-from tensorflow.compat.v1.keras import backend as K
+import keras.backend as K
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
@@ -85,10 +90,6 @@ class ElementwiseDense(Dense):
 nan2zeroLayer = Lambda(lambda x: tf.where(tf.is_nan(x), tf.zeros_like(x), x))
 ColwiseMultLayer = Lambda(lambda l: l[0]*tf.reshape(l[1], (-1,1)), name='reconstruction')
 
-
-import tensorflow as tf
-# from keras.engine import Layer
-import keras.backend as K
 
 def reverse_gradient(X, hp_lambda):
     '''Flips the sign of the incoming gradient during training.'''
