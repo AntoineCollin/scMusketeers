@@ -229,7 +229,6 @@ class Workflow:
         self.training_scheme = self.run_file.training_scheme
 
         self.log_neptune = self.run_file.log_neptune
-        self.gpu_models = self.run_file.gpu_models
         self.run = None
 
         self.hparam_path = self.run_file.hparam_path
