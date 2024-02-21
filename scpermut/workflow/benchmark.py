@@ -2,8 +2,7 @@ import sys
 import os
 
 
-WD_PATH = '/home/acollin/dca_permuted_workflow/workflow'
-sys.path.append(WD_PATH)
+
 try :
     from .dataset import Dataset, load_dataset
     from ..tools.utils import str2bool

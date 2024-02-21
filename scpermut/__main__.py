@@ -1,4 +1,4 @@
-from workflow_hp import *
+from workflow.hyperparameters import *
 import argparse
 JSON_PATH_DEFAULT = '/home/acollin/dca_permuted_workflow/experiment_script/hp_ranges/'
 

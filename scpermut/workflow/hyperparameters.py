@@ -13,7 +13,7 @@ import os
 # from dca.utils import str2bool,tuple_to_scalar
 import argparse
 import functools
-from dataset import Dataset, load_dataset
+from workflow.dataset import Dataset, load_dataset
 from tools.utils import scanpy_to_input, default_value, str2bool
 from tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg
 from tools.models import DANN_AE
