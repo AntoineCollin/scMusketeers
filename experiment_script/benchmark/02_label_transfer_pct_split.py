@@ -6,7 +6,7 @@ import pandas as pd
 WD_PATH = '/home/acollin/dca_permuted_workflow/'
 sys.path.append(WD_PATH)
 
-from workflow.utils import str2bool
+from scpermut.tools.utils import str2bool
 from workflow.workflow_benchmark import Workflow
 
 if __name__ == '__main__':

@@ -6,8 +6,8 @@ import pandas as pd
 WD_PATH = '/home/acollin/dca_permuted_workflow/'
 sys.path.append(WD_PATH)
 
-from workflow.utils import str2bool
-from workflow.workflow_benchmark import Workflow
+from scpermut.tools.utils import str2bool
+from scpermut.workflow.benchmark import Workflow
 
 model_list_cpu = ['scmap_cells', 'scmap_cluster', 'celltypist', 'pca_svm','harmony_svm','uce', 'scanvi']
 model_list_gpu = ['scanvi']
