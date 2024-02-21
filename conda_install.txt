@@ -1,0 +1,9 @@
+conda create --name sc_permut tensorflow-gpu
+conda activate sc_permut
+
+    pip install scanpy==1.9.5
+    pip install jupyterlab
+    pip install keras==2.14.0
+    pip install pyyaml
+    pip install neptune
+    pip install ax-platform

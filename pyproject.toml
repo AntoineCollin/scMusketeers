@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "scPermut"
+version = "0.1.1"
+description = "Deep learning annotation of cell-types with permutation inforced autoencoder"
+license = "MIT"
+authors = ["AntoineCollin"]
+readme = "README.md"
+packages = [{include = "scpermut"}]
+exclude = ["tests/", ".github"]
+homepage = "https://sc_permut.readthedocs.io/"
+repository = "https://github.com/AntoineCollin/scPermut/"
+
+[tool.poetry.dependencies]
+python = ">=3.9, <3.12"
+poetry = "^1.5.1"
+keras = "^3.0.4"
+scanpy = "^1.9.8"
+jupyterlab = "^4.1.0"
+pyyaml = "^6.0.1"
+ax-platform = "^0.3.6"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+black = "^24.1.1"
+flake8 = "^7.0.0"
+setuptools = "^69.0.3"
+gitchangelog = "^3.0.4"
+codecov = "^2.1.13"
+pytest-cov = "^4.1.0"
+isort = "^5.13.2"
+mypy = "^1.8.0"
+no-implicit-optional = "^1.4"
+types-pyyaml = "^6.0.12.12"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+scpermut = 'scpermut:__main__'
+scpermut-optimize = 'scpermut.scpermut_optimize:run'
+

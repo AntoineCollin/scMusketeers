@@ -1,0 +1,63 @@
+name: Release Python Package
+
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'release-*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Create Release
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10" ]
+        poetry-version: [ "1.7.1" ]
+        os: [ ubuntu-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # by default, it uses a depth of 1
+          # this fetches all history so that we can read each commit
+          fetch-depth: 0
+      - name: Generate Changelog
+        run: .github/release_message.sh > release_message.md
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release_message.md
+
+  deploy:
+    name: Build and Publish
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10" ]
+        poetry-version: [ "1.7.1" ]
+        poetry-version-pip: [ "==1.7.1" ]
+        os: [ ubuntu-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Python Poetry Action
+      uses: abatilo/actions-poetry@v2.1.6
+      with:
+        poetry-version: ${{ matrix.poetry-version }}
+    - name: Install project
+      run: make install
+    - name: Build project
+      run: poetry build
+    - name: Publish a Python distribution to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_SCPERM_API_TOKEN }}
