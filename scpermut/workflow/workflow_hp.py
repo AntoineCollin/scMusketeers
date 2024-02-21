@@ -1,9 +1,7 @@
 import keras
 import sys
 import os
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-print(sys.path[0])
-# try :
+#try :
 #     from .dataset import Dataset, load_dataset
 #     from ..tools.utils import scanpy_to_input, default_value, str2bool
 #     from ..tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg
@@ -15,11 +13,11 @@ print(sys.path[0])
 # from dca.utils import str2bool,tuple_to_scalar
 import argparse
 import functools
-from scpermut.tools.dataset import Dataset, load_dataset
-from scpermut.tools.utils import scanpy_to_input, default_value, str2bool
-from scpermut.tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg
-from scpermut.tools.models import DANN_AE
-from scpermut.tools.permutation import batch_generator_training_permuted
+from dataset import Dataset, load_dataset
+from tools.utils import scanpy_to_input, default_value, str2bool
+from tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg
+from tools.models import DANN_AE
+from tools.permutation import batch_generator_training_permuted
 
 from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef, f1_score,cohen_kappa_score, adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score,davies_bouldin_score,adjusted_rand_score,confusion_matrix
 

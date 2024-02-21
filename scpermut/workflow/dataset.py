@@ -6,9 +6,10 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 import numpy as np
 import sys
+import os
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 print(sys.path[0])
-from scpermut.tools.utils import densify
+from tools import utils
 
 
 def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduce_adata=True): 
@@ -346,10 +347,10 @@ class Dataset:
         self.adata_train = self.adata[self.adata.obs['train_split'] == 'train'].copy()
         self.adata_val = self.adata[self.adata.obs['train_split'] == 'val'].copy()
         self.adata_test = self.adata[self.adata.obs['train_split'] == 'test'].copy()
-        self.X = densify(self.adata.X)
-        self.X_train = densify(self.adata_train.X)
-        self.X_val = densify(self.adata_val.X)
-        self.X_test = densify(self.adata_test.X)
+        self.X = utils.densify(self.adata.X)
+        self.X_train = utils.densify(self.adata_train.X)
+        self.X_val = utils.densify(self.adata_val.X)
+        self.X_test = utils.densify(self.adata_test.X)
         self.y = self.adata.obs[f'true_{self.class_key}']
         self.y_train = self.adata_train.obs[f'true_{self.class_key}']
         self.y_val = self.adata_val.obs[f'true_{self.class_key}']
