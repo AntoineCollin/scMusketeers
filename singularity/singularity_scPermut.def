@@ -1,0 +1,26 @@
+BootStrap: docker
+From: tensorflow/tensorflow:2.14.0-gpu-jupyter
+
+%post -c /bin/bash
+    apt-get update && apt-get install -y --no-install-recommends --fix-missing software-properties-common
+    apt-get install nano
+    apt-get install wget
+    
+    PATH_PIP="/usr/pip/"
+    if [ ! -d $PATH_PIP ]; then
+	    mkdir $PATH_PIP
+    fi
+    export PATH="$PATH_PIP:$PATH"
+
+    /usr/bin/python3 -m pip install -t $PATH_PIP --upgrade pip
+    
+    pip install scanpy==1.9.5
+    pip install jupyterlab
+    pip install keras==2.14.0
+    pip install pyyaml
+    pip install neptune
+    pip install ax-platform
+
+%environment
+    export PATH="/root/.local/bin:$PATH"
+
