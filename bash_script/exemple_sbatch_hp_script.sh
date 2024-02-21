@@ -8,11 +8,11 @@
 #SBATCH --output=/home/cbecavin/temp/htap_hyperparam.log # Important to retrieve the port where the notebook is running, if not included a slurm file with the job-id will be outputted. 
 
 
-script_dir="/home/cbecavin/dca_permuted_workflow"
+script_dir="/home/cbecavin/scPermut"
 working_dir="/workspace/cell/sc_Permut"
-singularity_working_dir="/data/dca_permuted_workflow/"
+singularity_working_dir="/data/scPermut/"
 singularity_path=$working_dir"/scPermut_gpu_jupyter.sif"
-python_script=$script_dir/scpermut/scpermut_optimize.py
+python_script=$script_dir/scPermut/__main__.py
 log_file=$working_dir"/experiment_script/htap_scheme_hp_1.log"
 json_path=$script_dir"/experiment_script/hp_ranges/htap_r2_sch1.json"
 
