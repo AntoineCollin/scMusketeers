@@ -3,7 +3,7 @@ working_dir="/data/analysis/data_becavin/scpermut_test/"
 singularity_working_dir="/data/dca_permuted_workflow/"
 singularity_path=$working_dir"/scPermut_gpu_jupyter.sif"
 #python_script=$script_dir/scpermut/scpermut_optimize.py
-python_script=$script_dir/scpermut/workflow/workflow_bash.py
+python_script=$script_dir/scpermut/__main__.py
 log_file=$working_dir"/experiment_script/htap_scheme_1.log"
 json_path="/home/becavin/scPermut/experiment_script/hp_ranges/generic_r1.json"
 
