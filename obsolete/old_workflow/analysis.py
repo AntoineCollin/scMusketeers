@@ -5,7 +5,7 @@ try :
     from .model import DCA_Permuted
     from .workflow import Workflow
     from .runfile_handler import RunFile
-    from ...scpermut.workflow.clust_compute import *
+    from ...scpermut.tools.clust_compute import *
 except ImportError:
     from load import load_runfile
     from dataset import Dataset

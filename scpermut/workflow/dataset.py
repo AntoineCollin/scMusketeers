@@ -5,12 +5,10 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 import numpy as np
-
-try :
-    from .utils import densify
-
-except ImportError:
-    from utils import densify
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+print(sys.path[0])
+from scpermut.tools.utils import densify
 
 
 def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduce_adata=True): 
@@ -158,6 +156,8 @@ def load_dataset(dataset_name,dataset_dir):
         print(adata)
         return adata
 
+def load_from_path(data_path):
+    return adata
 
 class Dataset:
     def __init__(self, 

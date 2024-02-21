@@ -6,14 +6,14 @@ WD_PATH = '/home/acollin/dca_permuted_workflow/workflow'
 sys.path.append(WD_PATH)
 try :
     from .dataset import Dataset, load_dataset
-    from .utils import str2bool
-    from .clust_compute import batch_entropy_mixing_score,lisi_avg
+    from ..tools.utils import str2bool
+    from ..tools.clust_compute import batch_entropy_mixing_score,lisi_avg
     from .benchmark_models import pca_svm, harmony_svm, scanvi,uce, scmap_cells, scmap_cluster,celltypist_model
 
 except ImportError:
     from dataset import Dataset, load_dataset
-    from utils import str2bool
-    from clust_compute import batch_entropy_mixing_score,lisi_avg
+    from scpermut.tools.utils import str2bool
+    from scpermut.tools.clust_compute import batch_entropy_mixing_score,lisi_avg
     from benchmark_models import pca_svm, harmony_svm, scanvi,uce,scmap_cells, scmap_cluster,celltypist_model
 # from dca.utils import str2bool,tuple_to_scalar
 import argparse

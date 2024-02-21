@@ -16,9 +16,9 @@ try :
 except :
     pass
 try :
-    from .utils import densify
+    from ..tools.utils import densify
 except ImportError:
-    from utils import densify
+    from scpermut.tools.utils import densify
 
 
 
