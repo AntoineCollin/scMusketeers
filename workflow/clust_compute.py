@@ -453,6 +453,7 @@ def knn_purity(reference, embedding, embedding_key):
 
 
 def lisi_avg(X, labels):
+    print(labels)
     metadata = pd.DataFrame({'labels': labels})
     return np.mean(compute_lisi(X, metadata, ['labels']))
 

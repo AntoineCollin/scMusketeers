@@ -28,11 +28,9 @@ def scanpy_to_input(adata,keys, use_raw = False):
     '''
     adata_to_dict = {}
     if use_raw :
-        adata_to_dict['counts'] = adata.raw.X.copy()
+        adata_to_dict['counts'] = densify(adata.raw.X.copy())
     else :
-        adata_to_dict['counts'] = adata.X.copy()
-    if (type(adata_to_dict['counts']) == scipy.sparse.csr_matrix) or (type(adata_to_dict['counts']) == scipy.sparse.csc_matrix):
-        adata_to_dict['counts'] = adata_to_dict['counts'].todense()
+        adata_to_dict['counts'] = densify(adata.X.copy())
     for key in keys:
         adata_to_dict[key] = adata.obs[key]
     return adata_to_dict

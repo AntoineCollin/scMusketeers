@@ -113,45 +113,49 @@ def sum_marker_score(markers, adata, obs_key):
 
 def load_dataset(dataset_name,dataset_dir):
         dataset_names = {'htap':'htap_annotated',
-                         'lca' : 'LCA_log1p',
-                         'discovair':'discovair_V6',
-                         'discovair_V7':'discovair_V7',
-                         'discovair_V7_filtered':'discovair_V7_filtered_raw', # Filtered version with doublets, made lighter to pass through the model
-                         'discovair_V7_filtered_no_D53':'discovair_V7_filtered_raw_no_D53',
-                         'ajrccm':'HCA_Barbry_Grch38_Raw',
-                         "ajrccm_by_batch":"ajrccm_by_batch",
-                         "disco_htap_ajrccm":'discovair_htap_ajrccm',
-                         "disco_htap": 'discovair_htap',
-                         "disco_ajrccm": 'discovair_ajrccm',
-                         "disco_ajrccm_downsampled":'discovair_ajrccm_downsampled',
-                         "discovair_ajrccm_small" : "discovair_ajrccm_small",
-                         'htap_ajrccm': 'htap_ajrccm_raw',
-                         'pbmc3k_processed':'pbmc_3k',
-                         'htap_final':'htap_final',
-                         'htap_final_by_batch':'htap_final_by_batch',
-                         'htap_final_C1_C5':'htap_final_C1_C5',
-                         'pbmc8k':'pbmc8k',
-                         'pbmc68k':'pbmc68k',
-                         'pbmc8k_68k':'pbmc8k_68k',
-                         'pbmc8k_68k_augmented':'pbmc8k_68k_augmented',
-                         'pbmc8k_68k_downsampled':'pbmc8k_68k_downsampled',
-                         'htap_final_ajrccm': 'htap_final_ajrccm',
-                         'hlca_par_sample_harmonized':'hlca_par_sample_harmonized',
-                         'hlca_par_dataset_harmonized':'hlca_par_dataset_harmonized',
-                         'hlca_trac_sample_harmonized':'hlca_trac_sample_harmonized',
-                         'hlca_trac_dataset_harmonized':'hlca_trac_dataset_harmonized',
-                         'koenig_2022' : 'celltypist_dataset/koenig_2022/koenig_2022',
-                         'tosti_2021' : 'celltypist_dataset/tosti_2021/tosti_2021',
-                         'yoshida_2021' : 'celltypist_dataset/yoshida_2021/yoshida_2021',
-                         'tran_2021' : 'celltypist_dataset/tran_2021/tran_2021',
-                         'dominguez_2022' : 'celltypist_dataset/dominguez_2022/dominguez_2022',
-                         'tabula_2022' : 'celltypist_dataset/tabula_2022/tabula_2022',
-                         'litvinukova_2020' : 'celltypist_dataset/litvinukova_2020/litvinukova_2020',
-                         'lake_2021': 'celltypist_dataset/lake_2021/lake_2021'}
+                'lca' : 'LCA_log1p',
+                'discovair':'discovair_V6',
+                'discovair_V7':'discovair_V7',
+                'discovair_V7_filtered':'discovair_V7_filtered_raw', # Filtered version with doublets, made lighter to pass through the model
+                'discovair_V7_filtered_no_D53':'discovair_V7_filtered_raw_no_D53',
+                'ajrccm':'HCA_Barbry_Grch38_Raw',
+                "ajrccm_by_batch":"ajrccm_by_batch",
+                "disco_htap_ajrccm":'discovair_htap_ajrccm',
+                "disco_htap": 'discovair_htap',
+                "disco_ajrccm": 'discovair_ajrccm',
+                "disco_ajrccm_downsampled":'discovair_ajrccm_downsampled',
+                "discovair_ajrccm_small" : "discovair_ajrccm_small",
+                'htap_ajrccm': 'htap_ajrccm_raw',
+                'pbmc3k_processed':'pbmc_3k',
+                'htap_final':'htap_final',
+                'htap_final_by_batch':'htap_final_by_batch',
+                'htap_final_C1_C5':'htap_final_C1_C5',
+                'pbmc8k':'pbmc8k',
+                'pbmc68k':'pbmc68k',
+                'pbmc8k_68k':'pbmc8k_68k',
+                'pbmc8k_68k_augmented':'pbmc8k_68k_augmented',
+                'pbmc8k_68k_downsampled':'pbmc8k_68k_downsampled',
+                'htap_final_ajrccm': 'htap_final_ajrccm',
+                'hlca_par_sample_harmonized':'hlca_par_sample_harmonized',
+                'hlca_par_dataset_harmonized':'hlca_par_dataset_harmonized',
+                'hlca_trac_sample_harmonized':'hlca_trac_sample_harmonized',
+                'hlca_trac_dataset_harmonized':'hlca_trac_dataset_harmonized' ,
+                'koenig_2022' : 'celltypist_dataset/koenig_2022/koenig_2022_healthy',
+                'tosti_2021' : 'celltypist_dataset/tosti_2021/tosti_2021',
+                'yoshida_2021' : 'celltypist_dataset/yoshida_2021/yoshida_2021',
+                'yoshida_2021_debug' : 'celltypist_dataset/yoshida_2021/yoshida_2021_debug',
+                'tran_2021' : 'celltypist_dataset/tran_2021/tran_2021',
+                'dominguez_2022_lymph' : 'celltypist_dataset/dominguez_2022/dominguez_2022_lymph',
+                'dominguez_2022_spleen' : 'celltypist_dataset/dominguez_2022/dominguez_2022_spleen',
+                'tabula_2022_spleen' : 'celltypist_dataset/tabula_2022/tabula_2022_spleen',
+                'litvinukova_2020' : 'celltypist_dataset/litvinukova_2020/litvinukova_2020',
+                 'lake_2021': 'celltypist_dataset/lake_2021/lake_2021'
+                }
         dataset_path = dataset_dir + '/' + dataset_names[dataset_name] + '.h5ad'
         adata = sc.read_h5ad(dataset_path)
         if not adata.raw:
             adata.raw = adata
+        print(adata)
         return adata
 
 
@@ -198,7 +202,7 @@ class Dataset:
 
     def normalize(self):
         if self.filter_min_counts:
-            sc.pp.filter_genes(self.adata, min_counts=1)
+            sc.pp.filter_genes(self.adata, min_counts=1 )
             sc.pp.filter_cells(self.adata, min_counts=1)
         nonzero_genes, _ = sc.pp.filter_genes(self.adata.X, min_counts=1)
         assert nonzero_genes.all(), 'Please remove all-zero genes before using DCA.'
@@ -222,13 +226,7 @@ class Dataset:
 
         if self.scale_input:
             sc.pp.scale(self.adata)
-
-        obs = self.adata.obs[self.class_key].astype('str') 
-        obs[self.adata.obs[self.test_split_key] == 'test'] = self.unlabeled_category 
-        self.adata.obs[self.class_key] = obs # hiding test celltypes in the original anndata (necessary for scanvi)
-
-        self.adata_test = self.adata[self.adata.obs[self.test_split_key] == 'test']
-        self.adata_train_extended = self.adata[self.adata.obs[self.test_split_key] == 'train']
+        
         # print('right after loading')
         # print(self.adata)
         # print(self.adata_test)
@@ -236,7 +234,11 @@ class Dataset:
         # print(self.adata_train_extended.obs[self.class_key].value_counts())
         # self.adata_train = self.adata_train_extended.copy()
 
-    def train_split(self,mode=None, pct_split=None, obs_key=None, n_keep=None, split_strategy = None, keep_obs = None,obs_subsample=None,train_test_random_seed=None):
+    def test_split(self):
+        self.adata_test = self.adata[self.adata.obs[self.test_split_key] == 'test']
+        self.adata_train_extended = self.adata[self.adata.obs[self.test_split_key] == 'train']
+        
+    def train_split(self,mode=None, pct_split=None, obs_key=None, n_keep=None, split_strategy = 'random', keep_obs = None,obs_subsample=None,train_test_random_seed=None):
         """
         Splits train and val datasets according to several modalities.
         percentage : Classic train test split
@@ -291,13 +293,11 @@ class Dataset:
 
             spl = pd.Series(['train'] * self.adata_train_extended.n_obs, index = self.adata_train_extended.obs.index)
             spl.iloc[val_idx] = 'val'
-            # print(len(spl))
-            # print(self.adata_train_extended)
-            # print(self.adata_train_extended.obs[self.class_key].value_counts())
             self.adata_train_extended.obs['train_split'] = spl.values
         elif mode == 'entire_condition':
             self.obs_key = obs_key
             self.keep_obs = keep_obs
+            print(f"splitting this adata train/val : {self.adata_train_extended}")
             keep_idx = self.adata_train_extended.obs[obs_key].isin(self.keep_obs)
             to_keep = pd.Series(['val'] * self.adata_train_extended.n_obs, index = self.adata_train_extended.obs.index)
             to_keep[keep_idx] = 'train'
@@ -332,39 +332,6 @@ class Dataset:
         else : 
             print(f"{mode} is not a valid splitting mode")
             return 
-        # removing unnanotated cells
-        # if not self.semi_sup:
-        #     to_keep = self.adata_train_extended.obs['train_split']
-        #     UNK_cells = self.adata_train_extended.obs[self.class_key] == self.unlabeled_category
-        #     to_keep[UNK_cells] = 'val' # Change unknown cells to val
-        #     self.adata_train_extended.obs['train_split'] = to_keep
-
-        #     obs = self.adata_train_extended.obs[self.class_key].astype('str')
-        #     obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # hiding val celltypes with UNK for prediction by scanvi
-        #     self.adata_train_extended.obs[self.class_key] = obs
-        #     self.adata.obs.loc[self.adata_train_extended.obs_names,self.class_key] = obs # replace val celltypes in the original adata
-
-        #     self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'train'].copy() # in full supervised training set is only annotated cells
-        #     self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
-        #     train_split = self.adata.obs[self.test_split_key].astype('str') # Replace the test, train, val values in the global adata object
-        #     train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
-        #     self.adata.obs['train_split'] = train_split 
-        #     # print(f'train split, train : {self.adata_train}')
-        #     # print(self.adata_train.obs[self.class_key].value_counts())
-        # elif self.semi_sup:
-        #     obs = self.adata_train_extended.obs[self.class_key].astype('str')
-        #     obs[self.adata_train_extended.obs['train_split'] == 'val'] = self.unlabeled_category # hiding val celltypes with UNK for semi-supervised training
-        #     self.adata_train_extended.obs[self.class_key] = obs
-        #     self.adata.obs.loc[self.adata_train_extended.obs_names,self.class_key] = obs # Hiding val celltypes in the global adata (necessary for scanvi)
-            
-        #     # print(self.adata_train_extended.obs['train_split'].value_counts())
-        #     self.adata_train = self.adata_train_extended[self.adata_train_extended.obs['train_split'].isin(['train', 'val'])].copy() #we keep the validation data as unsupervised training cells. both side of the = are equal here...
-        #     self.adata_val = self.adata_train_extended[self.adata_train_extended.obs['train_split'] == 'val'].copy()
-        #     # print(f'train split, train : {self.adata_train}')
-        #     # print(self.adata_train.obs[self.class_key].value_counts())
-        #     train_split = self.adata.obs[self.test_split_key].astype('str')
-        #     train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
-        #     self.adata.obs['train_split'] = train_split # Replace the test, train, val values in the global adata object
 
         train_split = self.adata.obs[self.test_split_key].astype('str') # Replace the test, train, val values in the global adata object
         train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']

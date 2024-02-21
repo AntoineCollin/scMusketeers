@@ -10,7 +10,16 @@ from sklearn.preprocessing import OneHotEncoder
 import sklearn
 import tensorflow as tf
 import time
+import gc
+import subprocess as sp
+import os
 
+def get_gpu_memory(txt) :
+    # command = "nvidia-smi --query-gpu=memory.used --format=csv"
+    # memory_free_info = sp.check_output(command.split()).decode('ascii').split('\n')[:-1][1:]
+    # memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
+    memory_free_values = tf.config.experimental.get_memory_info('GPU:0')['current']
+    print(f'GPU memory usage in {txt} HERE: {memory_free_values/1e6} MB ')
 import random
 
 def make_random_seed():
@@ -52,6 +61,8 @@ def make_training_set(y, n_perm,same_class_pct=None,unlabeled_category='UNK'):
     '''
     permutations = [[],[]]
     print('switching perm')
+    
+
     # y = np.array(y).astype(str) If passing labels as string
 
     y_cl = np.asarray(y.argmax(axis = 1)).flatten() # convert one_hot to classes
@@ -140,6 +151,7 @@ def batch_generator_training_permuted(X,
     '''
     # sf = np.array(sf)
     X_out = X #.copy()
+    #gc.collect()
     perm_indices = make_training_set(y = y, n_perm = n_perm,same_class_pct=same_class_pct, unlabeled_category = unlabeled_category)
     # perm_indices = make_training_set_tf(y = y, n_perm = n_perm,same_class_pct=same_class_pct, unlabeled_category = unlabeled_category)
 
@@ -168,7 +180,7 @@ def batch_generator_training_permuted(X,
         # X_in_batch = np.array(X_in_batch).reshape(X_in_batch.shape[0], X_in_batch.shape[1], 1)        
         # X_out_batch = X[X_out_batch,:].todense()
         # X_out_batch = np.array(X_out_batch).reshape(X_out_batch.shape[0], X_out_batch.shape[1], 1)
-        sf_in_batch = sf[index_in_batch]
+        sf_in_batch = sf.iloc[index_in_batch]
         y_in_batch = y[index_in_batch]
         X_in_batch = X[index_in_batch,:]
         X_out_batch = X_out[ind_out_batch,:]
@@ -201,6 +213,7 @@ def batch_generator_training_permuted(X,
         if (counter == samples_per_epoch//batch_size and samples_per_epoch % batch_size == 0) or (counter > number_of_batches): # The entire dataset has been processed, we reset the state of the generator
             if change_perm:
                 perm_indices = make_training_set(y = y, n_perm = n_perm,same_class_pct=same_class_pct, unlabeled_category = unlabeled_category)
+                gc.collect()
             random_seed = make_random_seed()
             perm_indices = sklearn.utils.shuffle(perm_indices, random_state = random_seed) # Shuffles the orders of observations
             ind_in = [ind[0] for ind in perm_indices]

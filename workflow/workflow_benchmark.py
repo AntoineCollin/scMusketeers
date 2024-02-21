@@ -1,30 +1,34 @@
 import sys
 import os
+
+
 WD_PATH = '/home/acollin/dca_permuted_workflow/workflow'
 sys.path.append(WD_PATH)
 try :
     from .dataset import Dataset, load_dataset
     from .utils import str2bool
     from .clust_compute import batch_entropy_mixing_score,lisi_avg
-    from .benchmark_models import pca_svm, harmony_svm, scanvi
+    from .benchmark_models import pca_svm, harmony_svm, scanvi,uce, scmap_cells, scmap_cluster,celltypist_model
 
 except ImportError:
     from dataset import Dataset, load_dataset
     from utils import str2bool
     from clust_compute import batch_entropy_mixing_score,lisi_avg
-    from benchmark_models import pca_svm, harmony_svm, scanvi
+    from benchmark_models import pca_svm, harmony_svm, scanvi,uce,scmap_cells, scmap_cluster,celltypist_model
 # from dca.utils import str2bool,tuple_to_scalar
 import argparse
 import functools
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from sklearn.model_selection import GroupKFold
-from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef, f1_score,cohen_kappa_score, adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score,davies_bouldin_score,adjusted_rand_score
+from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef, f1_score,cohen_kappa_score, adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score,davies_bouldin_score,adjusted_rand_score,confusion_matrix
 f1_score = functools.partial(f1_score, average = 'weighted')
 
 import pandas as pd
 import scanpy as sc
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 import os
 import sys
 import neptune
@@ -72,7 +76,12 @@ class Workflow:
         
         self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
 
-        self.models_fn = {'pca_svm':pca_svm, 'harmony_svm':harmony_svm, 'scanvi':scanvi}#
+        self.models_fn = {'pca_svm':pca_svm, 'harmony_svm':harmony_svm,
+                         'scanvi':scanvi,
+                        'scmap_cells':scmap_cells,
+                         'scmap_cluster':scmap_cluster,
+                         'uce':uce, 
+                         'celltypist': celltypist_model}#
 
         self.training_kwds = {}
         self.network_kwds = {}
@@ -93,15 +102,21 @@ class Workflow:
                     'NMI': normalized_mutual_info_score,
                     'AMI':adjusted_mutual_info_score}
 
-        self.clustering_metrics_list = {'clisi' : lisi_avg, 
+        self.clustering_metrics_list = {#'clisi' : lisi_avg, 
                                     'db_score' : davies_bouldin_score}
 
         self.batch_metrics_list = {'batch_mixing_entropy': batch_entropy_mixing_score,
-                            'ilisi': lisi_avg}
+                            #'ilisi': lisi_avg
+                            }
         self.metrics = []
 
         self.log_neptune = self.run_file.log_neptune
+        self.gpu_models = self.run_file.gpu_models
+
         self.run = None
+
+        self.start_time = 0
+        self.stop_time = 0
 
     def process_dataset(self):
         # Loading dataset
@@ -119,16 +134,17 @@ class Workflow:
                                 test_split_key = self.test_split_key,
                                 unlabeled_category = self.unlabeled_category)
         
-        # Processing dataset. Splitting train/test. 
+        # Processing dataset. 
         self.dataset.normalize()
 
     def split_train_test_val(self):
+        #Splitting train/val. 
         self.dataset.train_split(mode = self.mode,
                             pct_split = self.pct_split,
                             obs_key = self.obs_key,
                             n_keep = self.n_keep,
                             keep_obs = self.keep_obs,
-                            split_strategy = self.split_strategy,
+                            split_strategy = 'random',
                             obs_subsample = self.obs_subsample,
                             train_test_random_seed = self.train_test_random_seed)
        
@@ -155,46 +171,88 @@ class Workflow:
                       'train': self.dataset.batch_train,
                       'val': self.dataset.batch_val,
                       'test': self.dataset.batch_test}
-        
-    def train_model(self, model, **kwds):
-        start_time = time.time()
+
+        print({i:self.adata_list[i] for i in self.adata_list})
+        print({i:len(self.y_list[i]) for i in self.y_list})
+        print(f"sum : {len(self.y_list['train']) + len(self.y_list['test']) + len(self.y_list['val'])}")
+        print(f"full: {len(self.y_list['full'])}")
+
+
+    def start_neptune_log(self):
+        self.start_time = time.time()
         if self.log_neptune :
             self.run = neptune.init_run(
                     project="becavin-lab/sc-permut",
                     api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
-)
+)           
+            
             for par,val in self.run_file.__dict__.items():
                 self.run[f"parameters/{par}"] = stringify_unsupported(getattr(self, par)) # getattr(self, par) in case the parameter changed somehow
 
-        self.latent_space_list, self.y_pred_list,= self.models_fn[model](self.X_list, self.y_list, self.batch_list,self.dataset.adata.obs['train_split'], **kwds) # include the self.run object
-        stop_time = time.time()
+    def add_custom_log(self, name, value):
+        self.run[f"parameters/{name}"] = stringify_unsupported(value)
+
+    def stop_neptune_log(self):
+        self.run.stop()
+
+    def train_model(self, model, **kwds):
         if self.log_neptune :
-            self.run['evaluation/training_time'] = stop_time - start_time
+            self.run[f"parameters/model"] = model
+        self.latent_space_list, self.y_pred_list,= self.models_fn[model](self.X_list, self.y_list, self.batch_list,self.dataset.adata.obs['train_split'],self.adata_list, **kwds) # include the self.run object
+        self.stop_time = time.time()
+        print(f'latent shapes : {{i:self.latent_space_list[i].shape for i in self.latent_space_list}}')
+        print(f'pred shapes : {{i:self.y_pred_list[i].shape for i in self.y_pred_list}}')
+        print(f'adata shapes : {{i:self.adata_list[i] for i in self.adata_list}}')
+        if self.log_neptune :
+            self.run['evaluation/training_time'] = self.stop_time - self.start_time
 
     def compute_metrics(self):
         if self.log_neptune:
             neptune_run_id = self.run['sys/id'].fetch()
+            save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
             for group in ['full', 'train', 'val', 'test']:
-                if group in ['train', 'val', 'test']:
-                    for metric in self.pred_metrics_list: # only classification metrics ATM
-                            self.run[f"evaluation/{group}/{metric}"] = self.pred_metrics_list[metric](self.adata_list[group].obs[f'true_{self.class_key}'], self.y_pred_list[group])
-                    for metric in self.clustering_metrics_list: # only classification metrics ATM
-                        self.run[f"evaluation/{group}/{metric}"] = self.clustering_metrics_list[metric](self.latent_space_list[group], self.y_pred_list[group])
-                    if len(np.unique(self.batch_list[group])) >= 2: # If there are more than 2 batches in this group
-                        for metric in self.batch_metrics_list:
-                            self.run[f'evaluation/{group}/{metric}'] = self.batch_metrics_list[metric](self.latent_space_list[group], self.batch_list[group])
+                print(f'{group} : {self.adata_list[group]}')
+                labels = list(set(np.unique(self.adata_list[group].obs[f'true_{self.class_key}'])).union(set(np.unique(self.y_pred_list[group]))))
+                cm_no_label = confusion_matrix(self.adata_list[group].obs[f'true_{self.class_key}'], self.y_pred_list[group])
+                print(f'no label : {cm_no_label.shape}')
+                cm = confusion_matrix(self.adata_list[group].obs[f'true_{self.class_key}'], self.y_pred_list[group], labels = labels)
+                cm_norm = cm / cm.sum(axis = 1, keepdims=True)
+                print(f'label : {cm.shape}')
+                cm_to_plot=pd.DataFrame(cm_norm, index = labels, columns=labels)
+                cm_to_save=pd.DataFrame(cm, index = labels, columns=labels)
+                cm_to_plot = cm_to_plot.fillna(value=0)
+                cm_to_save = cm_to_save.fillna(value=0)
+                cm_to_save.to_csv(save_dir + f'confusion_matrix_{group}.csv')
+                self.run[f'evaluation/{group}/confusion_matrix_file'].track_files(save_dir + f'confusion_matrix_{group}.csv')
+                size = len(labels)
+                f, ax = plt.subplots(figsize=(size/1.5,size/1.5))
+                sns.heatmap(cm_to_plot, annot=True, ax=ax,fmt='.2f')
+                show_mask = np.asarray(cm_to_plot>0.01)
+                print(f'label df : {cm_to_plot.shape}')
+                for text, show_annot in zip(ax.texts, (element for row in show_mask for element in row)):
+                    text.set_visible(show_annot)
+                
+                self.run[f'evaluation/{group}/confusion_matrix'].upload(f)
+                
+                for metric in self.pred_metrics_list: # only classification metrics ATM
+                        self.run[f"evaluation/{group}/{metric}"] = self.pred_metrics_list[metric](self.adata_list[group].obs[f'true_{self.class_key}'], self.y_pred_list[group])
+                for metric in self.clustering_metrics_list: # only classification metrics ATM
+                    self.run[f"evaluation/{group}/{metric}"] = self.clustering_metrics_list[metric](self.latent_space_list[group], self.y_pred_list[group])
+                if len(np.unique(self.batch_list[group])) >= 2: # If there are more than 2 batches in this group
+                    for metric in self.batch_metrics_list:
+                        self.run[f'evaluation/{group}/{metric}'] = self.batch_metrics_list[metric](self.latent_space_list[group], self.batch_list[group])
+                    
+
                 if group == 'full':
-                    if len(np.unique(self.batch_list[group])) >= 2: # If there are more than 2 batches in this group
-                        for metric in self.batch_metrics_list:
-                            self.run[f'evaluation/{group}/{metric}'] = self.batch_metrics_list[metric](self.latent_space_list[group], self.batch_list[group])
-                    save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
-                    if not os.path.exists(save_dir):
-                        os.makedirs(save_dir)
-                        
+                    
                     # Saving latent space and predictions
                     y_pred = pd.DataFrame(self.y_pred_list[group], index = self.adata_list[group].obs_names)
+                    split = pd.DataFrame(self.adata_list[group].obs['train_split'], index = self.adata_list[group].obs_names)
                     np.save(save_dir + f'latent_space_{group}.npy', self.latent_space_list[group])
                     y_pred.to_csv(save_dir + f'predictions_{group}.csv')
+                    split.to_csv(save_dir + f'split_{group}.csv')
                     self.run[f'evaluation/{group}/latent_space'].track_files(save_dir + f'latent_space_{group}.npy')
                     self.run[f'evaluation/{group}/predictions'].track_files(save_dir + f'predictions_{group}.csv')
 
@@ -216,7 +274,7 @@ class Workflow:
                     self.run[f'evaluation/{group}/batch_umap'].upload(fig_batch)
                     self.run[f'evaluation/{group}/split_umap'].upload(fig_split)
 
-            self.run.stop()
+            
 
 
 if __name__ == '__main__':
@@ -255,7 +313,7 @@ if __name__ == '__main__':
 
     kf = GroupKFold(5)
     for i, (train_index, val_index) in enumerate(kf.split(experiment.dataset.adata_train_extended.X, experiment.dataset.adata_train_extended.obs[experiment.class_key], experiment.dataset.adata_train_extended.obs[experiment.batch_key])):
-        for model in ['pca_svm','harmony_svm']:
+        for model in ['pca_svm','harmony_svm', 'scanvi', 'scmap', 'uce']:
             print(i)
             experiment.keep_obs = list(experiment.dataset.adata_train_extended.obs[experiment.batch_key][train_index].unique()) # keeping only train idx
             experiment.split_train_test_val()

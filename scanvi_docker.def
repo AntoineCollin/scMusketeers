@@ -1,0 +1,23 @@
+BootStrap: docker
+From: scverse/scvi-tools:py3.10-cu11-devel-stable
+
+%post -c /bin/bash
+    apt-get update && apt-get install -y --no-install-recommends --fix-missing software-properties-common
+    apt-get install nano
+    apt-get install wget
+
+    PATH_PIP="/usr/pip/"
+    if [ ! -d $PATH_PIP ]; then
+            mkdir $PATH_PIP
+    fi
+    export PATH="$PATH_PIP:$PATH"
+
+    /usr/bin/python3 -m pip install -t $PATH_PIP --upgrade pip
+
+    pip install harmonypy == 0.0.9
+    pip install neptune == 1.8.6
+    pip install scanpy == 1.9.8
+    pip install scmappy == 0.2
+    pip install celltypist == 1.6.2
+%environment
+    export PATH="/root/.local/bin:$PATH"

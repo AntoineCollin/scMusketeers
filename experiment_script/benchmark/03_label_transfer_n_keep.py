@@ -1,6 +1,7 @@
 import argparse
 import sys
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GroupShuffleSplit
+import pandas as pd
 
 WD_PATH = '/home/acollin/dca_permuted_workflow/'
 sys.path.append(WD_PATH)
@@ -44,12 +45,51 @@ if __name__ == '__main__':
 
     experiment.mode = "fixed_number"
 
-    for n_keep in [5,10,50,100,500]:
-        for random_seed in [30,31,32,33,34,35]:
-            experiment.n_keep = n_keep
-            experiment.train_test_random_seed = random_seed
+    test_random_seed = 2
 
-            experiment.split_train_test_val()
-            experiment.train_model('dummy', dummy_1 = 1, dummy_2 = 2)
-            experiment.compute_metrics()
+    n_batches = len(experiment.dataset.adata.obs[experiment.batch_key].unique())
+    nfold_test = max(1,round(n_batches/5)) # if less than 8 batches, this comes to 1 batch per fold, otherwise, 20% of the number of batches for test
+    kf_test = GroupShuffleSplit(n_splits=3, test_size=nfold_test, random_state=test_random_seed)
+    test_split_key = experiment.dataset.test_split_key
 
+
+    for i, (train_index, test_index) in enumerate(kf_test.split(experiment.dataset.adata.X, experiment.dataset.adata.obs[experiment.class_key], experiment.dataset.adata.obs[experiment.batch_key])):
+        groups = experiment.dataset.adata.obs[experiment.batch_key]
+        test_obs = list(experiment.dataset.adata.obs[experiment.batch_key][test_index].unique()) # the batches that go in the test set
+
+        test_idx = experiment.dataset.adata.obs[experiment.batch_key].isin(test_obs)
+        split = pd.Series(['train'] * experiment.dataset.adata.n_obs, index = experiment.dataset.adata.obs.index)
+        split[test_idx] = 'test'
+        experiment.dataset.adata.obs[experiment.test_split_key] = split
+
+        experiment.dataset.test_split() # splits the train and test dataset
+
+        for n_keep in [5,10,50,100,500]:
+            for random_seed in [30,31,32,33,34,35]:
+                    experiment.n_keep = n_keep
+                    experiment.train_test_random_seed = random_seed
+
+                    experiment.split_train_test_val() # splitting val and train
+                    train_idx = experiment.dataset.adata.obs[experiment.test_split_key]
+                    val_idx = experiment.dataset.adata.obs[experiment.test_split_key]
+                    test_idx = experiment.dataset.adata.obs[experiment.test_split_key]
+                    print(f"Fold {i},n_keep {n_keep},random_seed {random_seed}:")
+                    print(f"train len = {len(train_idx)}")
+                    print(f"val len = {len(val_idx)}")
+                    print(f"test len = {len(test_idx)}")
+
+                    print(f'{len(train_idx) + len(val_idx) +len(test_idx)}/{experiment.dataset.adata.n_obs} cells total')
+
+                    print(f'idx intersection : {set(train_idx) & set(val_idx) & set(test_idx)}')
+
+                    for model in ['scmap','pca_svm','harmony_svm','uce', 'scanvi']:
+                        print(f'Running {model}')
+                        experiment.start_neptune_log()
+                        experiment.add_custom_log('test_fold_nb',i)
+                        experiment.add_custom_log('test_obs',test_obs)
+                        experiment.add_custom_log('n_keep',n_keep)
+                        experiment.add_custom_log('split_random_seed',random_seed)
+                        experiment.add_custom_log('task','task_3')
+                        experiment.train_model(model)
+                        experiment.compute_metrics()
+                        experiment.stop_neptune_log()

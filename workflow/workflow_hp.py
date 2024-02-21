@@ -25,12 +25,13 @@ from dca.permutation import batch_generator_training_permuted
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cluster import KMeans
-from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef, f1_score,cohen_kappa_score, adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score,davies_bouldin_score,adjusted_rand_score
+from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef, f1_score,cohen_kappa_score, adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score,davies_bouldin_score,adjusted_rand_score,confusion_matrix
 
 f1_score = functools.partial(f1_score, average = 'weighted')
 import time
 import pickle
-import anndata
+import matplotlib.pyplot as plt
+import seaborn as sns
 import json
 import pandas as pd
 import scanpy as sc
@@ -75,108 +76,6 @@ def reset_keras():
     tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
 
 
-workflow_ID = 'workflow_ID'
-
-dataset = 'dataset'
-dataset_name = 'dataset_name'
-class_key = 'class_key'
-batch_key = 'batch_key'
-
-dataset_normalize = 'dataset_normalize'
-filter_min_counts = 'filter_min_counts'
-normalize_size_factors = 'normalize_size_factors'
-scale_input = 'scale_input'
-logtrans_input = 'logtrans_input'
-use_hvg = 'use_hvg'
-
-model_spec = 'model_spec'
-model_name = 'model_name'
-ae_type = 'ae_type'
-hidden_size = 'hidden_size'
-hidden_dropout = 'hidden_dropout'
-batchnorm = 'batchnorm'
-activation = 'activation'
-init = 'init'
-batch_removal_weight = 'batch_removal_weight'
-
-model_training_spec = 'model_training_spec'
-epochs = 'epochs'
-reduce_lr = 'reduce_lr'
-early_stop = 'early_stop'
-batch_size = 'batch_size'
-optimizer = 'optimizer'
-verbose = 'verbose'
-threads = 'threads'
-learning_rate = 'learning_rate'
-n_perm = 'n_perm'
-permute = 'permute'
-change_perm = 'change_perm'
-semi_sup = 'semi_sup'
-unlabeled_category = 'unlabeled_category'
-save_zinb_param = 'save_zinb_param'
-use_raw_as_output = 'use_raw_as_output'
-contrastive_margin = 'contrastive_margin'
-same_class_pct = 'same_class_pct'
-
-dataset_train_split = 'dataset_train_split'
-mode = 'mode'
-pct_split = 'pct_split'
-obs_key = 'obs_key'
-n_keep = 'n_keep'
-split_strategy = 'split_strategy'
-keep_obs = 'keep_obs'
-train_test_random_seed = 'train_test_random_seed'
-use_TEST = 'use_TEST'
-obs_subsample = 'obs_subsample'
-
-dataset_fake_annotation = 'dataset_fake_annotation'
-make_fake = 'make_fake'
-true_celltype = 'true_celltype'
-false_celltype = 'false_celltype'
-pct_false = 'pct_false'
-
-predictor_spec = 'predictor_spec'
-predictor_model = 'predictor_model'
-predict_key = 'predict_key'
-predictor_hidden_sizes = 'predictor_hidden_sizes'
-predictor_epochs = 'predictor_epochs'
-predictor_batch_size = 'predictor_batch_size'
-predictor_activation = 'predictor_activation'
-
-clas_loss_fn = 'clas_loss_fn'
-dann_loss_fn = 'dann_loss_fn'
-rec_loss_fn = 'rec_loss_fn'
-
-weight_decay = 'weight_decay'
-optimizer_type = 'optimizer_type'
-
-clas_w = 'clas_w'
-dann_w = 'dann_w'
-rec_w = 'rec_w'
-warmup_epoch = 'warmup_epoch'
-
-ae_hidden_size = 'ae_hidden_size'
-ae_hidden_dropout = 'ae_hidden_dropout'
-ae_activation = 'ae_activation'
-ae_output_activation = 'ae_output_activation'
-ae_init = 'ae_init'
-ae_batchnorm = 'ae_batchnorm'
-ae_l1_enc_coef = 'ae_l1_enc_coef'
-ae_l2_enc_coef = 'ae_l2_enc_coef'
-num_classes = 'num_classes'
-class_hidden_size = 'class_hidden_size'
-class_hidden_dropout = 'class_hidden_dropout'
-class_batchnorm = 'class_batchnorm'
-class_activation = 'class_activation'
-class_output_activation = 'class_output_activation'
-num_batches = 'num_batches'
-dann_hidden_size = 'dann_hidden_size'
-dann_hidden_dropout = 'dann_hidden_dropout'
-dann_batchnorm = 'dann_batchnorm'
-dann_activation = 'dann_activation'
-dann_output_activation = 'dann_output_activation'
-
-
 class Workflow:
     def __init__(self, run_file, working_dir):
         '''
@@ -193,24 +92,6 @@ class Workflow:
         self.scale_input = self.run_file.scale_input
         self.logtrans_input = self.run_file.logtrans_input
         self.use_hvg = self.run_file.use_hvg
-        # model parameters
-        # self.model_name = self.run_file[model_spec][model_name] # TODO : remove, obsolete in the case of DANN_AE
-        # self.ae_type = self.run_file[model_spec][ae_type] # TODO : remove, obsolete in the case of DANN_AE
-        # self.hidden_size = self.run_file[model_spec][hidden_size] # TODO : remove, obsolete in the case of DANN_AE
-        # if type(self.hidden_size) == int: # TODO : remove, obsolete in the case of DANN_AE
-        #     self.hidden_size = [2*self.hidden_size, self.hidden_size, 2*self.hidden_size] # TODO : remove, obsolete in the case of DANN_AE
-        # self.hidden_dropout = self.run_file[model_spec][hidden_dropout] # TODO : remove, obsolete in the case of DANN_AE
-        # if not self.hidden_dropout: # TODO : remove, obsolete in the case of DANN_AE
-        #     self.hidden_dropout = 0
-        # self.hidden_dropout = len(self.hidden_size) * [self.hidden_dropout] # TODO : remove, obsolete in the case of DANN_AE
-        # self.batchnorm = self.run_file[model_spec][batchnorm] # TODO : remove, obsolete in the case of DANN_AE
-        # self.activation = self.run_file[model_spec][activation] # TODO : remove, obsolete in the case of DANN_AE
-        # self.init = self.run_file[model_spec][init] # TODO : remove, obsolete in the case of DANN_AE
-        # self.batch_removal_weight = self.run_file[model_spec][batch_removal_weight] # TODO : remove, obsolete in the case of DANN_AE
-        # model training parameters
-        # self.epochs = self.run_file.epochs # TODO : remove, obsolete in the case of DANN_AE, we use training scheme
-        # self.reduce_lr = self.run_file.reduce_lr # TODO : not implemented yet for DANN_AE
-        # self.early_stop = self.run_file.early_stop # TODO : not implemented yet for DANN_AE
         self.batch_size = self.run_file.batch_size
         # self.optimizer = self.run_file.optimizer
         # self.verbose = self.run_file[model_training_spec][verbose] # TODO : not implemented yet for DANN_AE
@@ -219,13 +100,7 @@ class Workflow:
         self.n_perm = 1
         self.semi_sup = False # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
-        # self.n_perm = self.run_file[model_training_spec][n_perm] # TODO : remove, n_perm is always 1
-        # self.permute = self.run_file[model_training_spec][permute] # TODO : remove, obsolete in the case of DANN_AE, handled during training
-        # self.change_perm = self.run_file[model_training_spec][change_perm] # TODO : remove, change_perm is always True
-        # self.save_zinb_param = self.run_file[model_training_spec][save_zinb_param] # TODO : remove, obsolete in the case of DANN_AE
-        # self.use_raw_as_output = self.run_file[model_training_spec][use_raw_as_output]
-        # self.contrastive_margin =self.run_file[model_training_spec][contrastive_margin] # TODO : Not yet handled by DANN_AE, the case where we use constrastive loss
-        # self.same_class_pct=self.run_file[model_training_spec][same_class_pct] # TODO : Not yet handled by DANN_AE, the case where we use constrastive loss
+      
 
         # train test split # TODO : Simplify this, or at first only use the case where data is split according to batch
         self.test_split_key = self.run_file.test_split_key
@@ -243,46 +118,10 @@ class Workflow:
         self.true_celltype = self.run_file.true_celltype
         self.false_celltype = self.run_file.false_celltype
         self.pct_false = self.run_file.pct_false
-        # predictor parameters # TODO : remove, obsolete in the case of DANN_AE, predictor is directly on the model
-        # self.predictor_model = self.run_file[predictor_spec][predictor_model]  # TODO : remove, obsolete in the case of DANN_AE
-        # self.predict_key = self.run_file[predictor_spec][predict_key] # TODO : remove, obsolete in the case of DANN_AE
-        # self.predictor_hidden_sizes = self.run_file[predictor_spec][predictor_hidden_sizes] # TODO : remove, obsolete in the case of DANN_AE
-        # self.predictor_epochs = self.run_file[predictor_spec][predictor_epochs] # TODO : remove, obsolete in the case of DANN_AE
-        # self.predictor_batch_size = self.run_file[predictor_spec][predictor_batch_size] # TODO : remove, obsolete in the case of DANN_AE
-        # self.predictor_activation = self.run_file[predictor_spec][predictor_activation] # TODO : remove, obsolete in the case of DANN_AE
-
-        # self.latent_space = anndata.AnnData() # TODO : probably unnecessary, should be handled by logging
-        # self.corrected_count = anndata.AnnData() # TODO : probably unnecessary, should be handled by logging
-        # self.scarches_combined_emb = anndata.AnnData() # TODO : probably unnecessary, should be handled by logging
-        # self.DR_hist = dict() # TODO : probably unnecessary, should be handled by logging
-        # self.DR_model = None # TODO : probably unnecessary, should be handled by logging
-
-        # self.predicted_class = pd.Series() # TODO : probably unnecessary, should be handled by logging
-        # self.pred_hist = dict() # TODO : probably unnecessary, should be handled by logging
-
-        # Paths used for the analysis workflow, probably unnecessary
+        
         self.working_dir = working_dir
         self.data_dir = working_dir + '/data'
-        # self.result_dir = working_dir + '/results'
-        # self.result_path = self.result_dir + f'/result_ID_{self.workflow_ID}'
-        # self.DR_model_path = self.result_path + '/DR_model'
-        # self.predictor_model_path = self.result_path + '/predictor_model'
-        # self.DR_history_path = self.result_path + '/DR_hist.pkl'
-        # self.pred_history_path = self.result_path + '/pred_hist.pkl'
-        # self.adata_path = self.result_path + '/latent.h5ad'
-        # self.corrected_count_path = self.result_path + '/corrected_counts.h5ad'
-        # self.scarches_combined_emb_path = self.result_path + '/combined_emb.h5ad'
-        # self.metric_path = self.result_path + '/metrics.csv'
-
-        # self.run_log_dir = working_dir + '/logs/run' # TODO : probably unnecessary, should be handled by logging
-        # self.run_log_path = self.run_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt' # TODO : probably unnecessary, should be handled by logging
-        # self.predict_log_dir = working_dir + '/logs/predicts' # TODO : probably unnecessary, should be handled by logging
-        # self.predict_log_path = self.predict_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt' # TODO : probably unnecessary, should be handled by logging
-        # self.umap_log_dir = working_dir + '/logs/umap' # TODO : probably unnecessary, should be handled by logging
-        # self.umap_log_path = self.umap_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt' # TODO : probably unnecessary, should be handled by logging
-        # self.metrics_log_dir = working_dir + '/logs/metrics' # TODO : probably unnecessary, should be handled by logging
-        # self.metrics_log_path = self.metrics_log_dir + f'/workflow_ID_{self.workflow_ID}_DONE.txt' # TODO : probably unnecessary, should be handled by logging
-
+        
         self.start_time = time.time()
         self.stop_time = time.time()
         # self.runtime_path = self.result_path + '/runtime.txt'
@@ -321,7 +160,7 @@ class Workflow:
         self.clas_w = self.run_file.clas_w
         self.dann_w = self.run_file.dann_w
         self.rec_w = self.run_file.rec_w
-        # self.warmup_epoch = self.run_file.warmup_epoch
+        self.warmup_epoch = self.run_file.warmup_epoch
 
         self.num_classes = None
         self.num_batches = None
@@ -373,12 +212,13 @@ class Workflow:
                             'NMI': normalized_mutual_info_score,
                             'AMI':adjusted_mutual_info_score}
 
-        self.clustering_metrics_list = {'clisi' : lisi_avg, 
+        self.clustering_metrics_list = {#'clisi' : lisi_avg, 
                                     'db_score' : davies_bouldin_score
                                     }
 
-        self.batch_metrics_list = {'batch_entropy': batch_entropy_mixing_score,
-                            'ilisi': lisi_avg}
+        self.batch_metrics_list = {'batch_mixing_entropy': batch_entropy_mixing_score,
+                            #'ilisi': lisi_avg
+                            }
         self.metrics = []
 
         self.mean_loss_fn = keras.metrics.Mean(name='total loss') # This is a running average : it keeps the previous values in memory when it's called ie computes the previous and current values
@@ -389,41 +229,17 @@ class Workflow:
         self.training_scheme = self.run_file.training_scheme
 
         self.log_neptune = self.run_file.log_neptune
+        self.gpu_models = self.run_file.gpu_models
         self.run = None
 
         self.hparam_path = self.run_file.hparam_path
 
-    def write_metric_log(self):
-        open(self.metrics_log_path, 'a').close()
-
-    def check_metric_log(self):
-        return os.path.isfile(self.metrics_log_path)
-
-    def write_run_log(self):
-        open(self.run_log_path, 'a').close()
-
-    def write_predict_log(self):
-        open(self.predict_log_path, 'a').close()
-
-    def write_umap_log(self):
-        open(self.umap_log_path, 'a').close()
-
-
-    def check_run_log(self):
-        return os.path.isfile(self.run_log_path)
-
-    def check_predict_log(self):
-        return os.path.isfile(self.predict_log_path)
-
-    def check_umap_log(self):
-        return os.path.isfile(self.umap_log_path)
 
     def make_experiment(self, params):
         
         print(params)
         self.use_hvg = params['use_hvg']
         self.batch_size = params['batch_size']
-        self.ae_activation = params['ae_activation']
         self.clas_w =  params['clas_w']
         self.dann_w = params['dann_w']
         self.rec_w =  params['rec_w']
@@ -456,6 +272,8 @@ class Workflow:
         
         # Processing dataset. Splitting train/test. 
         self.dataset.normalize()
+        self.dataset.test_split()
+
         self.dataset.train_split(mode = self.mode,
                             pct_split = self.pct_split,
                             obs_key = self.obs_key,
@@ -506,8 +324,9 @@ class Workflow:
                     project="becavin-lab/sc-permut",
                     api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
 )
+            self.run[f"parameters/model"] = "scPermut"
             for par,val in self.run_file.__dict__.items():
-                self.run[f"parameters/{par}"] = stringify_unsupported(stringify_unsupported(getattr(self, par)))
+                self.run[f"parameters/{par}"] = stringify_unsupported(getattr(self, par))
 
             for par,val in params.items():
                 self.run[f"parameters/{par}"] = stringify_unsupported(val)
@@ -556,36 +375,60 @@ class Workflow:
             self.run['evaluation/training_time'] = stop_time - start_time
         # TODO also make it on gpu with smaller batch size
         if self.log_neptune:
+            save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
             neptune_run_id = self.run['sys/id'].fetch()
             for group in ['full', 'train', 'val', 'test']:
                 with tf.device('CPU'):
                     input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(adata_list[group],['size_factors']).items()}
                     enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values() # Model predict       
                     clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-                    if group in ['train', 'val', 'test']:
-                        for metric in self.pred_metrics_list: # only classification metrics ATM
-                            self.run[f"evaluation/{group}/{metric}"] = self.pred_metrics_list[metric](adata_list[group].obs[f'true_{self.class_key}'], self.dataset.ohe_celltype.inverse_transform(clas))
-                        for metric in self.clustering_metrics_list: # only classification metrics ATM
-                            self.run[f"evaluation/{group}/{metric}"] = self.clustering_metrics_list[metric](enc, self.dataset.ohe_celltype.inverse_transform(clas))
-                        if len(np.unique(np.asarray(batch_list[group].argmax(axis=1)))) >= 2: # If there are more than 2 batches in this group
+
+                    # Saving confusion matrices
+                    labels = list(set(np.unique(adata_list[group].obs[f'true_{self.class_key}'])).union(set(np.unique(self.dataset.ohe_celltype.inverse_transform(clas)))))
+                    cm_no_label = confusion_matrix(adata_list[group].obs[f'true_{self.class_key}'], self.dataset.ohe_celltype.inverse_transform(clas).reshape(-1,))
+                    print(f'no label : {cm_no_label.shape}')
+                    cm = confusion_matrix(adata_list[group].obs[f'true_{self.class_key}'], self.dataset.ohe_celltype.inverse_transform(clas).reshape(-1,), labels = labels)
+                    cm_norm = cm / cm.sum(axis = 1, keepdims=True)
+                    print(f'label : {cm.shape}')
+                    cm_to_plot=pd.DataFrame(cm_norm, index = labels, columns=labels)
+                    cm_to_save=pd.DataFrame(cm, index = labels, columns=labels)
+                    cm_to_plot = cm_to_plot.fillna(value=0)
+                    cm_to_save = cm_to_save.fillna(value=0)
+                    cm_to_save.to_csv(save_dir + f'confusion_matrix_{group}.csv')
+                    self.run[f'evaluation/{group}/confusion_matrix_file'].track_files(save_dir + f'confusion_matrix_{group}.csv')
+                    size = len(labels)
+                    f, ax = plt.subplots(figsize=(size/1.5,size/1.5))
+                    sns.heatmap(cm_to_plot, annot=True, ax=ax,fmt='.2f', vmin = 0, vmax = 1)
+                    show_mask = np.asarray(cm_to_plot>0.01)
+                    print(f'label df : {cm_to_plot.shape}')
+                    for text, show_annot in zip(ax.texts, (element for row in show_mask for element in row)):
+                        text.set_visible(show_annot)
+                
+                    self.run[f'evaluation/{group}/confusion_matrix'].upload(f)
+
+                    # Computing batch mixing metrics
+                    if len(np.unique(np.asarray(batch_list[group].argmax(axis=1)))) >= 2: # If there are more than 2 batches in this group
                             for metric in self.batch_metrics_list:
-                                self.run[f'evaluation/{group}/{metric}'] = self.batch_metrics_list[metric](enc, np.asarray(batch_list[group].argmax(axis=1)))
-                        # self.run[f'evaluation/{group}/knn_overlap'] = nn_overlap(enc, X_list[group])
-                    if group == 'full':
-                        if len(np.unique(np.asarray(batch_list[group].argmax(axis=1)))) >= 2: # If there are more than 2 batches in this group
-                            for metric in self.batch_metrics_list:
-                                self.run[f'evaluation/{group}/{metric}'] = self.batch_metrics_list[metric](enc, np.asarray(batch_list[group].argmax(axis=1)))
-                        save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
+                                self.run[f'evaluation/{group}/{metric}'] = self.batch_metrics_list[metric](enc, np.asarray(batch_list[group].argmax(axis=1)).reshape(-1,))
+                    # Computing classification metrics
+                    for metric in self.pred_metrics_list: 
+                        self.run[f"evaluation/{group}/{metric}"] = self.pred_metrics_list[metric](adata_list[group].obs[f'true_{self.class_key}'], self.dataset.ohe_celltype.inverse_transform(clas).reshape(-1,))
+                        
+                    for metric in self.clustering_metrics_list:
+                        self.run[f"evaluation/{group}/{metric}"] = self.clustering_metrics_list[metric](enc, self.dataset.ohe_celltype.inverse_transform(clas).reshape(-1,))
+                        
+
+                    if group == 'full':                        
                         if not os.path.exists(save_dir):
                             os.makedirs(save_dir)
-                        y_pred = pd.DataFrame(self.dataset.ohe_celltype.inverse_transform(clas), index = adata_list[group].obs_names)
+                        y_pred = pd.DataFrame(self.dataset.ohe_celltype.inverse_transform(clas).reshape(-1,), index = adata_list[group].obs_names)
                         np.save(save_dir + f'latent_space_{group}.npy', enc.numpy())
                         y_pred.to_csv(save_dir + f'predictions_{group}.csv')
                         self.run[f'evaluation/{group}/latent_space'].track_files(save_dir + f'latent_space_{group}.npy')
                         self.run[f'evaluation/{group}/predictions'].track_files(save_dir + f'predictions_{group}.csv')
 
                         pred_adata = sc.AnnData(X = adata_list[group].X, obs = adata_list[group].obs, var = adata_list[group].var)
-                        pred_adata.obs[f'{class_key}_pred'] = y_pred
+                        pred_adata.obs[f'{self.class_key}_pred'] = y_pred
                         pred_adata.obsm['latent_space'] = enc.numpy()
                         sc.pp.neighbors(pred_adata, use_rep = 'latent_space')
                         sc.tl.umap(pred_adata)
@@ -624,7 +467,6 @@ class Workflow:
         del self.rec_loss_fn
         del self.clas_loss_fn
         del self.dann_loss_fn
-        del self.metrics_list
 
         gc.collect()
         tf.keras.backend.clear_session()
@@ -680,7 +522,7 @@ class Workflow:
             for epoch in range(1, n_epochs+1):
                 running_epoch +=1
                 print(f"Epoch {running_epoch}/{total_epochs}, Current strat Epoch {epoch}/{n_epochs}")
-                history, bot, cl, d ,re = self.training_loop(history=history,
+                history, _, _, _ ,_ = self.training_loop(history=history,
                                                              training_strategy=strategy,
                                                              use_perm=use_perm,
                                                              optimizer=optimizer,
@@ -690,7 +532,8 @@ class Workflow:
                     for group in history:
                         for par,value in history[group].items():
                             self.run[f"training/{group}/{par}"].append(value[-1])
-
+                            if physical_devices :
+                                self.run['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
                 if strategy in ['full_model', 'classifier_branch', 'permutation_only']:
                     # Early stopping
                     wait += 1
@@ -702,7 +545,7 @@ class Workflow:
                             es_best = monitored_value
                             wait = 0
                             best_model = self.dann_ae.get_weights()
-                    else : 
+                    else :
                         if monitored_value > es_best + min_delta:
                             best_epoch = epoch
                             es_best = monitored_value
@@ -712,6 +555,7 @@ class Workflow:
                         print(f'Early stopping at epoch {best_epoch}, restoring model parameters from this epoch')
                         self.dann_ae.set_weights(best_model)
                         break
+            del optimizer
 
             if verbose:
                 time_out = time.time()
@@ -811,10 +655,11 @@ class Workflow:
                 elif training_strategy == "classifier_branch":
                     loss = tf.add_n([self.clas_w * clas_loss] + ae.losses)
                 elif training_strategy == "permutation_only":
-                    loss = tf.add_n([self.rec_w * rec_loss] + ae.losses)    
+                    loss = tf.add_n([self.rec_w * rec_loss] + ae.losses)
 
             n_samples += enc.shape[0]
             gradients = tape.gradient(loss, ae.trainable_variables)
+            
             optimizer.apply_gradients(zip(gradients, ae.trainable_variables))
 
             self.mean_loss_fn(loss.__float__())
@@ -825,7 +670,7 @@ class Workflow:
             if verbose :
                 self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
         self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
-        history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn)      
+        history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn)
         del input_batch
         return history, _, clas, dann, rec
 
@@ -857,47 +702,54 @@ class Workflow:
         del inp
         return history, _, clas, dann, rec
 
-    def evaluation_pass_gpu(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn):
-        '''
-        evaluate model and logs metrics. Depending on "on parameter, computes it on train and val or train,val and test.
+    # def evaluation_pass_gpu(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn):
+    #     '''
+    #     evaluate model and logs metrics. Depending on "on parameter, computes it on train and val or train,val and test.
 
-        on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
-        '''
-        for group in ['train', 'val']: # evaluation round
-            # inp = scanpy_to_input(adata_list[group],['size_factors'])
-            batch_generator = batch_generator_training_permuted(X = X_list[group],
-                                                    y = y_list[group],
-                                                    batch_ID = batch_list[group],
-                                                    sf = adata_list[group].obs['size_factors'],                    
-                                                    ret_input_only=False,
-                                                    batch_size=self.batch_size,
-                                                    n_perm=1, 
-                                                    use_perm=use_perm)
-            n_obs = adata_list[group].n_obs
-            steps = n_obs // self.batch_size + 1
-            n_steps = steps
-            n_samples = 0
+    #     on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
+    #     '''
+    #     for group in ['train', 'val']: # evaluation round
+    #         # inp = scanpy_to_input(adata_list[group],['size_factors'])
+    #         batch_generator = batch_generator_training_permuted(X = X_list[group],
+    #                                                 y = y_list[group],
+    #                                                 batch_ID = batch_list[group],
+    #                                                 sf = adata_list[group].obs['size_factors'],                    
+    #                                                 ret_input_only=False,
+    #                                                 batch_size=self.batch_size,
+    #                                                 n_perm=1, 
+    #                                                 use_perm=use_perm)
+    #         n_obs = adata_list[group].n_obs
+    #         steps = n_obs // self.batch_size + 1
+    #         n_steps = steps
+    #         n_samples = 0
 
-            clas_batch, dann_batch, rec_batch = output_batch.values()
+    #         clas_batch, dann_batch, rec_batch = output_batch.values()
 
-            with tf.GradientTape() as tape:
-                input_batch = {k:tf.convert_to_tensor(v) for k,v in input_batch.items()}
-                enc, clas, dann, rec = ae(input_batch, training=True).values()
-                clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas)).numpy()
-                dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann)).numpy()
-                rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec)).numpy()
-        #         return _, clas, dann, rec
-                history[group]['clas_loss'] += [clas_loss]
-                history[group]['dann_loss'] += [dann_loss]
-                history[group]['rec_loss'] += [rec_loss]
-                history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
-                # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
+    #         with tf.GradientTape() as tape:
+    #             input_batch = {k:tf.convert_to_tensor(v) for k,v in input_batch.items()}
+    #             enc, clas, dann, rec = ae(input_batch, training=True).values()
+    #             clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas)).numpy()
+    #             dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann)).numpy()
+    #             rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec)).numpy()
+    #     #         return _, clas, dann, rec
+    #             history[group]['clas_loss'] += [clas_loss]
+    #             history[group]['dann_loss'] += [dann_loss]
+    #             history[group]['rec_loss'] += [rec_loss]
+    #             history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
+    #             # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
 
-                clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-                for metric in self.pred_metrics_list: # only classification metrics ATM
-                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))] # y_list are onehot encoded
-        del inp
-        return history, _, clas, dann, rec
+    #             clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+    #             for metric in self.pred_metrics_list: # only classification metrics ATM
+    #                 history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))] # y_list are onehot encoded
+    #     del inp
+    #     return history, _, clas, dann, rec
+
+    def add_custom_log(self, name, value):
+        self.run[f"parameters/{name}"] = stringify_unsupported(value)
+
+    def stop_neptune_log(self):
+        self.run.stop()
+
 
     def freeze_layers(self, ae, layers_to_freeze):
         '''
@@ -950,6 +802,34 @@ class Workflow:
         return self.training_scheme
 
 
+
+    def get_losses(self):
+        if self.rec_loss_name == 'MSE':
+            self.rec_loss_fn = tf.keras.losses.mean_squared_error
+        else:
+            print(self.rec_loss_name + ' loss not supported for rec')
+
+        if self.clas_loss_name == 'categorical_crossentropy':
+            self.clas_loss_fn = tf.keras.losses.categorical_crossentropy
+        else:
+            print(self.clas_loss_name + ' loss not supported for classif')
+        
+        if self.dann_loss_name == 'categorical_crossentropy':
+            self.dann_loss_fn = tf.keras.losses.categorical_crossentropy
+        else:
+            print(self.dann_loss_name + ' loss not supported for dann')
+        return self.rec_loss_fn,self.clas_loss_fn,self.dann_loss_fn
+
+
+    def print_status_bar(self, iteration, total, loss, metrics=None):
+        metrics = ' - '.join(['{}: {:.4f}'.format(m.name, m.result())
+                            for m in loss + (metrics or [])])
+
+        end = "" if int(iteration) < int(total) else "\n"
+    #     print(f"{iteration}/{total} - "+metrics ,end="\r")
+    #     print(f"\r{iteration}/{total} - " + metrics, end=end)
+        print("\r{}/{} - ".format(iteration,total) + metrics, end =end)
+
     def get_optimizer(self,learning_rate, weight_decay, optimizer_type, momentum=0.9):
         """
         This function takes a  learning rate, weight decay and optionally momentum and returns an optimizer object
@@ -988,32 +868,7 @@ class Workflow:
         return optimizer
 
 
-    def get_losses(self):
-        if self.rec_loss_name == 'MSE':
-            self.rec_loss_fn = tf.keras.losses.mean_squared_error
-        else:
-            print(self.rec_loss_name + ' loss not supported for rec')
 
-        if self.clas_loss_name == 'categorical_crossentropy':
-            self.clas_loss_fn = tf.keras.losses.categorical_crossentropy
-        else:
-            print(self.clas_loss_name + ' loss not supported for classif')
-        
-        if self.dann_loss_name == 'categorical_crossentropy':
-            self.dann_loss_fn = tf.keras.losses.categorical_crossentropy
-        else:
-            print(self.dann_loss_name + ' loss not supported for dann')
-        return self.rec_loss_fn,self.clas_loss_fn,self.dann_loss_fn
-
-
-    def print_status_bar(self, iteration, total, loss, metrics=None):
-        metrics = ' - '.join(['{}: {:.4f}'.format(m.name, m.result())
-                            for m in loss + (metrics or [])])
-
-        end = "" if int(iteration) < int(total) else "\n"
-    #     print(f"{iteration}/{total} - "+metrics ,end="\r")
-    #     print(f"\r{iteration}/{total} - " + metrics, end=end)
-        print("\r{}/{} - ".format(iteration,total) + metrics, end =end)
 
 
 if __name__ == '__main__':

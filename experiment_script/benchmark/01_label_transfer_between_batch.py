@@ -1,12 +1,16 @@
 import argparse
 import sys
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GroupShuffleSplit
+import pandas as pd
 
 WD_PATH = '/home/acollin/dca_permuted_workflow/'
 sys.path.append(WD_PATH)
 
 from workflow.utils import str2bool
 from workflow.workflow_benchmark import Workflow
+
+model_list_cpu = ['scmap_cells', 'scmap_cluster', 'celltypist', 'pca_svm','harmony_svm','uce', 'scanvi']
+model_list_gpu = ['scanvi']
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -32,23 +36,69 @@ if __name__ == '__main__':
     parser.add_argument('--train_test_random_seed', type = float,nargs='?', default = 0, help ='')
     parser.add_argument('--obs_subsample', type = str,nargs='?', default = None, help ='')
     
-    
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
+    parser.add_argument('--gpu_models', type=str2bool, nargs='?',const=False, default=False , help ='')
 
     run_file = parser.parse_args()
     print(run_file.class_key, run_file.batch_key)
     working_dir = '/home/acollin/dca_permuted_workflow/'
+
+    if run_file.gpu_models :
+        model_list = model_list_gpu
+    else:
+        model_list = model_list_cpu
+
     experiment = Workflow(run_file=run_file, working_dir=working_dir)
 
     experiment.process_dataset()
 
     experiment.mode = "entire_condition"
 
-    kf = GroupKFold(5)
-    for i, (train_index, val_index) in enumerate(kf.split(experiment.dataset.adata_train_extended.X, experiment.dataset.adata_train_extended.obs[experiment.class_key], experiment.dataset.adata_train_extended.obs[experiment.batch_key])):
-        for model in ['pca_svm','harmony_svm', 'scanvi']:
-            print(i)
+    random_seed = 2
+
+    n_batches = len(experiment.dataset.adata.obs[experiment.batch_key].unique())
+    nfold_test = max(1,round(n_batches/5)) # if less than 8 batches, this comes to 1 batch per fold, otherwise, 20% of the number of batches for test
+    kf_test = GroupShuffleSplit(n_splits=3, test_size=nfold_test, random_state=random_seed)
+    test_split_key = experiment.dataset.test_split_key
+
+    for i, (train_index, test_index) in enumerate(kf_test.split(experiment.dataset.adata.X, experiment.dataset.adata.obs[experiment.class_key], experiment.dataset.adata.obs[experiment.batch_key])):
+        groups = experiment.dataset.adata.obs[experiment.batch_key]
+        test_obs = list(experiment.dataset.adata.obs[experiment.batch_key].iloc[test_index].unique()) # the batches that go in the test set
+        
+        test_idx = experiment.dataset.adata.obs[experiment.batch_key].isin(test_obs)
+        split = pd.Series(['train'] * experiment.dataset.adata.n_obs, index = experiment.dataset.adata.obs.index)
+        split[test_idx] = 'test'
+        experiment.dataset.adata.obs[experiment.test_split_key] = split
+
+        experiment.dataset.test_split() # splits the train and test dataset
+        nfold_val = max(1,round((n_batches-len(test_obs))/5)) # represents 20% of the remaining train set
+        kf_val = GroupShuffleSplit(n_splits=5, test_size=nfold_val, random_state=random_seed)
+
+        for j, (train_index, val_index) in enumerate(kf_val.split(experiment.dataset.adata_train_extended.X, experiment.dataset.adata_train_extended.obs[experiment.class_key], experiment.dataset.adata_train_extended.obs[experiment.batch_key])):
+            groups_sub = experiment.dataset.adata_train_extended.obs[experiment.batch_key]
             experiment.keep_obs = list(experiment.dataset.adata_train_extended.obs[experiment.batch_key][train_index].unique()) # keeping only train idx
+            val_obs = list(experiment.dataset.adata_train_extended.obs[experiment.batch_key][val_index].unique())
+            print(f"Fold {i,j}:")
+            print(f"train = {list(groups_sub.iloc[train_index].unique())}, len = {len(groups_sub.iloc[train_index].unique())}")
+            print(f"val = {list(groups_sub.iloc[val_index].unique())}, len = {len(groups_sub.iloc[val_index].unique())}")
+            print(f"test = {list(groups.iloc[test_index].unique())}, len = {len(groups.iloc[test_index].unique())}")
+
+            
+
+            print(set(groups_sub.iloc[train_index].unique()) & set(groups.iloc[test_index].unique()))
+            print(set(groups_sub.iloc[train_index].unique()) & set(groups_sub.iloc[val_index].unique()))
+            print(set(groups_sub.iloc[val_index].unique()) & set(groups.iloc[test_index].unique()))
             experiment.split_train_test_val()
-            experiment.train_model(model)
-            experiment.compute_metrics()
+            print(experiment.dataset.adata.obs.loc[:,[experiment.test_split_key,experiment.batch_key]].drop_duplicates())
+            for model in model_list:
+                print(f'Running {model}')
+                experiment.start_neptune_log()
+                experiment.add_custom_log('test_fold_nb',i)
+                experiment.add_custom_log('val_fold_nb',j)
+                experiment.add_custom_log('test_obs',test_obs)
+                experiment.add_custom_log('val_obs',val_obs)
+                experiment.add_custom_log('train_obs',experiment.keep_obs)
+                experiment.add_custom_log('task','task_1')
+                experiment.train_model(model)
+                experiment.compute_metrics()
+                experiment.stop_neptune_log()
