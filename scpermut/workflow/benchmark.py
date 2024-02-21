@@ -313,7 +313,7 @@ if __name__ == '__main__':
 
     kf = GroupKFold(5)
     for i, (train_index, val_index) in enumerate(kf.split(experiment.dataset.adata_train_extended.X, experiment.dataset.adata_train_extended.obs[experiment.class_key], experiment.dataset.adata_train_extended.obs[experiment.batch_key])):
-        for model in ['pca_svm','harmony_svm', 'scanvi', 'scmap', 'uce']:
+        for model in ['pca_svm', 'harmony_svm', 'scanvi', 'scmap', 'uce']:
             print(i)
             experiment.keep_obs = list(experiment.dataset.adata_train_extended.obs[experiment.batch_key][train_index].unique()) # keeping only train idx
             experiment.split_train_test_val()
