@@ -41,7 +41,7 @@ except ImportError:
     pass
 
 try :
-    from dca.train import train
+    from obsolete.train import train
 except ImportError:
     pass
 

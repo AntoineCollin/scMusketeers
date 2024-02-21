@@ -146,6 +146,6 @@ def main():
                           ' it.')
 
     # import tf and the rest after parse_args() to make argparse help faster
-    from . import train
+    from ...obsolete import train
 
     train.train_with_args(args)

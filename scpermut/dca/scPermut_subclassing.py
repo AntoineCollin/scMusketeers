@@ -1,10 +1,10 @@
 import keras
-from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, Lambda, Layer
+from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
 from keras.models import Model
 from keras.regularizers import l1_l2
 import tensorflow as tf
 import numpy as np
-from .layers import ConstantDispersionLayer, SliceLayer, ColwiseMultLayer, ElementwiseDense,GradReverse
+from .layers import ColwiseMultLayer,GradReverse
 
 advanced_activations = ('PReLU', 'LeakyReLU')
 
