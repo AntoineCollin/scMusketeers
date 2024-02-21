@@ -6,7 +6,7 @@ import scanpy as sc
 import scanpy.external as sce
 import celltypist
 try :
-    from scmappy import common_genes, scmap_annotate, scmap_projection
+    from scmappy import common_genes, scmap_annotate
 except:
     pass
 import numpy as np 

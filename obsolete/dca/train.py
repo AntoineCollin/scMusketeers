@@ -20,7 +20,7 @@ from __future__ import print_function
 import os
 import random
 
-from ..scpermut.dca import io
+from . import io
 from .network import AE_types,BatchRemovalAutoencoder
 from .hyper import hyper
 from ..scpermut.dca.permutation import batch_generator_training_permuted

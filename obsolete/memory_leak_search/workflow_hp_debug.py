@@ -2,19 +2,19 @@ import keras
 import sys
 import os
 try :
-    from .load import load_runfile
-    from .dataset import Dataset, load_dataset
-    from .predictor import MLP_Predictor
-    from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
-    from .utils import get_optimizer, scanpy_to_input, default_value, str2bool
-    from .clust_compute import nn_overlap, batch_entropy_mixing_score
+    from ..old_workflow.load import load_runfile
+    from ...scpermut.workflow.dataset import Dataset, load_dataset
+    from ..old_workflow.predictor import MLP_Predictor
+    from ..old_workflow.model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
+    from ...scpermut.workflow.utils import get_optimizer, scanpy_to_input, default_value, str2bool
+    from ...scpermut.workflow.clust_compute import nn_overlap, batch_entropy_mixing_score
 
 
 except ImportError:
-    from load import load_runfile
+    from obsolete.old_workflow.load import load_runfile
     from dataset import Dataset, load_dataset
-    from predictor import MLP_Predictor
-    from model import DCA_Permuted,Scanvi
+    from obsolete.old_workflow.predictor import MLP_Predictor
+    from obsolete.old_workflow.model import DCA_Permuted,Scanvi
     from utils import get_optimizer, scanpy_to_input, default_value, str2bool
     from clust_compute import nn_overlap, batch_entropy_mixing_score
 # from dca.utils import str2bool,tuple_to_scalar

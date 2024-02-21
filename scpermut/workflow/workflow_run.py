@@ -2,18 +2,14 @@ import keras
 import sys
 import os
 try :
-    from .load import load_runfile
     from .dataset import Dataset, load_dataset
-    from .predictor import MLP_Predictor
-    from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
     from .utils import scanpy_to_input, default_value, str2bool,densify
     from .clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg
 
 except ImportError:
-    from load import load_runfile
     from dataset import Dataset, load_dataset
-    from predictor import MLP_Predictor
-    from model import DCA_Permuted,Scanvi
+    from obsolete.old_workflow.predictor import MLP_Predictor
+    from obsolete.old_workflow.model import DCA_Permuted,Scanvi
     from utils import scanpy_to_input, default_value, str2bool,densify
     from clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg
 # from dca.utils import str2bool,tuple_to_scalar
@@ -23,14 +19,10 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from dca.scPermut_subclassing import DANN_AE
 from dca.permutation import batch_generator_training_permuted
 
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.cluster import KMeans
 from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef, f1_score,cohen_kappa_score, adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score,davies_bouldin_score,adjusted_rand_score,confusion_matrix
 
 f1_score = functools.partial(f1_score, average = 'weighted')
 import time
-import pickle
-import anndata
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -44,12 +36,9 @@ import tensorflow as tf
 import neptune
 # from numba import cuda
 from neptune.utils import stringify_unsupported
-import subprocess
 
 from ax.service.managed_loop import optimize
 # from ax import RangeParameter, SearchSpace, ParameterType, FixedParameter, ChoiceParameter
-
-import multiprocessing
 
 physical_devices = tf.config.list_physical_devices('GPU')
 for gpu_instance in physical_devices:

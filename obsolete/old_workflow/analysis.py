@@ -1,11 +1,11 @@
 try :
     from .load import load_runfile
-    from .dataset import Dataset
+    from ...scpermut.workflow.dataset import Dataset
     from .predictor import MLP_Predictor
     from .model import DCA_Permuted
     from .workflow import Workflow
     from .runfile_handler import RunFile
-    from .clust_compute import *
+    from ...scpermut.workflow.clust_compute import *
 except ImportError:
     from load import load_runfile
     from dataset import Dataset

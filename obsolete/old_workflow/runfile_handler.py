@@ -9,7 +9,7 @@ import shutil
 try :
     from .load import load_runfile
 except ImportError:
-    from load import load_runfile
+    from obsolete.old_workflow.load import load_runfile
 
 class RunFile:
     def __init__(self,working_dir,

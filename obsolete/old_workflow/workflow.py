@@ -1,14 +1,14 @@
 try :
     from .load import load_runfile
-    from .dataset import Dataset
+    from ...scpermut.workflow.dataset import Dataset
     from .predictor import MLP_Predictor
     from .model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
     
 except ImportError:
-    from load import load_runfile
+    from obsolete.old_workflow.load import load_runfile
     from dataset import Dataset
-    from predictor import MLP_Predictor
-    from model import DCA_Permuted,Scanvi
+    from obsolete.old_workflow.predictor import MLP_Predictor
+    from obsolete.old_workflow.model import DCA_Permuted,Scanvi
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cluster import KMeans
 import time
