@@ -147,7 +147,8 @@ def load_dataset(dataset_name,dataset_dir):
                 'tosti_2021' : 'celltypist_dataset/tosti_2021/tosti_2021',
                 'yoshida_2021' : 'celltypist_dataset/yoshida_2021/yoshida_2021',
                 'yoshida_2021_debug' : 'celltypist_dataset/yoshida_2021/yoshida_2021_debug',
-                'tran_2021' : 'celltypist_dataset/tran_2021/tran_2021',
+                # 'tran_2021' : 'celltypist_dataset/tran_2021/tran_2021',
+                'tran_2021' : 'tran_2021',
                 'dominguez_2022_lymph' : 'celltypist_dataset/dominguez_2022/dominguez_2022_lymph',
                 'dominguez_2022_spleen' : 'celltypist_dataset/dominguez_2022/dominguez_2022_spleen',
                 'tabula_2022_spleen' : 'celltypist_dataset/tabula_2022/tabula_2022_spleen',
@@ -155,6 +156,7 @@ def load_dataset(dataset_name,dataset_dir):
                  'lake_2021': 'celltypist_dataset/lake_2021/lake_2021'
                 }
         dataset_path = dataset_dir + '/' + dataset_names[dataset_name] + '.h5ad'
+        print(dataset_path)
         adata = sc.read_h5ad(dataset_path)
         if not adata.raw:
             adata.raw = adata

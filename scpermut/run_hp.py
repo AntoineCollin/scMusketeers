@@ -1,6 +1,7 @@
 from workflow.hyperparameters import *
 import argparse
-JSON_PATH_DEFAULT = '/home/acollin/scPermut/experiment_script/hp_ranges/'
+# JSON_PATH_DEFAULT = '/home/acollin/scPermut/experiment_script/hp_ranges/'
+JSON_PATH_DEFAULT = '/home/becavin/scPermut/experiment_script/hp_ranges/'
 
 def load_json(json_path):
     with open(json_path, 'r') as fichier_json:
@@ -17,12 +18,19 @@ class MakeExperiment:
         self.working_dir = working_dir
         self.workflow = None
         self.trial_count = 0
+        # project = neptune.init_project(
+        #     project="becavin-lab/benchmark",
+        # api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
+        # mode="read-only",
+        #     )
         project = neptune.init_project(
-            project="becavin-lab/benchmark",
-        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
+            project="becavin-lab/sc-permut-packaging",
+        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI1Zjg5NGJkNC00ZmRkLTQ2NjctODhmYy0zZDAzYzM5ZTgxOTAifQ==",
         mode="read-only",
-            )# For checkpoint
+            )
+        # For checkpoint
         self.runs_table_df = project.fetch_runs_table().to_pandas()
+        
         project.stop()
         
 
@@ -38,11 +46,13 @@ class MakeExperiment:
         checkpoint = {'parameters/' + k: i for k,i in params.items()}
         checkpoint['parameters/dataset_name'] = self.run_file.dataset_name
         checkpoint['parameters/opt_metric'] = self.run_file.opt_metric
-
+        checkpoint['parameters/ae_bottleneck_activation'] = self.run_file.ae_bottleneck_activation
+        checkpoint['parameters/size_factor'] = self.run_file.size_factor
         # checkpoint = {'parameters/dataset_name': self.run_file.dataset_name,
         #               'parameters/total_trial': total_trial, 'parameters/trial_count': self.trial_count, 
         #               'parameters/opt_metric': self.opt_metric, 'parameters/hp_random_seed': random_seed}
         result = self.runs_table_df[self.runs_table_df[list(checkpoint.keys())].eq(list(checkpoint.values())).all(axis=1)]
+        print(result)
         split, metric = self.run_file.opt_metric.split('-')
         if result.empty or pd.isna(result.loc[:,f'evaluation/{split}/{metric}'].iloc[0]): # we run the trial
             self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
