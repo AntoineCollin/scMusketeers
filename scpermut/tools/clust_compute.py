@@ -1,9 +1,8 @@
 import anndata
 from anndata import AnnData
 import numpy as np
-from sklearn.metrics import davies_bouldin_score, adjusted_mutual_info_score, \
-    adjusted_rand_score, fowlkes_mallows_score, v_measure_score, silhouette_score, calinski_harabasz_score
-from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score,silhouette_samples
+from sklearn.metrics import *
+# from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score,silhouette_samples,f1_score,matthews_corrcoef,cohen_kappa_score
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
@@ -282,7 +281,6 @@ def vmeasure(adata, reference, partition_key):
     return v_measure_score(*annotation_to_num(adata, reference, partition_key))
 
 
-
 def dunn(adata , partition_key: str, obsm_representation: str = None):
     """
     By default, computes the Dunn index for the adata with respect to the clustering
@@ -302,6 +300,34 @@ def dunn(adata , partition_key: str, obsm_representation: str = None):
     -------
     The Dunn index of the data with respect to the partition_key clustering
     """
+
+def make_weight(y_true):
+    '''
+    return a weight for each element of y_true corresponding to the number of elements of its class.
+    Balanced metrics should use 1/weights
+    '''
+    y_true_s = pd.Series(y_true)
+    ct_weights = y_true_s.value_counts()
+    weights = np.array(y_true_s.replace(ct_weights))
+    return weights
+    
+def to_1d(y):
+    return np.asarray(y).reshape(-1,)
+
+def balanced_f1_score(y_true,y_pred):
+    y_true,y_pred = to_1d(y_true),to_1d(y_pred)
+    weights = make_weight(y_true)
+    return f1_score(y_true, y_pred, sample_weight=1/weights, average = 'macro')
+
+def balanced_matthews_corrcoef(y_true,y_pred):
+    y_true,y_pred = to_1d(y_true),to_1d(y_pred)
+    weights = make_weight(y_true)
+    return matthews_corrcoef(y_true, y_pred, sample_weight=1/weights)
+
+def balanced_cohen_kappa_score(y_true,y_pred):
+    y_true,y_pred = to_1d(y_true),to_1d(y_pred)
+    weights = make_weight(y_true)
+    return cohen_kappa_score(y_true, y_pred, sample_weight=1/weights)
 
 import numpy as np
 import scipy

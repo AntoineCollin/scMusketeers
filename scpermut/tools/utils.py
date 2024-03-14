@@ -4,6 +4,7 @@ import pandas as pd
 import scipy
 from sklearn.model_selection import train_test_split
 import argparse
+import json
 
 def densify(X):
     if (type(X) == scipy.sparse.csr_matrix) or (type(X) == scipy.sparse.csc_matrix):
@@ -11,8 +12,8 @@ def densify(X):
     else :
         return np.asarray(X)
 
-def check_raw(X,n):
-    return X[:n,:n].todense()
+def check_raw(X):
+    return int(np.max(X))==np.max(X)
 
 def ann_subset(adata, obs_key, conditions):
     """
@@ -21,6 +22,30 @@ def ann_subset(adata, obs_key, conditions):
     if type(conditions) == str:
         conditions = [conditions]
     return adata[adata.obs[obs_key].isin(conditions),:].copy()
+
+def nan_to_0(val):
+    if np.isnan(val) or pd.isna(val) or type(val) == type(None) :
+        return 0
+    else :
+        return val
+
+def save_json(dico,p):
+    if not p.startswith('/'):
+        p = p
+    if not p.endswith('.json'):
+        p += '.json'
+    with open(p, 'w') as fichier_json:
+        json.dump(dico, fichier_json)
+
+def load_json(p):
+    if not p.startswith('/'):
+        p = JSON_PATH + p
+    if not p.endswith('.json'):
+        p += '.json'
+    with open(p, 'r') as fichier_json:
+        dico = json.load(fichier_json)
+    return dico
+    
 
 def scanpy_to_input(adata,keys, use_raw = False):
     '''

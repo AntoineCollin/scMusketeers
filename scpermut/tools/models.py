@@ -49,13 +49,15 @@ class Encoder(keras.Model):
                 self.hidden_batchnorm.append(None)
             # Use separate act. layers to give user the option to get pre-activations
             # of layers when requested
-            if activation in advanced_activations:
-                self.hidden_activations.append(keras.layers.__dict__[activation](name=f'{layer_name}_act'))
-            elif layer_name == center_idx:
-                self.hidden_activations.append(Activation(bottleneck_activation, name=f'{layer_name}_act'))
+            if layer_name == 'center':
+                act = bottleneck_activation
+            else :
+                act = activation
+            if act in advanced_activations:
+                self.hidden_activations.append(keras.layers.__dict__[act](name=f'{layer_name}_act'))
             else:
-                self.hidden_activations.append(Activation(activation, name=f'{layer_name}_act'))
-
+                self.hidden_activations.append(Activation(act, name=f'{layer_name}_act'))
+    
             if hid_drop > 0.0:
                 self.hidden_dropout.append(Dropout(hid_drop, name=f'{layer_name}_drop'))
             else:
@@ -211,11 +213,12 @@ class Autoencoder(keras.Model):
         if type(ae_hidden_dropout) == float:
             ae_hidden_dropout = [ae_hidden_dropout]*len(ae_hidden_size)
         if len(ae_hidden_dropout) == 1:
-            ae_hidden_dropout = ae_hidden_dropout*len(ae_hidden_size)
+            ae_hidden_dropout = ae_hidden_dropout*len(ae_hidden_size) 
         self.enc_hidden_size = ae_hidden_size[:center_idx+1]
         self.dec_hidden_size = ae_hidden_size[center_idx+1:]
         self.enc_hidden_dropout = ae_hidden_dropout[:center_idx+1]
         self.dec_hidden_dropout = ae_hidden_dropout[center_idx+1:]
+        self.ae_bottleneck_activation = ae_bottleneck_activation
         self.enc = Encoder(self.enc_hidden_size,
                 hidden_dropout = self.enc_hidden_dropout,
                 activation=ae_activation,

@@ -20,6 +20,7 @@ try :
 except ImportError:
     from scpermut.tools.utils import densify
 
+# from tools.utils import densify
 
 
 #print("Last run with scvi-tools version:", scvi.__version__)

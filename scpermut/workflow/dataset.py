@@ -9,7 +9,11 @@ import sys
 import os
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 print(sys.path[0])
-from tools.utils import densify
+try :
+    from ..tools.utils import densify
+except ImportError:
+    from tools.utils import densify
+
 
 
 def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduce_adata=True): 
@@ -59,7 +63,7 @@ def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduc
             top_genes += list(dispersion_nbatches.index)
             
     if reduce_adata:
-        return adata[:,top_genes]
+        return adata_[:,top_genes]
 
     return top_genes
 
@@ -111,7 +115,7 @@ def sum_marker_score(markers, adata, obs_key):
     adata.obs['sum_marker_score'] = sum_scores
 
 def load_dataset(dataset_name,dataset_dir):
-        dataset_names = {'htap':'htap_annotated',
+        dataset_names = {'htap':'htap',
                 'lca' : 'LCA_log1p',
                 'discovair':'discovair_V6',
                 'discovair_V7':'discovair_V7',
@@ -154,11 +158,10 @@ def load_dataset(dataset_name,dataset_dir):
         adata = sc.read_h5ad(dataset_path)
         if not adata.raw:
             adata.raw = adata
+        print(f'dataset loaded at {dataset_path}')
         print(adata)
         return adata
 
-def load_from_path(data_path):
-    return adata
 
 class Dataset:
     def __init__(self, 
@@ -167,6 +170,7 @@ class Dataset:
                 batch_key,
                 filter_min_counts,
                 normalize_size_factors,
+                size_factor,
                 scale_input,
                 logtrans_input,
                 use_hvg,
@@ -182,6 +186,7 @@ class Dataset:
         self.batch_key = batch_key
         self.filter_min_counts = filter_min_counts
         self.normalize_size_factors = normalize_size_factors
+        self.size_factor = size_factor
         self.scale_input = scale_input
         self.logtrans_input = logtrans_input
         self.use_hvg = use_hvg
@@ -208,6 +213,10 @@ class Dataset:
         nonzero_genes, _ = sc.pp.filter_genes(self.adata.X, min_counts=1)
         assert nonzero_genes.all(), 'Please remove all-zero genes before using DCA.'
 
+        if self.size_factor == 'raw': # Computing sf on raw data
+            self.adata.obs['n_counts'] = self.adata.X.sum(axis = 1)
+            self.adata.obs['size_factors'] = self.adata.obs.n_counts / np.median(self.adata.obs.n_counts)
+
         if self.use_hvg:
             self.adata = get_hvg_common(self.adata, n_hvg = self.use_hvg, batch_key=self.batch_key)
 
@@ -217,10 +226,9 @@ class Dataset:
             self.adata.raw = self.adata
 
         if self.normalize_size_factors:
+
             sc.pp.normalize_total(self.adata)
             self.adata.obs['size_factors'] = self.adata.obs.n_counts / np.median(self.adata.obs.n_counts)
-        else:
-            self.adata.obs['size_factors'] = 1.0
 
         if self.logtrans_input:
             sc.pp.log1p(self.adata)
@@ -228,6 +236,11 @@ class Dataset:
         if self.scale_input:
             sc.pp.scale(self.adata)
         
+        if self.size_factor == 'default':  # Computing sf on preprocessed data
+            self.adata.obs['n_counts'] = self.adata.X.sum(axis = 1)
+            self.adata.obs['size_factors'] = self.adata.obs.n_counts / np.median(self.adata.obs.n_counts)
+        elif self.size_factor == 'constant':
+            self.adata.obs['size_factors'] = 1.0
         # print('right after loading')
         # print(self.adata)
         # print(self.adata_test)
@@ -235,7 +248,19 @@ class Dataset:
         # print(self.adata_train_extended.obs[self.class_key].value_counts())
         # self.adata_train = self.adata_train_extended.copy()
 
-    def test_split(self):
+    def test_split(self, test_index_name = None, test_obs = None):
+        
+        if test_index_name:
+            test_idx = self.adata.obs_names.isin(test_index_name)
+        if test_obs:
+            print(f'test obs :{test_obs}')
+            test_idx = self.adata.obs[self.batch_key].isin(test_obs)
+        
+            split = pd.Series(['train'] * self.adata.n_obs, index = self.adata.obs.index)
+            split[test_idx] = 'test'
+            self.adata.obs[self.test_split_key] = split
+
+        # If none of test_index_name or test_obs is defined, defaults to the saved value of self.adata.obs[self.test_split_key]
         self.adata_test = self.adata[self.adata.obs[self.test_split_key] == 'test']
         self.adata_train_extended = self.adata[self.adata.obs[self.test_split_key] == 'train']
         
@@ -338,7 +363,7 @@ class Dataset:
         train_split[self.adata_train_extended.obs_names] = self.adata_train_extended.obs['train_split']
         self.adata.obs['train_split'] = train_split
         
-        print(f'train, test, val proportions : {self.adata.obs["train_split"]}')
+        print(f'train, test, val proportions : {self.adata.obs["train_split"].value_counts()}')
         
     def create_inputs(self):
         '''
