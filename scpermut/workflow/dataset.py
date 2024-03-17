@@ -156,12 +156,10 @@ def load_dataset(dataset_name,dataset_dir):
                  'lake_2021': 'celltypist_dataset/lake_2021/lake_2021'
                 }
         dataset_path = dataset_dir + '/' + dataset_names[dataset_name] + '.h5ad'
-        print(dataset_path)
         adata = sc.read_h5ad(dataset_path)
         if not adata.raw:
             adata.raw = adata
         print(f'dataset loaded at {dataset_path}')
-        print(adata)
         return adata
 
 

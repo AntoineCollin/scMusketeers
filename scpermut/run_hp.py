@@ -52,7 +52,7 @@ class MakeExperiment:
         #               'parameters/total_trial': total_trial, 'parameters/trial_count': self.trial_count, 
         #               'parameters/opt_metric': self.opt_metric, 'parameters/hp_random_seed': random_seed}
         result = self.runs_table_df[self.runs_table_df[list(checkpoint.keys())].eq(list(checkpoint.values())).all(axis=1)]
-        print(result)
+        # print(result)
         split, metric = self.run_file.opt_metric.split('-')
         if result.empty or pd.isna(result.loc[:,f'evaluation/{split}/{metric}'].iloc[0]): # we run the trial
             self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)

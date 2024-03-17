@@ -11,6 +11,8 @@ dataset_name=tran_2021
 class_key=Original_annotation
 batch_key=batch
 
+log_file=$working_dir"/experiment_script/${dataset_name}_hp.log"
+
 json_test=$(cat $script_dir/experiment_script/benchmark/hp_test_obs.json)
 test_obs=$(echo "$json_test" | grep -o "\"$dataset_name\": \[[^]]*\]" | cut -d '[' -f 2 | cut -d ']' -f 1)
 test_obs=$(echo "$test_obs" | tr -d '[:space:]' | tr -d '"' | tr ',' ' ')
@@ -21,7 +23,7 @@ keep_obs=$(echo "$json_train" | grep -o "\"$dataset_name\": \[[^]]*\]" | cut -d 
 keep_obs=$(echo "$keep_obs" | tr -d '[:space:]' | tr -d '"' | tr ',' ' ')
 echo train_obs=$keep_obs
 
-python $script_dir/scpermut/run_hp.py --dataset_name $dataset_name --class_key $class_key --batch_key $batch_key --test_obs $test_obs --mode entire_condition --obs_key $batch_key --keep_obs $keep_obs --working_dir $working_dir &> $working_dir/experiment_script/benchmark/logs/hp_optim_$dataset_name.log
+python $python_script --dataset_name $dataset_name --class_key $class_key --batch_key $batch_key --test_obs $test_obs --mode entire_condition --obs_key $batch_key --keep_obs $keep_obs --working_dir $working_dir &> ${log_file}
 
 # singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python $python_script \
 # --working_dir $singularity_working_dir --dataset_name htap_final_by_batch --class_key celltype --batch_key donor --use_hvg 5000 \
