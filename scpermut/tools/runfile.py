@@ -3,6 +3,9 @@ import str2bool
 
 """Parses command-line arguments for a workflow involving model training and hyperparameter optimization."""
 
+PROCESS_TYPE = ['training', 'hyperparameter']
+
+
 def get_runfile():
     """Parses command-line arguments and returns a namespace containing parsed arguments.
 
@@ -14,6 +17,14 @@ def get_runfile():
         usage="scPermut [OPTIONS] process atlas_name your_search_folder/",
         description="scPermut....",
         epilog="Enjoy the scPermut functionality!",
+    )
+
+    parser.add_argument(
+        "process",
+        type=str,
+        help="Type of process to run : Training, Hyperparameter optimization"
+        f" among {PROCESS_TYPE}",
+        default="",
     )
 
     # Working dir arguments
@@ -56,17 +67,20 @@ def get_runfile():
     training_group.add_argument('--true_celltype', type = str,nargs='?', default = None, help ='')
     training_group.add_argument('--false_celltype', type = str,nargs='?', default = None, help ='')
     training_group.add_argument('--pct_false', type = float,nargs='?', default = None, help ='')
-    training_group.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
-    training_group.add_argument('--dann_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
-    training_group.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
     training_group.add_argument('--weight_decay', type = float,nargs='?', default = 2e-6, help ='Weight decay applied by th optimizer') # Default identified with hp optimization
     training_group.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')# Default identified with hp optimization
     training_group.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop'], default = 'adam' , help ='Name of the optimizer to use')
-    training_group.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Weight of the classification loss')
-    training_group.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Weight of the DANN loss')
-    training_group.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Weight of the reconstruction loss')
     training_group.add_argument('--warmup_epoch', type = float,nargs='?', default = 50, help ='Number of epoch to warmup DANN')
 
+    # Loss function Arguments
+    loss_group = parser.add_argument_group('Loss function Parameters')
+    loss_group.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['MSE','categorical_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
+    loss_group.add_argument('--dann_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
+    loss_group.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
+    loss_group.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Weight of the classification loss')
+    loss_group.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Weight of the DANN loss')
+    loss_group.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Weight of the reconstruction loss')
+    
     # Model Architecture arguments
     architecture_group = parser.add_argument_group('Model Architecture')
     architecture_group.add_argument('--dropout', type=int,nargs='?', default = None, help ='dropout applied to every layers of the model. If specified, overwrites other dropout arguments')
@@ -101,5 +115,5 @@ def get_runfile():
     dann_group.add_argument('--dann_batchnorm', type=str2bool.str2bool, nargs='?',const=True, default=True , help ='')
     dann_group.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
     dann_group.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
-    
+    print(parser)
     return parser.parse_args()

@@ -92,8 +92,9 @@ class Workflow:
         '''
         run_file : a dictionary outputed by the function load_runfile
         '''
-        print("NOOOOO EAGERRRRR")
-        tf.compat.v1.disable_eager_execution()
+        # print("NOOOOO EAGERRRRR")
+        # tf.compat.v1.disable_eager_execution()
+        self.process = run_file.process
         self.sess = tf.compat.v1.Session()
         self.run_file = run_file
         # dataset identifiers
@@ -116,7 +117,7 @@ class Workflow:
         self.n_perm = 1
         self.semi_sup = False # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
-      
+        
 
         # train test split # TODO : Simplify this, or at first only use the case where data is split according to batch
         self.test_split_key = self.run_file.test_split_key
@@ -432,7 +433,6 @@ class Workflow:
         if self.log_neptune :
             self.run['evaluation/training_time'] = stop_time - start_time
         # TODO also make it on gpu with smaller batch size
-        sess = tf.compat.v1.Session()
         if self.log_neptune:
             neptune_run_id = self.run['sys/id'].fetch()
             save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
@@ -455,24 +455,21 @@ class Workflow:
                         y_pred_proba.to_csv(save_dir + f'y_pred_proba_full.csv')
                         self.run[f'evaluation/{group}/y_pred_proba_full'].track_files(save_dir + f'y_pred_proba_full.csv')
 
-                    # clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-                    argmax_op = tf.math.argmax(clas, axis=1)
-                    # print(argmax_op)
-                    # print(clas.shape)
-                    # Create the fetch operation to retrieve the ArgMax result
+                    
+                    # In Eager Mode
+                    numpy_argmax = np.argmax(clas, axis=1)
+                    
+                    # In Graph mode
+                    """ argmax_op = tf.math.argmax(clas, axis=1)
                     fetch_op = argmax_op
                     if self.sess is not None:
                         input_data = np.random.randint(0, 100, size=(clas.shape[0],clas.shape[1]))  # Sample input data
-                        numpy_argmax = self.sess.run(fetch_op, feed_dict={clas: input_data})
-                
-                
-                    #tensor_list = numpy_tensor(tensor_arg)
-                    # print(f"numpy argmax : {numpy_argmax}")
-                    clas = np.eye(clas.shape[1])[numpy_argmax]
+                        numpy_argmax = self.sess.run(fetch_op, feed_dict={clas: input_data}) """
+                    
+                    # Get Classif hot encoding
+                    class_tf = np.eye(clas.shape[1])[numpy_argmax]
 
-
-
-                    y_pred = self.dataset.ohe_celltype.inverse_transform(clas).reshape(-1,)
+                    y_pred = self.dataset.ohe_celltype.inverse_transform(class_tf).reshape(-1,)
                     y_true = adata_list[group].obs[f'true_{self.class_key}']
                     batches = np.asarray(batch_list[group].argmax(axis=1)).reshape(-1,)
                     split = adata_list[group].obs[f'train_split']
@@ -872,25 +869,22 @@ class Workflow:
                 history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + ae.losses] # using numpy to prevent memory leaks
                 # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
 
-                # Perform ArgMax operation
-                argmax_op = tf.math.argmax(clas, axis=1)
-                # print(argmax_op)
-                # print(clas.shape)
-                # Create the fetch operation to retrieve the ArgMax result
+                # In Eager Mode
+                numpy_argmax = np.argmax(clas, axis=1)
+                
+                # In Graph mode
+                """ argmax_op = tf.math.argmax(clas, axis=1)
                 fetch_op = argmax_op
                 if self.sess is not None:
                     input_data = np.random.randint(0, 100, size=(clas.shape[0],clas.shape[1]))  # Sample input data
-                    numpy_argmax = self.sess.run(fetch_op, feed_dict={clas: input_data})
+                    numpy_argmax = self.sess.run(fetch_op, feed_dict={clas: input_data}) """
                 
-                
-                #tensor_list = numpy_tensor(tensor_arg)
-                # print(f"numpy argmax : {numpy_argmax}")
-                clas_tf = np.eye(clas.shape[1])[numpy_argmax]
-                # clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+                # Get Classif hot encoding
+                class_tf = np.eye(clas.shape[1])[numpy_argmax]
                 
                 # clas = tf.eye(clas.shape[1])[tf.math.argmax(clas, axis=0)]
                 for metric in self.pred_metrics_list: # only classification metrics ATM
-                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas_tf.argmax(axis=1))] # y_list are onehot encoded
+                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), class_tf.argmax(axis=1))] # y_list are onehot encoded
         del inp
         return history, _, clas, dann, rec
 

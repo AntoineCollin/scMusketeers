@@ -1,5 +1,6 @@
 from workflow.optimize_hp import *
 from tools.runfile import get_runfile
+from tools.runfile import PROCESS_TYPE
 
 # JSON_PATH_DEFAULT = '/home/acollin/scPermut/experiment_script/hp_ranges/'
 JSON_PATH_DEFAULT = '/home/becavin/scPermut/experiment_script/hp_ranges/'
@@ -79,41 +80,42 @@ class MakeExperiment:
 if __name__ == '__main__':
     
     run_file = get_runfile()
-    print(run_file.class_key, run_file.batch_key)
-    experiment = MakeExperiment(run_file=run_file, working_dir=run_file.working_dir)
+    if run_file.process == PROCESS_TYPE[0]:
+        # Single training
+        print(run_file.dataset_name, run_file.class_key, run_file.batch_key)
+        workflow = Workflow(run_file=run_file, working_dir=run_file.working_dir)
+        workflow.start_neptune_log()
+        workflow.process_dataset()
+        workflow.split_train_test()
+        workflow.split_train_val()
+        mcc = workflow.make_experiment()
+        workflow.stop_neptune_log()
+    
+    elif run_file.process == PROCESS_TYPE[1]:
+        # Hyperparameter optimization
+        experiment = MakeExperiment(run_file=run_file, working_dir=run_file.working_dir)
 
-    if not run_file.hparam_path:
-        hparam_path = JSON_PATH_DEFAULT + 'generic_r1.json'
+        if not run_file.hparam_path:
+            hparam_path = JSON_PATH_DEFAULT + 'generic_r1.json'
+        else:
+            hparam_path = run_file.hparam_path
+
+        hparams = load_json(hparam_path)
+
+        best_parameters, values, experiment, model = optimize(
+            parameters=hparams,
+            evaluation_function=experiment.train,
+            objective_name=run_file.opt_metric,
+            minimize=False,
+            total_trials=total_trial,
+            random_seed=random_seed,
+
+        )
+
+        print(best_parameters)
     else:
-        hparam_path = run_file.hparam_path
-
-    hparams = load_json(hparam_path)
+        # No process
+        print("Process not regnoozied")
         
-    # else:
-    #     hparams = [{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
-    #         {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-    #         {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-    #         {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
-    #         {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
-    #         {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
-    #         {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
-    #         {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
-    #         {"name": "layer2", "type": "range", "bounds": [64, 512]},
-    #         {"name": "layer1", "type": "range", "bounds": [512, 2048]},
-
-    #     ]
-
-    # workflow.make_experiment(hparams)
-
-    best_parameters, values, experiment, model = optimize(
-        parameters=hparams,
-        evaluation_function=experiment.train,
-        objective_name=run_file.opt_metric,
-        minimize=False,
-        total_trials=total_trial,
-        random_seed=random_seed,
-
-    )
-
-    print(best_parameters)
+    
     
