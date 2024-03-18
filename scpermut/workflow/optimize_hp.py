@@ -127,6 +127,18 @@ class Workflow:
         self.process = run_file.process
         self.sess = tf.compat.v1.Session()
         self.run_file = run_file
+        self.ae_param = AE_PARAM(run_file)
+        self.class_param = CLASS_PARAM(run_file)
+        self.dann_param = DANN_PARAM(run_file)
+
+        self.dataset = None
+        self.model = None
+        self.predictor = None
+        self.dann_ae = None
+
+        self.metrics = []
+
+
         # dataset identifiers
         
         self.n_perm = 1
@@ -138,13 +150,6 @@ class Workflow:
         
         self.working_dir = working_dir
         self.data_dir = working_dir + '/data'
-        
-        # self.runtime_path = self.result_path + '/runtime.txt'
-
-
-        self.dataset = None
-        self.model = None
-        self.predictor = None
 
         self.training_kwds = {}
         self.network_kwds = {}
@@ -155,22 +160,9 @@ class Workflow:
         self.dann_loss_fn = None
         self.rec_loss_fn = None
 
-        # self.weight_decay = self.run_file.weight_decay
-        self.weight_decay = None
-
-
         self.num_classes = None
         self.num_batches = None
-
-
-        self.ae_param = AE_PARAM(run_file)
-        self.class_param = CLASS_PARAM(run_file)
-        self.dann_param = DANN_PARAM(run_file)
-    
-        self.dann_ae = None
-
-        
-        self.metrics = []
+            
 
         self.mean_loss_fn = keras.metrics.Mean(name='total_loss') # This is a running average : it keeps the previous values in memory when it's called ie computes the previous and current values
         self.mean_clas_loss_fn = keras.metrics.Mean(name='classification_loss')
@@ -308,14 +300,14 @@ class Workflow:
                         dann_activation=self.dann_param.dann_activation,
                         dann_output_activation=self.dann_param.dann_output_activation)
 
-        self.optimizer = self.get_optimizer(self.run_file.learning_rate, self.weight_decay, self.run_file.optimizer_type)
+        self.optimizer = self.get_optimizer(self.run_file.learning_rate, self.run_file.weight_decay, self.run_file.optimizer_type)
         self.rec_loss_fn, self.clas_loss_fn, self.dann_loss_fn = self.get_losses() # redundant
-        self.training_scheme = self.get_scheme()
+        self.run_file.training_scheme = self.get_scheme()
         start_time = time.time()
 
         print("bottleneck activation : " + self.dann_ae.ae_bottleneck_activation)
         # Training
-        history = self.train_scheme(training_scheme=self.training_scheme,
+        history = self.train_scheme(training_scheme=self.run_file.training_scheme,
                                     verbose = False,
                                     ae = self.dann_ae,
                                      adata_list= adata_list,
@@ -328,10 +320,10 @@ class Workflow:
                                      rec_loss_fn = self.rec_loss_fn)
         stop_time = time.time()
         if self.run_file.log_neptune :
-            self.run['evaluation/training_time'] = stop_time - start_time
+            self.run_neptune['evaluation/training_time'] = stop_time - start_time
         # TODO also make it on gpu with smaller batch size
         if self.run_file.log_neptune:
-            neptune_run_id = self.run['sys/id'].fetch()
+            neptune_run_id = self.run_neptune['sys/id'].fetch()
             save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
@@ -350,7 +342,7 @@ class Workflow:
                     if group == 'full': # saving full predictions as probability output from the classifier
                         y_pred_proba = pd.DataFrame(np.asarray(clas), index = adata_list['full'].obs_names, columns = self.dataset.ohe_celltype.categories_[0])
                         y_pred_proba.to_csv(save_dir + f'y_pred_proba_full.csv')
-                        self.run[f'evaluation/{group}/y_pred_proba_full'].track_files(save_dir + f'y_pred_proba_full.csv')
+                        self.run_neptune[f'evaluation/{group}/y_pred_proba_full'].track_files(save_dir + f'y_pred_proba_full.csv')
 
                     
                     # In Eager Mode
@@ -384,7 +376,7 @@ class Workflow:
                     cm_to_plot = cm_to_plot.fillna(value=0)
                     cm_to_save = cm_to_save.fillna(value=0)
                     cm_to_save.to_csv(save_dir + f'confusion_matrix_{group}.csv')
-                    self.run[f'evaluation/{group}/confusion_matrix_file'].track_files(save_dir + f'confusion_matrix_{group}.csv')
+                    self.run_neptune[f'evaluation/{group}/confusion_matrix_file'].track_files(save_dir + f'confusion_matrix_{group}.csv')
                     size = len(labels)
                     f, ax = plt.subplots(figsize=(size/1.5,size/1.5))
                     sns.heatmap(cm_to_plot, annot=True, ax=ax,fmt='.2f', vmin = 0, vmax = 1)
@@ -393,21 +385,21 @@ class Workflow:
                     for text, show_annot in zip(ax.texts, (element for row in show_mask for element in row)):
                         text.set_visible(show_annot)
                 
-                    self.run[f'evaluation/{group}/confusion_matrix'].upload(f)
+                    self.run_neptune[f'evaluation/{group}/confusion_matrix'].upload(f)
 
                     
                     # Computing batch mixing metrics
                     if len(np.unique(np.asarray(batch_list[group].argmax(axis=1)))) >= 2: # If there are more than 2 batches in this group
                         for metric in BATCH_METRICS_LIST:
-                            self.run[f'evaluation/{group}/{metric}'] = BATCH_METRICS_LIST[metric](enc, batches)
+                            self.run_neptune[f'evaluation/{group}/{metric}'] = BATCH_METRICS_LIST[metric](enc, batches)
                             print(type(self.batch_metrics_list[metric](enc, batches)))
                             
                     # Computing classification metrics
                     for metric in PRED_METRICS_LIST: 
-                        self.run[f"evaluation/{group}/{metric}"] = BATCH_METRICS_LIST[metric](y_true, y_pred)
+                        self.run_neptune[f"evaluation/{group}/{metric}"] = BATCH_METRICS_LIST[metric](y_true, y_pred)
 
                     for metric in PRED_METRICS_LIST_BALANCED: 
-                        self.run[f"evaluation/{group}/{metric}"] = PRED_METRICS_LIST_BALANCED[metric](y_true, y_pred)
+                        self.run_neptune[f"evaluation/{group}/{metric}"] = PRED_METRICS_LIST_BALANCED[metric](y_true, y_pred)
                     
                     # Metrics by size of ct
                     for s in sizes : 
@@ -416,15 +408,15 @@ class Workflow:
                         y_pred_sub = y_pred[idx_s]
                         # print(s)
                         for metric in PRED_METRICS_LIST: 
-                            self.run[f"evaluation/{group}/{s}/{metric}"] = nan_to_0(PRED_METRICS_LIST[metric](y_true_sub, y_pred_sub))
+                            self.run_neptune[f"evaluation/{group}/{s}/{metric}"] = nan_to_0(PRED_METRICS_LIST[metric](y_true_sub, y_pred_sub))
                         
                         for metric in PRED_METRICS_LIST_BALANCED:
-                            self.run[f"evaluation/{group}/{s}/{metric}"] = nan_to_0(PRED_METRICS_LIST_BALANCED[metric](y_true_sub, y_pred_sub))
+                            self.run_neptune[f"evaluation/{group}/{s}/{metric}"] = nan_to_0(PRED_METRICS_LIST_BALANCED[metric](y_true_sub, y_pred_sub))
 
 
                     # Computing clustering metrics
                     for metric in CLUSTERING_METRICS_LIST:
-                        self.run[f"evaluation/{group}/{metric}"] = CLUSTERING_METRICS_LIST[metric](enc, y_pred)
+                        self.run_neptune[f"evaluation/{group}/{metric}"] = CLUSTERING_METRICS_LIST[metric](enc, y_pred)
                         
                     if group == 'full':
                         y_pred_df = pd.DataFrame({'pred':y_pred, 'true':y_true, 'split':split}, index = adata_list[group].obs_names)
@@ -432,8 +424,8 @@ class Workflow:
                         np.save(save_dir + f'latent_space_{group}.npy', enc.numpy())
                         y_pred_df.to_csv(save_dir + f'predictions_{group}.csv')
                         split.to_csv(save_dir + f'split_{group}.csv')
-                        self.run[f'evaluation/{group}/latent_space'].track_files(save_dir + f'latent_space_{group}.npy')
-                        self.run[f'evaluation/{group}/predictions'].track_files(save_dir + f'predictions_{group}.csv')
+                        self.run_neptune[f'evaluation/{group}/latent_space'].track_files(save_dir + f'latent_space_{group}.npy')
+                        self.run_neptune[f'evaluation/{group}/predictions'].track_files(save_dir + f'predictions_{group}.csv')
                         
                         # Saving umap representation
                         pred_adata = sc.AnnData(X = adata_list[group].X, obs = adata_list[group].obs, var = adata_list[group].var)
@@ -442,20 +434,20 @@ class Workflow:
                         sc.pp.neighbors(pred_adata, use_rep = 'latent_space')
                         sc.tl.umap(pred_adata)
                         np.save(save_dir + f'umap_{group}.npy', pred_adata.obsm['X_umap'])
-                        self.run[f'evaluation/{group}/umap'].track_files(save_dir + f'umap_{group}.npy')
+                        self.run_neptune[f'evaluation/{group}/umap'].track_files(save_dir + f'umap_{group}.npy')
                         sc.set_figure_params(figsize=(15, 10), dpi = 300)
                         fig_class = sc.pl.umap(pred_adata, color = f'true_{self.class_key}', size = 10,return_fig = True)
                         fig_pred = sc.pl.umap(pred_adata, color = f'{self.class_key}_pred', size = 10,return_fig = True)
                         fig_batch = sc.pl.umap(pred_adata, color = self.batch_key, size = 10,return_fig = True)
                         fig_split = sc.pl.umap(pred_adata, color = 'train_split', size = 10,return_fig = True)
-                        self.run[f'evaluation/{group}/true_umap'].upload(fig_class)
-                        self.run[f'evaluation/{group}/pred_umap'].upload(fig_pred)
-                        self.run[f'evaluation/{group}/batch_umap'].upload(fig_batch)
-                        self.run[f'evaluation/{group}/split_umap'].upload(fig_split)
+                        self.run_neptune[f'evaluation/{group}/true_umap'].upload(fig_class)
+                        self.run_neptune[f'evaluation/{group}/pred_umap'].upload(fig_pred)
+                        self.run_neptune[f'evaluation/{group}/batch_umap'].upload(fig_batch)
+                        self.run_neptune[f'evaluation/{group}/split_umap'].upload(fig_split)
 
         split, metric = self.opt_metric.split('-')
-        self.run.wait()
-        opt_metric = self.run[f'evaluation/{split}/{metric}'].fetch()
+        self.run_neptune.wait()
+        opt_metric = self.run_neptune[f'evaluation/{split}/{metric}'].fetch()
         print('opt_metric')
         print(opt_metric)
 
@@ -467,7 +459,7 @@ class Workflow:
         #     clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
         #     opt_metric = self.pred_metrics_list_balanced['balanced_mcc'](np.asarray(y_list['val'].argmax(axis=1)), clas.argmax(axis=1)) # We retrieve the last metric of interest
         # if self.log_neptune:
-        #     self.run.stop()
+        #     self.run_neptune.stop()
         del enc
         del clas
         del dann
@@ -507,14 +499,14 @@ class Workflow:
         # if self.log_neptune:
         #     for group in history:
         #         for par,val in history[group].items():
-        #             self.run[f"training/{group}/{par}"] = []
+        #             self.run_neptune[f"training/{group}/{par}"] = []
         i = 0
 
         total_epochs = np.sum([n_epochs for _, n_epochs, _ in training_scheme])
         running_epoch = 0
 
         for (strategy, n_epochs, use_perm) in training_scheme:
-            optimizer = self.get_optimizer(self.run_file.learning_rate, self.weight_decay, self.run_file.optimizer_type) # resetting optimizer state when switching strategy
+            optimizer = self.get_optimizer(self.run_file.learning_rate, self.run_file.weight_decay, self.run_file.optimizer_type) # resetting optimizer state when switching strategy
             if verbose :
                 print(f"Step number {i}, running {strategy} strategy with permuation = {use_perm} for {n_epochs} epochs")
                 time_in = time.time()
@@ -575,7 +567,7 @@ class Workflow:
                 # print(size_attributes)
                 # if self.log_neptune:
                 #     for key, value in size_attributes.items():
-                #         self.run['memory/'+str(key)].append(value)
+                #         self.run_neptune['memory/'+str(key)].append(value)
                 #         print(value)
                 # all objects
                 # all_objects = muppy.get_objects()
@@ -588,10 +580,10 @@ class Workflow:
                 if self.run_file.log_neptune:
                     for group in history:
                         for par,value in history[group].items():
-                            self.run[f"training/{group}/{par}"].append(value[-1])
+                            self.run_neptune[f"training/{group}/{par}"].append(value[-1])
                             if physical_devices :
                                 # print(f"memory {tf.config.experimental.get_memory_info('GPU:0')['current']}")
-                                self.run['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
+                                self.run_neptune['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
                 if strategy in ['full_model', 'classifier_branch', 'permutation_only']:
                     # Early stopping
                     wait += 1
@@ -619,7 +611,7 @@ class Workflow:
                 time_out = time.time()
                 print(f"Strategy duration : {time_out - time_in} s")
         if self.run_file.log_neptune:
-            self.run[f"training/{group}/total_epochs"] = running_epoch
+            self.run_neptune[f"training/{group}/total_epochs"] = running_epoch
         return history
 
     def training_loop(self, history,
@@ -694,7 +686,7 @@ class Workflow:
 
         # Batch steps
         for step in range(1, n_steps + 1):
-            self.run['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
+            self.run_neptune['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
             # self.tr.print_diff()
             input_batch, output_batch = next(batch_generator)
             # X_batch, sf_batch = input_batch.values()
