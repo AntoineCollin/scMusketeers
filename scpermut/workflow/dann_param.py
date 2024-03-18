@@ -1,3 +1,4 @@
+
 class DANN_PARAM:
     def __init__(self, run_file):
         self.dann_hidden_size = run_file.dann_hidden_size

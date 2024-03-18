@@ -29,12 +29,14 @@ try:
     from .dataset import Dataset, load_dataset
     from .ae_param import AE_PARAM
     from .class_param import CLASS_PARAM
-    from .ae_param import DANN_PARAM
+    from .dann_param import DANN_PARAM
+    from . import freeze
 except ImportError:
     from workflow.dataset import Dataset, load_dataset
     from workflow.ae_param import AE_PARAM
-    from workflow.class_param import CLASS_PARAM 
-    from workflow.dann_param import DANN_PARAM
+    from workflow.class_param import CLASS_PARAM
+    from workflow.dann_param import DANN_PARAM 
+    from workflow import freeze
 
 try:
     from ..tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0
@@ -701,7 +703,7 @@ class Workflow:
         use_perm : True by default except form "warmup_dann" training strategy. Note that for training strategies that don't involve the reconstruction, this parameter has no impact on training
         '''
 
-        self.unfreeze_all(ae) # resetting freeze state
+        freeze.unfreeze_all(ae) # resetting freeze state
         if training_strategy == "full_model":
             group = 'train'
         elif training_strategy == "warmup_dann":
@@ -710,17 +712,17 @@ class Workflow:
             use_perm = False # no permutation for warming up the dann. No need to specify it in the no rec version since we don't reconstruct
         elif training_strategy == "warmup_dann_no_rec":
             group = 'full'
-            self.freeze_block(ae, 'all_but_dann')
+            freeze.freeze_block(ae, 'all_but_dann')
         elif training_strategy == "dann_with_ae":
             group = 'train'
             ae.classifier.trainable = False
             use_perm = True
         elif training_strategy == "classifier_branch":
             group = 'train'
-            self.freeze_block(ae, 'all_but_classifier_branch') # traning only classifier branch
+            freeze.freeze_block(ae, 'all_but_classifier_branch') # traning only classifier branch
         elif training_strategy == "permutation_only":
             group = 'train'
-            self.freeze_block(ae, 'all_but_autoencoder')
+            freeze.freeze_block(ae, 'all_but_autoencoder')
             use_perm = True
 
         if not use_perm:
@@ -836,43 +838,6 @@ class Workflow:
                     history[group][metric] += [PRED_METRICS_LIST[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), class_tf.argmax(axis=1))] # y_list are onehot encoded
         del inp
         return history, _, clas, dann, rec
-
-
-    def freeze_layers(self, ae, layers_to_freeze):
-        '''
-        Freezes specified layers in the model.
-
-        ae: Model to freeze layers in.
-        layers_to_freeze: List of layers to freeze.
-        '''
-        for layer in layers_to_freeze:
-            layer.trainable = False
-
-
-    def freeze_block(self, ae, strategy):
-        if strategy == "all_but_classifier_branch":
-            layers_to_freeze = [ae.dann_discriminator, ae.enc, ae.dec, ae.ae_output_layer]
-        elif strategy == "all_but_classifier":
-            layers_to_freeze = [ae.dann_discriminator, ae.dec, ae.ae_output_layer]
-        elif strategy == "all_but_dann_branch":
-            layers_to_freeze = [ae.classifier, ae.dec, ae.ae_output_layer, ae.enc]
-        elif strategy == "all_but_dann":
-            layers_to_freeze = [ae.classifier, ae.dec, ae.ae_output_layer]
-        elif strategy == "all_but_autoencoder":
-            layers_to_freeze = [ae.classifier, ae.dann_discriminator]
-        else:
-            raise ValueError("Unknown freeze strategy: " + strategy)
-
-        self.freeze_layers(ae, layers_to_freeze)
-
-
-    def freeze_all(self, ae):
-        for l in ae.layers:
-            l.trainable = False
-
-    def unfreeze_all(self, ae):
-        for l in ae.layers:
-            l.trainable = True
 
 
     def get_scheme(self):
