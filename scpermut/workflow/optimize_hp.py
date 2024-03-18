@@ -301,7 +301,7 @@ class Workflow:
             )
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
-            y_true_full = adata_list["full"].obs[f"true_{self.class_key}"]
+            y_true_full = adata_list["full"].obs[f"true_{self.run_file.class_key}"]
             ct_prop = (
                 pd.Series(y_true_full).value_counts()
                 / pd.Series(y_true_full).value_counts().sum()
@@ -356,7 +356,7 @@ class Workflow:
                     ).reshape(
                         -1,
                     )
-                    y_true = adata_list[group].obs[f"true_{self.class_key}"]
+                    y_true = adata_list[group].obs[f"true_{self.run_file.class_key}"]
                     batches = np.asarray(batch_list[group].argmax(axis=1)).reshape(
                         -1,
                     )
@@ -462,7 +462,7 @@ class Workflow:
                             obs=adata_list[group].obs,
                             var=adata_list[group].var,
                         )
-                        pred_adata.obs[f"{self.class_key}_pred"] = y_pred_df["pred"]
+                        pred_adata.obs[f"{self.run_file.class_key}_pred"] = y_pred_df["pred"]
                         pred_adata.obsm["latent_space"] = enc.numpy()
                         sc.pp.neighbors(pred_adata, use_rep="latent_space")
                         sc.tl.umap(pred_adata)
@@ -473,13 +473,13 @@ class Workflow:
                         sc.set_figure_params(figsize=(15, 10), dpi=300)
                         fig_class = sc.pl.umap(
                             pred_adata,
-                            color=f"true_{self.class_key}",
+                            color=f"true_{self.run_file.class_key}",
                             size=10,
                             return_fig=True,
                         )
                         fig_pred = sc.pl.umap(
                             pred_adata,
-                            color=f"{self.class_key}_pred",
+                            color=f"{self.run_file.class_key}_pred",
                             size=10,
                             return_fig=True,
                         )
@@ -535,7 +535,7 @@ class Workflow:
 
         return opt_metric
 
-    def train_scheme(self, training_scheme, verbose=True, **loop_params):
+    def train_scheme(self, training_scheme, verbose, **loop_params):
         """
         training scheme : dictionnary explaining the succession of strategies to use as keys with the corresponding number of epochs and use_perm as values.
                         ex :  training_scheme_3 = {"warmup_dann" : (10, False), "full_model":(10, False)}
@@ -568,7 +568,7 @@ class Workflow:
             )  # resetting optimizer state when switching strategy
             if verbose:
                 print(
-                    f"Step number {i}, running {strategy} strategy with permuation = {use_perm} for {n_epochs} epochs"
+                    f"Step number {i}, running {strategy} strategy with permutation = {use_perm} for {n_epochs} epochs"
                 )
                 time_in = time.time()
 
@@ -586,7 +586,7 @@ class Workflow:
                     es_best = -np.inf
 
             # tracker_class = ClassTracker()
-            self.tr = tracker.SummaryTracker()
+            # self.tr = tracker.SummaryTracker()
             # tracker_class.track_class(Workflow, resolution_level=3, trace=2)
             for epoch in range(1, n_epochs + 1):
                 # self.tr.print_diff()
@@ -603,43 +603,6 @@ class Workflow:
                     optimizer=optimizer,
                     **loop_params,
                 )
-                # tracker_class.create_snapshot()
-                # tracker_class.stats.print_summary()
-                # print(f"size {asizeof.asizeof(self.dann_ae)}")
-                # print(f"size {asizeof.asizeof(self.dataset)}")
-                # print(f"size {asizeof.asizeof(self.history)}")
-                # Look at workflow size
-                # attribute_dict = self.__dict__
-                # type_attributes = {}
-                # for key, value in attribute_dict.items():
-                #     type_attr = type(value)
-                #     if type_attr in type_attributes:
-                #         list_attr = type_attributes[type_attr]
-                #         list_attr.append(key)
-                #         type_attributes[type_attr] = list_attr
-                #     else:
-                #         type_attributes[type_attr] = [key]
-                # print(type_attributes.keys())
-                # import sys
-                # from pympler import asizeof
-                # size_attributes = {}
-                # for key, value in type_attributes.items():
-                #     size_of = 0
-                #     for variable in value:
-                #         size_of += asizeof.asizeof(variable)
-                #     size_attributes[key] = size_of
-                # print(size_attributes)
-                # if self.log_neptune:
-                #     for key, value in size_attributes.items():
-                #         self.run_neptune['memory/'+str(key)].append(value)
-                #         print(value)
-                # all objects
-                # all_objects = muppy.get_objects()
-                # print("allobjects "+str(len(all_objects)))
-                # my_types = muppy.filter(all_objects, Type=type)
-                # print(len(my_types))
-                # for t in my_types:
-                #     print(t)
 
                 if self.run_file.log_neptune:
                     for group in history:
@@ -763,68 +726,10 @@ class Workflow:
 
         # Batch steps
         for step in range(1, n_steps + 1):
-            self.run_neptune["training/train/tf_GPU_memory"].append(
-                tf.config.experimental.get_memory_info("GPU:0")["current"] / 1e6
-            )
-            # self.tr.print_diff()
-            input_batch, output_batch = next(batch_generator)
-            # X_batch, sf_batch = input_batch.values()
-            clas_batch, dann_batch, rec_batch = output_batch.values()
+            self.batch_step(step, ae, clas_loss_fn, dann_loss_fn, rec_loss_fn,
+                    batch_generator, training_strategy, optimizer,
+                    n_samples, n_obs)
 
-            with tf.GradientTape() as tape:
-                input_batch = {k: tf.convert_to_tensor(v) for k, v in input_batch.items()}
-                enc, clas, dann, rec = ae(input_batch, training=True).values()
-                clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
-                dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
-                rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
-                if training_strategy == "full_model":
-                    loss = tf.add_n(
-                        [self.run_file.clas_w * clas_loss]
-                        + [self.run_file.dann_w * dann_loss]
-                        + [self.run_file.rec_w * rec_loss]
-                        + ae.losses
-                    )
-                elif training_strategy == "warmup_dann":
-                    loss = tf.add_n(
-                        [self.run_file.dann_w * dann_loss]
-                        + [self.run_file.rec_w * rec_loss]
-                        + ae.losses
-                    )
-                elif training_strategy == "warmup_dann_no_rec":
-                    loss = tf.add_n([self.run_file.dann_w * dann_loss] + ae.losses)
-                elif training_strategy == "dann_with_ae":
-                    loss = tf.add_n(
-                        [self.run_file.dann_w * dann_loss]
-                        + [self.run_file.rec_w * rec_loss]
-                        + ae.losses
-                    )
-                elif training_strategy == "classifier_branch":
-                    loss = tf.add_n([self.run_file.clas_w * clas_loss] + ae.losses)
-                elif training_strategy == "permutation_only":
-                    loss = tf.add_n([self.run_file.rec_w * rec_loss] + ae.losses)
-
-            n_samples += enc.shape[0]
-            gradients = tape.gradient(loss, ae.trainable_variables)
-
-            optimizer.apply_gradients(zip(gradients, ae.trainable_variables))
-
-            """ self.mean_loss_fn(loss.__float__())
-            self.mean_clas_loss_fn(clas_loss.__float__())
-            self.mean_dann_loss_fn(dann_loss.__float__())
-            self.mean_rec_loss_fn(rec_loss.__float__()) """
-
-            if verbose:
-                print_status_bar(
-                    n_samples,
-                    n_obs,
-                    [
-                        self.mean_loss_fn,
-                        self.mean_clas_loss_fn,
-                        self.mean_dann_loss_fn,
-                        self.mean_rec_loss_fn,
-                    ],
-                    self.metrics,
-                )
 
         history, _, clas, dann, rec = self.evaluation_pass(
             history,
@@ -837,8 +742,113 @@ class Workflow:
             dann_loss_fn,
             rec_loss_fn,
         )
-        del input_batch
+        
         return history, _, clas, dann, rec
+
+
+    def batch_step(self, step, ae, clas_loss_fn, dann_loss_fn, rec_loss_fn,
+                    batch_generator, training_strategy, optimizer,
+                    n_samples, n_obs):
+        # tracker_class.create_snapshot()
+        # tracker_class.stats.print_summary()
+        # print(f"size {asizeof.asizeof(self.dann_ae)}")
+        # print(f"size {asizeof.asizeof(self.dataset)}")
+        # print(f"size {asizeof.asizeof(self.history)}")
+        # Look at workflow size
+        # attribute_dict = self.__dict__
+        # type_attributes = {}
+        # for key, value in attribute_dict.items():
+        #     type_attr = type(value)
+        #     if type_attr in type_attributes:
+        #         list_attr = type_attributes[type_attr]
+        #         list_attr.append(key)
+        #         type_attributes[type_attr] = list_attr
+        #     else:
+        #         type_attributes[type_attr] = [key]
+        # print(type_attributes.keys())
+        # import sys
+        # from pympler import asizeof
+        # size_attributes = {}
+        # for key, value in type_attributes.items():
+        #     size_of = 0
+        #     for variable in value:
+        #         size_of += asizeof.asizeof(variable)
+        #     size_attributes[key] = size_of
+        # print(size_attributes)
+        # if self.log_neptune:
+        #     for key, value in size_attributes.items():
+        #         self.run_neptune['memory/'+str(key)].append(value)
+        #         print(value)
+        # all objects
+        # all_objects = muppy.get_objects()
+        # print("allobjects "+str(len(all_objects)))
+        # my_types = muppy.filter(all_objects, Type=type)
+        # print(len(my_types))
+        # for t in my_types:
+        #     print(t)
+        self.run_neptune["training/train/tf_GPU_memory"].append(
+            tf.config.experimental.get_memory_info("GPU:0")["current"] / 1e6
+        )
+        # self.tr.print_diff()
+        input_batch, output_batch = next(batch_generator)
+        # X_batch, sf_batch = input_batch.values()
+        clas_batch, dann_batch, rec_batch = output_batch.values()
+
+        with tf.GradientTape() as tape:
+            input_batch = {k: tf.convert_to_tensor(v) for k, v in input_batch.items()}
+            enc, clas, dann, rec = ae(input_batch, training=True).values()
+            clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
+            dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
+            rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
+            if training_strategy == "full_model":
+                loss = tf.add_n(
+                    [self.run_file.clas_w * clas_loss]
+                    + [self.run_file.dann_w * dann_loss]
+                    + [self.run_file.rec_w * rec_loss]
+                    + ae.losses
+                )
+            elif training_strategy == "warmup_dann":
+                loss = tf.add_n(
+                    [self.run_file.dann_w * dann_loss]
+                    + [self.run_file.rec_w * rec_loss]
+                    + ae.losses
+                )
+            elif training_strategy == "warmup_dann_no_rec":
+                loss = tf.add_n([self.run_file.dann_w * dann_loss] + ae.losses)
+            elif training_strategy == "dann_with_ae":
+                loss = tf.add_n(
+                    [self.run_file.dann_w * dann_loss]
+                    + [self.run_file.rec_w * rec_loss]
+                    + ae.losses
+                )
+            elif training_strategy == "classifier_branch":
+                loss = tf.add_n([self.run_file.clas_w * clas_loss] + ae.losses)
+            elif training_strategy == "permutation_only":
+                loss = tf.add_n([self.run_file.rec_w * rec_loss] + ae.losses)
+
+        n_samples += enc.shape[0]
+        gradients = tape.gradient(loss, ae.trainable_variables)
+
+        optimizer.apply_gradients(zip(gradients, ae.trainable_variables))
+
+        """ self.mean_loss_fn(loss.__float__())
+        self.mean_clas_loss_fn(clas_loss.__float__())
+        self.mean_dann_loss_fn(dann_loss.__float__())
+        self.mean_rec_loss_fn(rec_loss.__float__()) """
+
+        if self.run_file.verbose:
+            print_status_bar(
+                n_samples,
+                n_obs,
+                [
+                    self.mean_loss_fn,
+                    self.mean_clas_loss_fn,
+                    self.mean_dann_loss_fn,
+                    self.mean_rec_loss_fn,
+                ],
+                self.metrics,
+            )
+
 
     def evaluation_pass(
         self,
