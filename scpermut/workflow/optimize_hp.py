@@ -120,7 +120,7 @@ def reset_keras():
 class Workflow:
     def __init__(self, run_file, working_dir):
         '''
-        run_file : a dictionary outputed by the function load_runfile
+        run_file : a dictionary outputed by the function load_run_file
         '''
         # print("NOOOOO EAGERRRRR")
         # tf.compat.v1.disable_eager_execution()
@@ -128,57 +128,19 @@ class Workflow:
         self.sess = tf.compat.v1.Session()
         self.run_file = run_file
         # dataset identifiers
-        self.dataset_name = self.run_file.dataset_name
-        self.class_key = self.run_file.class_key
-        self.batch_key = self.run_file.batch_key
-        # normalization parameters
-        self.filter_min_counts = self.run_file.filter_min_counts # TODO :remove, we always want to do that
-        self.normalize_size_factors = self.run_file.normalize_size_factors
-        self.size_factor = self.run_file.size_factor
-        self.scale_input = self.run_file.scale_input
-        self.logtrans_input = self.run_file.logtrans_input
-        self.use_hvg = self.run_file.use_hvg
-        self.batch_size = self.run_file.batch_size
-        # self.optimizer = self.run_file.optimizer
-        # self.verbose = self.run_file[model_training_spec][verbose] # TODO : not implemented yet for DANN_AE
-        # self.threads = self.run_file[model_training_spec][threads] # TODO : not implemented yet for DANN_AE
-        self.verbose = self.run_file.verbose
-        self.learning_rate = self.run_file.learning_rate
+        
         self.n_perm = 1
         self.semi_sup = False # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         
 
-        # train test split # TODO : Simplify this, or at first only use the case where data is split according to batch
-        self.test_split_key = self.run_file.test_split_key
-        self.test_obs = self.run_file.test_obs
-        self.test_index_name = self.run_file.test_index_name
-
-        self.mode = self.run_file.mode
-        self.pct_split = self.run_file.pct_split
-        self.obs_key = self.run_file.obs_key
-        self.n_keep = self.run_file.n_keep
-        self.split_strategy = self.run_file.split_strategy
-        self.keep_obs = self.run_file.keep_obs
-        self.train_test_random_seed = self.run_file.train_test_random_seed
-        # self.use_TEST = self.run_file[dataset_train_split][use_TEST] # TODO : remove, obsolete in the case of DANN_AE
-        self.obs_subsample = self.run_file.obs_subsample
-        # Create fake annotations
-        self.make_fake = self.run_file.make_fake
-        self.true_celltype = self.run_file.true_celltype
-        self.false_celltype = self.run_file.false_celltype
-        self.pct_false = self.run_file.pct_false
+        
         
         self.working_dir = working_dir
         self.data_dir = working_dir + '/data'
         
-        self.start_time = time.time()
-        self.stop_time = time.time()
         # self.runtime_path = self.result_path + '/runtime.txt'
 
-        self.run_done = False
-        self.predict_done = False
-        self.umap_done = False
 
         self.dataset = None
         self.model = None
@@ -187,14 +149,7 @@ class Workflow:
         self.training_kwds = {}
         self.network_kwds = {}
 
-        ##### TODO : Add to runfile
-
-        self.clas_loss_name = self.run_file.clas_loss_name
-        self.clas_loss_name = default_value(self.clas_loss_name, 'MSE')
-        self.dann_loss_name = self.run_file.dann_loss_name
-        self.dann_loss_name = default_value(self.dann_loss_name ,'categorical_crossentropy')
-        self.rec_loss_name = self.run_file.rec_loss_name
-        self.rec_loss_name = default_value(self.rec_loss_name , 'categorical_crossentropy')
+        ##### TODO : Add to run_file
 
         self.clas_loss_fn = None
         self.dann_loss_fn = None
@@ -202,21 +157,11 @@ class Workflow:
 
         # self.weight_decay = self.run_file.weight_decay
         self.weight_decay = None
-        self.optimizer_type = self.run_file.optimizer_type
-        self.optimizer_type = default_value(self.optimizer_type , 'adam')
 
-        self.clas_w = self.run_file.clas_w
-        self.dann_w = self.run_file.dann_w
-        self.rec_w = self.run_file.rec_w
-        self.warmup_epoch = self.run_file.warmup_epoch
 
         self.num_classes = None
         self.num_batches = None
 
-        self.dropout =  self.run_file.dropout # alternate way to give dropout
-        self.layer1 = self.run_file.layer1 # alternate way to give model dimensions
-        self.layer2 =  self.run_file.layer2
-        self.bottleneck = self.run_file.bottleneck
 
         self.ae_param = AE_PARAM(run_file)
         self.class_param = CLASS_PARAM(run_file)
@@ -232,78 +177,78 @@ class Workflow:
         self.mean_dann_loss_fn = keras.metrics.Mean(name='dann_loss')
         self.mean_rec_loss_fn = keras.metrics.Mean(name='reconstructionloss')
 
-        self.training_scheme = self.run_file.training_scheme
-
-        self.log_neptune = self.run_file.log_neptune
         self.run = None
 
-        self.hparam_path = self.run_file.hparam_path
         self.hp_params = None
-        self.opt_metric = self.run_file.opt_metric
         
+
     def set_hyperparameters(self, params):
         
         # print(params)
-        self.use_hvg = params['use_hvg']
-        self.batch_size = params['batch_size']
-        self.clas_w =  params['clas_w']
-        self.dann_w = params['dann_w']
-        self.rec_w =  params['rec_w']
+        self.run_file.use_hvg = params['use_hvg']
+        self.run_file.batch_size = params['batch_size']
+        self.run_file.clas_w =  params['clas_w']
+        self.run_file.dann_w = params['dann_w']
+        self.run_file.rec_w =  params['rec_w']
         self.ae_param.ae_bottleneck_activation = params['ae_bottleneck_activation']
-        self.size_factor = params['size_factor']
-        self.weight_decay =  params['weight_decay']
-        self.learning_rate = params['learning_rate']
-        self.warmup_epoch =  params['warmup_epoch']
-        self.dropout =  params['dropout']
-        self.layer1 = params['layer1']
-        self.layer2 =  params['layer2']
-        self.bottleneck = params['bottleneck']
-        self.hp_params = params
+        self.run_file.size_factor = params['size_factor']
+        self.run_file.weight_decay =  params['weight_decay']
+        self.run_file.learning_rate = params['learning_rate']
+        self.run_file.warmup_epoch =  params['warmup_epoch']
+        self.run_file.dropout =  params['dropout']
+        self.run_file.layer1 = params['layer1']
+        self.run_file.layer2 =  params['layer2']
+        self.run_file.bottleneck = params['bottleneck']
+        self.run_file.hp_params = params
             
     
     def process_dataset(self):
         # Loading dataset
         adata = load_dataset(dataset_dir = self.data_dir,
-                               dataset_name = self.dataset_name)
+                               dataset_name = self.run_file.dataset_name)
         
         self.dataset = Dataset(adata = adata,
-                               class_key = self.class_key,
-                               batch_key= self.batch_key,
-                               filter_min_counts = self.filter_min_counts,
-                               normalize_size_factors = self.normalize_size_factors,
-                               size_factor = self.size_factor,
-                               scale_input = self.scale_input,
-                               logtrans_input = self.logtrans_input,
-                               use_hvg = self.use_hvg,
-                               test_split_key= self.test_split_key,
+                               class_key = self.run_file.class_key,
+                               batch_key= self.run_file.batch_key,
+                               filter_min_counts = self.run_file.filter_min_counts,
+                               normalize_size_factors = self.run_file.normalize_size_factors,
+                               size_factor = self.run_file.size_factor,
+                               scale_input = self.run_file.scale_input,
+                               logtrans_input = self.run_file.logtrans_input,
+                               use_hvg = self.run_file.use_hvg,
+                               test_split_key= self.run_file.test_split_key,
                                unlabeled_category = self.unlabeled_category)
         
         # Processing dataset. Splitting train/test. 
         self.dataset.normalize()
         
     def split_train_test(self):
-        self.dataset.test_split(test_obs = self.test_obs, test_index_name = self.test_index_name)
+        self.dataset.test_split(test_obs = self.run_file.test_obs, test_index_name = self.run_file.test_index_name)
     
     def split_train_val(self):
-        self.dataset.train_split(mode = self.mode,
-                            pct_split = self.pct_split,
-                            obs_key = self.obs_key,
-                            n_keep = self.n_keep,
-                            keep_obs = self.keep_obs,
-                            split_strategy = self.split_strategy,
-                            obs_subsample = self.obs_subsample,
-                            train_test_random_seed = self.train_test_random_seed)
+        self.dataset.train_split(mode = self.run_file.mode,
+                            pct_split = self.run_file.pct_split,
+                            obs_key = self.run_file.obs_key,
+                            n_keep = self.run_file.n_keep,
+                            keep_obs = self.run_file.keep_obs,
+                            split_strategy = self.run_file.split_strategy,
+                            obs_subsample = self.run_file.obs_subsample,
+                            train_test_random_seed = self.run_file.train_test_random_seed)
     
         print('dataset has been preprocessed')
         self.dataset.create_inputs()
         
 
     def make_experiment(self):
-        if self.layer1 :
-            self.ae_param.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer2, self.layer1]
+        if self.run_file.layer1 :
+            self.ae_param.ae_hidden_size = [self.run_file.layer1, self.run_file.layer2, 
+                                            self.run_file.bottleneck, self.run_file.layer2, 
+                                            self.run_file.layer1]
 
-        if self.dropout:
-            self.dann_param.dann_hidden_dropout, self.class_param.class_hidden_dropout, self.ae_param.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
+        if self.run_file.dropout:
+            self.dann_param.dann_hidden_dropout, self.class_param.class_hidden_dropout, 
+            self.ae_param.ae_hidden_dropout = self.run_file.dropout, 
+            self.run_file.dropout, self.run_file.dropout
         
         adata_list = {'full': self.dataset.adata,
                       'train': self.dataset.adata_train,
@@ -363,7 +308,7 @@ class Workflow:
                         dann_activation=self.dann_param.dann_activation,
                         dann_output_activation=self.dann_param.dann_output_activation)
 
-        self.optimizer = self.get_optimizer(self.learning_rate, self.weight_decay, self.optimizer_type)
+        self.optimizer = self.get_optimizer(self.run_file.learning_rate, self.weight_decay, self.run_file.optimizer_type)
         self.rec_loss_fn, self.clas_loss_fn, self.dann_loss_fn = self.get_losses() # redundant
         self.training_scheme = self.get_scheme()
         start_time = time.time()
@@ -382,10 +327,10 @@ class Workflow:
                                      dann_loss_fn = self.dann_loss_fn,
                                      rec_loss_fn = self.rec_loss_fn)
         stop_time = time.time()
-        if self.log_neptune :
+        if self.run_file.log_neptune :
             self.run['evaluation/training_time'] = stop_time - start_time
         # TODO also make it on gpu with smaller batch size
-        if self.log_neptune:
+        if self.run_file.log_neptune:
             neptune_run_id = self.run['sys/id'].fetch()
             save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
             if not os.path.exists(save_dir):
@@ -569,7 +514,7 @@ class Workflow:
         running_epoch = 0
 
         for (strategy, n_epochs, use_perm) in training_scheme:
-            optimizer = self.get_optimizer(self.learning_rate, self.weight_decay, self.optimizer_type) # resetting optimizer state when switching strategy
+            optimizer = self.get_optimizer(self.run_file.learning_rate, self.weight_decay, self.run_file.optimizer_type) # resetting optimizer state when switching strategy
             if verbose :
                 print(f"Step number {i}, running {strategy} strategy with permuation = {use_perm} for {n_epochs} epochs")
                 time_in = time.time()
@@ -640,7 +585,7 @@ class Workflow:
                 # for t in my_types:
                 #     print(t)
 
-                if self.log_neptune:
+                if self.run_file.log_neptune:
                     for group in history:
                         for par,value in history[group].items():
                             self.run[f"training/{group}/{par}"].append(value[-1])
@@ -673,7 +618,7 @@ class Workflow:
             if verbose:
                 time_out = time.time()
                 print(f"Strategy duration : {time_out - time_in} s")
-        if self.log_neptune:
+        if self.run_file.log_neptune:
             self.run[f"training/{group}/total_epochs"] = running_epoch
         return history
 
@@ -733,11 +678,11 @@ class Workflow:
                                                             batch_ID = batch_list[group],
                                                             sf = adata_list[group].obs['size_factors'],                    
                                                             ret_input_only=False,
-                                                            batch_size=self.batch_size,
+                                                            batch_size=self.run_file.batch_size,
                                                             n_perm=1, 
                                                             use_perm=use_perm)
         n_obs = adata_list[group].n_obs
-        steps = n_obs // self.batch_size + 1
+        steps = n_obs // self.run_file.batch_size + 1
         n_steps = steps
         n_samples = 0
 
@@ -762,17 +707,19 @@ class Workflow:
                 dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
                 rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
                 if training_strategy == "full_model":
-                    loss = tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses)
+                    loss = tf.add_n([self.run_file.clas_w * clas_loss] + 
+                                    [self.run_file.dann_w * dann_loss] + [self.run_file.rec_w * rec_loss] + ae.losses)
                 elif training_strategy == "warmup_dann":
-                    loss = tf.add_n([self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses)
+                    loss = tf.add_n([self.run_file.dann_w * dann_loss] + 
+                                    [self.run_file.rec_w * rec_loss] + ae.losses)
                 elif training_strategy == "warmup_dann_no_rec":
-                    loss = tf.add_n([self.dann_w * dann_loss] + ae.losses)
+                    loss = tf.add_n([self.run_file.dann_w * dann_loss] + ae.losses)
                 elif training_strategy == "dann_with_ae":
-                    loss = tf.add_n([self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses)
+                    loss = tf.add_n([self.run_file.dann_w * dann_loss] + [self.run_file.rec_w * rec_loss] + ae.losses)
                 elif training_strategy == "classifier_branch":
-                    loss = tf.add_n([self.clas_w * clas_loss] + ae.losses)
+                    loss = tf.add_n([self.run_file.clas_w * clas_loss] + ae.losses)
                 elif training_strategy == "permutation_only":
-                    loss = tf.add_n([self.rec_w * rec_loss] + ae.losses)
+                    loss = tf.add_n([self.run_file.rec_w * rec_loss] + ae.losses)
                 
             n_samples += enc.shape[0]
             gradients = tape.gradient(loss, ae.trainable_variables)
@@ -817,7 +764,8 @@ class Workflow:
                 history[group]['dann_loss'] += [dann_loss]
                 rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group], rec)).numpy()
                 history[group]['rec_loss'] += [rec_loss] """
-                history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + ae.losses] # using numpy to prevent memory leaks
+                history[group]['total_loss'] += [self.run_file.clas_w * clas_loss + self.run_file.dann_w * dann_loss 
+                                                 + self.run_file.rec_w * rec_loss + ae.losses] # using numpy to prevent memory leaks
                 # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
 
                 # In Eager Mode
@@ -841,35 +789,35 @@ class Workflow:
 
 
     def get_scheme(self):
-        if self.training_scheme == 'training_scheme_1':
-            self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
+        if self.run_file.training_scheme == 'training_scheme_1':
+            self.run_file.training_scheme = [("warmup_dann", self.run_file.warmup_epoch, False),
                                   ("full_model", 100, False)] # This will end with a callback
-        if self.training_scheme == 'training_scheme_2':
-            self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
+        if self.run_file.training_scheme == 'training_scheme_2':
+            self.run_file.training_scheme = [("warmup_dann", self.run_file.warmup_epoch, False),
                                 ("permutation_only", 100, True),  # This will end with a callback
                                 ("classifier_branch", 50, False)] # This will end with a callback
-        if self.training_scheme == 'training_scheme_3':
-            self.training_scheme = [("permutation_only", 100, True),  # This will end with a callback
+        if self.run_file.training_scheme == 'training_scheme_3':
+            self.run_file.training_scheme = [("permutation_only", 100, True),  # This will end with a callback
                                 ("classifier_branch", 50, False)]
-        return self.training_scheme
+        return self.run_file.training_scheme
 
 
 
     def get_losses(self):
-        if self.rec_loss_name == 'MSE':
+        if self.run_file.rec_loss_name == 'MSE':
             self.rec_loss_fn = tf.keras.losses.mean_squared_error
         else:
-            print(self.rec_loss_name + ' loss not supported for rec')
+            print(self.run_file.rec_loss_name + ' loss not supported for rec')
 
-        if self.clas_loss_name == 'categorical_crossentropy':
+        if self.run_file.clas_loss_name == 'categorical_crossentropy':
             self.clas_loss_fn = tf.keras.losses.categorical_crossentropy
         else:
-            print(self.clas_loss_name + ' loss not supported for classif')
+            print(self.run_file.clas_loss_name + ' loss not supported for classif')
         
-        if self.dann_loss_name == 'categorical_crossentropy':
+        if self.run_file.dann_loss_name == 'categorical_crossentropy':
             self.dann_loss_fn = tf.keras.losses.categorical_crossentropy
         else:
-            print(self.dann_loss_name + ' loss not supported for dann')
+            print(self.run_file.dann_loss_name + ' loss not supported for dann')
         return self.rec_loss_fn,self.clas_loss_fn,self.dann_loss_fn
 
 

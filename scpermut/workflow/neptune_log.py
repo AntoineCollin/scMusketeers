@@ -7,7 +7,7 @@ except ImportError:
 
 
 def start_neptune_log(workflow : Workflow):
-        if workflow.log_neptune :
+        if workflow.run_file.log_neptune :
             # self.run = neptune.init_run(
             #         project="becavin-lab/benchmark",
             #         api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
