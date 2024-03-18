@@ -1,6 +1,9 @@
 from workflow.optimize_hp import *
-from tools.runfile import get_runfile
-from tools.runfile import PROCESS_TYPE
+from scpermut.workflow.runfile import get_runfile
+from scpermut.workflow.runfile import PROCESS_TYPE
+
+from scpermut.workflow.neptune_log import start_neptune_log, stop_neptune_log
+
 
 # JSON_PATH_DEFAULT = '/home/acollin/scPermut/experiment_script/hp_ranges/'
 JSON_PATH_DEFAULT = '/home/becavin/scPermut/experiment_script/hp_ranges/'
@@ -59,7 +62,7 @@ class MakeExperiment:
         if result.empty or pd.isna(result.loc[:,f'evaluation/{split}/{metric}'].iloc[0]): # we run the trial
             self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
             self.workflow.set_hyperparameters(params)
-            self.workflow.start_neptune_log()
+            start_neptune_log(self.workflow)
             self.workflow.process_dataset()
             self.workflow.split_train_test()
             self.workflow.split_train_val()
@@ -69,7 +72,7 @@ class MakeExperiment:
             self.workflow.add_custom_log('hp_random_seed', random_seed)
             self.workflow.add_custom_log('trial_count', self.trial_count)
             self.workflow.add_custom_log('opt_metric', self.run_file.opt_metric)
-            self.workflow.stop_neptune_log()
+            stop_neptune_log(workflow)
             # del self.workflow  # Should not be necessary
             return opt_metric
         else: # we return the already computed value
@@ -84,12 +87,12 @@ if __name__ == '__main__':
         # Single training
         print(run_file.dataset_name, run_file.class_key, run_file.batch_key)
         workflow = Workflow(run_file=run_file, working_dir=run_file.working_dir)
-        workflow.start_neptune_log()
+        start_neptune_log(workflow)
         workflow.process_dataset()
         workflow.split_train_test()
         workflow.split_train_val()
         mcc = workflow.make_experiment()
-        workflow.stop_neptune_log()
+        stop_neptune_log(workflow)
     
     elif run_file.process == PROCESS_TYPE[1]:
         # Hyperparameter optimization

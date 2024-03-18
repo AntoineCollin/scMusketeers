@@ -22,15 +22,12 @@ from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef, f1_score,
 
 import argparse
 import functools
-
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 try:
     from .dataset import Dataset, load_dataset
-    from .ae_param import AE_PARAM
 except ImportError:
     from workflow.dataset import Dataset, load_dataset
-    from workflow.ae_param import AE_PARAM 
 
 try:
     from ..tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0
@@ -68,28 +65,7 @@ from ax.service.managed_loop import optimize
 physical_devices = tf.config.list_physical_devices('GPU')
 for gpu_instance in physical_devices:
     tf.config.experimental.set_memory_growth(gpu_instance, True)
-
-
-PRED_METRICS_LIST = {'acc' : accuracy_score, 
-                    'mcc' : matthews_corrcoef,
-                    'f1_score': f1_score,
-                    'KPA' : cohen_kappa_score,
-                    'ARI': adjusted_rand_score,
-                    'NMI': normalized_mutual_info_score,
-                    'AMI':adjusted_mutual_info_score}
-
-PRED_METRICS_LIST_BALANCED = {'balanced_acc' : balanced_accuracy_score, 
-                            'balanced_mcc' : balanced_matthews_corrcoef,
-                            'balanced_f1_score': balanced_f1_score,
-                            'balanced_KPA' : balanced_cohen_kappa_score,
-                            }
-
-CLUSTERING_METRICS_LIST = {'db_score' : davies_bouldin_score} #'clisi' : lisi_avg
-
-BATCH_METRICS_LIST = {'batch_mixing_entropy': batch_entropy_mixing_score}
-
-
-
+    
 # Reset Keras Session
 def reset_keras():
     sess = tf.compat.v1.keras.backend.get_session()
@@ -207,12 +183,30 @@ class Workflow:
         self.num_classes = None
         self.num_batches = None
 
+        self.ae_hidden_size = self.run_file.ae_hidden_size
+        self.ae_hidden_size = default_value(self.ae_hidden_size , (128,64,128))
+        self.ae_hidden_dropout = self.run_file.ae_hidden_dropout
+
         self.dropout =  self.run_file.dropout # alternate way to give dropout
         self.layer1 = self.run_file.layer1 # alternate way to give model dimensions
         self.layer2 =  self.run_file.layer2
         self.bottleneck = self.run_file.bottleneck
 
-        self.ae_param = AE_PARAM(run_file)
+        # self.ae_hidden_dropout = default_value(self.ae_hidden_dropout , None)
+        self.ae_activation = self.run_file.ae_activation
+        self.ae_activation = default_value(self.ae_activation , "relu")
+        self.ae_bottleneck_activation = self.run_file.ae_bottleneck_activation
+        self.ae_bottleneck_activation = default_value(self.ae_bottleneck_activation , "linear")
+        self.ae_output_activation = self.run_file.ae_output_activation
+        self.ae_output_activation = default_value(self.ae_output_activation , "relu")
+        self.ae_init = self.run_file.ae_init
+        self.ae_init = default_value(self.ae_init , 'glorot_uniform')
+        self.ae_batchnorm = self.run_file.ae_batchnorm
+        self.ae_batchnorm = default_value(self.ae_batchnorm , True)
+        self.ae_l1_enc_coef = self.run_file.ae_l1_enc_coef
+        self.ae_l1_enc_coef = default_value(self.ae_l1_enc_coef , 0)
+        self.ae_l2_enc_coef = self.run_file.ae_l2_enc_coef
+        self.ae_l2_enc_coef = default_value(self.ae_l2_enc_coef , 0)
 
         # 
         self.class_hidden_size = self.run_file.class_hidden_size
@@ -237,7 +231,27 @@ class Workflow:
 
         self.dann_ae = None
 
-        
+        self.pred_metrics_list = {'acc' : accuracy_score, 
+                            'mcc' : matthews_corrcoef,
+                            'f1_score': f1_score,
+                            'KPA' : cohen_kappa_score,
+                            'ARI': adjusted_rand_score,
+                            'NMI': normalized_mutual_info_score,
+                            'AMI':adjusted_mutual_info_score}
+
+        self.pred_metrics_list_balanced = {'balanced_acc' : balanced_accuracy_score, 
+                            'balanced_mcc' : balanced_matthews_corrcoef,
+                            'balanced_f1_score': balanced_f1_score,
+                            'balanced_KPA' : balanced_cohen_kappa_score,
+                            }
+
+        self.clustering_metrics_list = {#'clisi' : lisi_avg, 
+                                    'db_score' : davies_bouldin_score
+                                    }
+
+        self.batch_metrics_list = {'batch_mixing_entropy': batch_entropy_mixing_score,
+                            #'ilisi': lisi_avg
+                            }
         self.metrics = []
 
         self.mean_loss_fn = keras.metrics.Mean(name='total_loss') # This is a running average : it keeps the previous values in memory when it's called ie computes the previous and current values
@@ -262,7 +276,7 @@ class Workflow:
         self.clas_w =  params['clas_w']
         self.dann_w = params['dann_w']
         self.rec_w =  params['rec_w']
-        self.ae_param.ae_bottleneck_activation = params['ae_bottleneck_activation']
+        self.ae_bottleneck_activation = params['ae_bottleneck_activation']
         self.size_factor = params['size_factor']
         self.weight_decay =  params['weight_decay']
         self.learning_rate = params['learning_rate']
@@ -273,7 +287,29 @@ class Workflow:
         self.bottleneck = params['bottleneck']
         self.hp_params = params
             
-    
+    def start_neptune_log(self):
+        if self.log_neptune :
+            # self.run = neptune.init_run(
+            #         project="becavin-lab/benchmark",
+            #         api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
+            # )
+            self.run = neptune.init_run(
+                    project="sc-permut-packaging",
+                    api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI1Zjg5NGJkNC00ZmRkLTQ2NjctODhmYy0zZDAzYzM5ZTgxOTAifQ==",
+            )
+            self.run[f"parameters/model"] = "scPermut"
+            for par,val in self.run_file.__dict__.items():
+                self.run[f"parameters/{par}"] = stringify_unsupported(getattr(self, par))
+            if self.hp_params: # Overwrites the defaults arguments contained in the runfile
+                for par,val in self.hp_params.items():
+                    self.run[f"parameters/{par}"] = stringify_unsupported(val)
+
+    def add_custom_log(self, name, value):
+        self.run[f"parameters/{name}"] = stringify_unsupported(value)
+
+    def stop_neptune_log(self):
+        self.run.stop()
+
     def process_dataset(self):
         # Loading dataset
         adata = load_dataset(dataset_dir = self.data_dir,
@@ -313,10 +349,10 @@ class Workflow:
 
     def make_experiment(self):
         if self.layer1 :
-            self.ae_param.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer2, self.layer1]
+            self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer2, self.layer1]
 
         if self.dropout:
-            self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_param.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
+            self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
         
         adata_list = {'full': self.dataset.adata,
                       'train': self.dataset.adata_train,
@@ -346,22 +382,22 @@ class Workflow:
         self.num_classes = len(np.unique(self.dataset.y_train))
         self.num_batches = len(np.unique(self.dataset.batch))
 
-        bottleneck_size = int(self.ae_param.ae_hidden_size[int(len(self.ae_param.ae_hidden_size)/2)])
+        bottleneck_size = int(self.ae_hidden_size[int(len(self.ae_hidden_size)/2)])
 
         self.class_hidden_size = default_value(self.class_hidden_size , (bottleneck_size + self.num_classes)/2) # default value [(bottleneck_size + num_classes)/2]
         self.dann_hidden_size = default_value(self.dann_hidden_size , (bottleneck_size + self.num_batches)/2) # default value [(bottleneck_size + num_batches)/2]
 
 
         # Creation of model
-        self.dann_ae = DANN_AE(ae_hidden_size=self.ae_param.ae_hidden_size, 
-                        ae_hidden_dropout=self.ae_param.ae_hidden_dropout,
-                        ae_activation=self.ae_param.ae_activation,
-                        ae_output_activation=self.ae_param.ae_output_activation,
-                        ae_bottleneck_activation=self.ae_param.ae_bottleneck_activation,
-                        ae_init=self.ae_param.ae_init,
-                        ae_batchnorm=self.ae_param.ae_batchnorm,
-                        ae_l1_enc_coef=self.ae_param.ae_l1_enc_coef,
-                        ae_l2_enc_coef=self.ae_param.ae_l2_enc_coef,
+        self.dann_ae = DANN_AE(ae_hidden_size=self.ae_hidden_size, 
+                        ae_hidden_dropout=self.ae_hidden_dropout,
+                        ae_activation=self.ae_activation,
+                        ae_output_activation=self.ae_output_activation,
+                        ae_bottleneck_activation=self.ae_bottleneck_activation,
+                        ae_init=self.ae_init,
+                        ae_batchnorm=self.ae_batchnorm,
+                        ae_l1_enc_coef=self.ae_l1_enc_coef,
+                        ae_l2_enc_coef=self.ae_l2_enc_coef,
                         num_classes=self.num_classes,
                         class_hidden_size=self.class_hidden_size,
                         class_hidden_dropout=self.class_hidden_dropout,
@@ -465,16 +501,16 @@ class Workflow:
                     
                     # Computing batch mixing metrics
                     if len(np.unique(np.asarray(batch_list[group].argmax(axis=1)))) >= 2: # If there are more than 2 batches in this group
-                        for metric in BATCH_METRICS_LIST:
-                            self.run[f'evaluation/{group}/{metric}'] = BATCH_METRICS_LIST[metric](enc, batches)
+                        for metric in self.batch_metrics_list:
+                            self.run[f'evaluation/{group}/{metric}'] = self.batch_metrics_list[metric](enc, batches)
                             print(type(self.batch_metrics_list[metric](enc, batches)))
                             
                     # Computing classification metrics
-                    for metric in PRED_METRICS_LIST: 
-                        self.run[f"evaluation/{group}/{metric}"] = BATCH_METRICS_LIST[metric](y_true, y_pred)
+                    for metric in self.pred_metrics_list: 
+                        self.run[f"evaluation/{group}/{metric}"] = self.pred_metrics_list[metric](y_true, y_pred)
 
-                    for metric in PRED_METRICS_LIST_BALANCED: 
-                        self.run[f"evaluation/{group}/{metric}"] = PRED_METRICS_LIST_BALANCED[metric](y_true, y_pred)
+                    for metric in self.pred_metrics_list_balanced: 
+                        self.run[f"evaluation/{group}/{metric}"] = self.pred_metrics_list_balanced[metric](y_true, y_pred)
                     
                     # Metrics by size of ct
                     for s in sizes : 
@@ -482,16 +518,16 @@ class Workflow:
                         y_true_sub = y_true[idx_s]
                         y_pred_sub = y_pred[idx_s]
                         # print(s)
-                        for metric in PRED_METRICS_LIST: 
-                            self.run[f"evaluation/{group}/{s}/{metric}"] = nan_to_0(PRED_METRICS_LIST[metric](y_true_sub, y_pred_sub))
+                        for metric in self.pred_metrics_list: 
+                            self.run[f"evaluation/{group}/{s}/{metric}"] = nan_to_0(self.pred_metrics_list[metric](y_true_sub, y_pred_sub))
                         
-                        for metric in PRED_METRICS_LIST_BALANCED:
-                            self.run[f"evaluation/{group}/{s}/{metric}"] = nan_to_0(PRED_METRICS_LIST_BALANCED[metric](y_true_sub, y_pred_sub))
+                        for metric in self.pred_metrics_list_balanced:
+                            self.run[f"evaluation/{group}/{s}/{metric}"] = nan_to_0(self.pred_metrics_list_balanced[metric](y_true_sub, y_pred_sub))
 
 
                     # Computing clustering metrics
-                    for metric in CLUSTERING_METRICS_LIST:
-                        self.run[f"evaluation/{group}/{metric}"] = CLUSTERING_METRICS_LIST[metric](enc, y_pred)
+                    for metric in self.clustering_metrics_list:
+                        self.run[f"evaluation/{group}/{metric}"] = self.clustering_metrics_list[metric](enc, y_pred)
                         
                     if group == 'full':
                         y_pred_df = pd.DataFrame({'pred':y_pred, 'true':y_true, 'split':split}, index = adata_list[group].obs_names)
@@ -555,7 +591,8 @@ class Workflow:
 
         return opt_metric
 
-    def train_scheme(self, training_scheme,
+    def train_scheme(self,
+                    training_scheme,
                     verbose = True ,
                     **loop_params):
         """
@@ -568,7 +605,7 @@ class Workflow:
                             'clas_loss':[],
                             'dann_loss':[],
                             'rec_loss':[]}
-            for m in PRED_METRICS_LIST:
+            for m in self.pred_metrics_list:
                 history[group][m] = []
 
         # if self.log_neptune:
@@ -846,10 +883,52 @@ class Workflow:
                 class_tf = np.eye(clas.shape[1])[numpy_argmax]
                 
                 # clas = tf.eye(clas.shape[1])[tf.math.argmax(clas, axis=0)]
-                for metric in PRED_METRICS_LIST: # only classification metrics ATM
-                    history[group][metric] += [PRED_METRICS_LIST[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), class_tf.argmax(axis=1))] # y_list are onehot encoded
+                for metric in self.pred_metrics_list: # only classification metrics ATM
+                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), class_tf.argmax(axis=1))] # y_list are onehot encoded
         del inp
         return history, _, clas, dann, rec
+
+    # def evaluation_pass_gpu(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn):
+    #     '''
+    #     evaluate model and logs metrics. Depending on "on parameter, computes it on train and val or train,val and test.
+
+    #     on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
+    #     '''
+    #     for group in ['train', 'val']: # evaluation round
+    #         # inp = scanpy_to_input(adata_list[group],['size_factors'])
+    #         batch_generator = batch_generator_training_permuted(X = X_list[group],
+    #                                                 y = y_list[group],
+    #                                                 batch_ID = batch_list[group],
+    #                                                 sf = adata_list[group].obs['size_factors'],                    
+    #                                                 ret_input_only=False,
+    #                                                 batch_size=self.batch_size,
+    #                                                 n_perm=1, 
+    #                                                 use_perm=use_perm)
+    #         n_obs = adata_list[group].n_obs
+    #         steps = n_obs // self.batch_size + 1
+    #         n_steps = steps
+    #         n_samples = 0
+
+    #         clas_batch, dann_batch, rec_batch = output_batch.values()
+
+    #         with tf.GradientTape() as tape:
+    #             input_batch = {k:tf.convert_to_tensor(v) for k,v in input_batch.items()}
+    #             enc, clas, dann, rec = ae(input_batch, training=True).values()
+    #             clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas)).numpy()
+    #             dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann)).numpy()
+    #             rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec)).numpy()
+    #     #         return _, clas, dann, rec
+    #             history[group]['clas_loss'] += [clas_loss]
+    #             history[group]['dann_loss'] += [dann_loss]
+    #             history[group]['rec_loss'] += [rec_loss]
+    #             history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
+    #             # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
+
+    #             clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+    #             for metric in self.pred_metrics_list: # only classification metrics ATM
+    #                 history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))] # y_list are onehot encoded
+    #     del inp
+    #     return history, _, clas, dann, rec
 
 
     def freeze_layers(self, ae, layers_to_freeze):

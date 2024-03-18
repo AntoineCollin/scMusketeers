@@ -1,5 +1,5 @@
 from workflow.hyperparameters import Workflow
-from tools import runfile
+from scpermut.workflow import runfile
 
 
 if __name__ == '__main__':
