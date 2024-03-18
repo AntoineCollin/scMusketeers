@@ -28,9 +28,13 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 try:
     from .dataset import Dataset, load_dataset
     from .ae_param import AE_PARAM
+    from .class_param import CLASS_PARAM
+    from .ae_param import DANN_PARAM
 except ImportError:
     from workflow.dataset import Dataset, load_dataset
-    from workflow.ae_param import AE_PARAM 
+    from workflow.ae_param import AE_PARAM
+    from workflow.class_param import CLASS_PARAM 
+    from workflow.dann_param import DANN_PARAM
 
 try:
     from ..tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0
@@ -213,28 +217,9 @@ class Workflow:
         self.bottleneck = self.run_file.bottleneck
 
         self.ae_param = AE_PARAM(run_file)
-
-        # 
-        self.class_hidden_size = self.run_file.class_hidden_size
-        self.class_hidden_size = default_value(self.class_hidden_size , None) # default value will be initialize as [(bottleneck_size + num_classes)/2] once we'll know num_classes
-        self.class_hidden_dropout = self.run_file.class_hidden_dropout
-        self.class_batchnorm = self.run_file.class_batchnorm
-        self.class_batchnorm = default_value(self.class_batchnorm , True)
-        self.class_activation = self.run_file.class_activation
-        self.class_activation = default_value(self.class_activation , 'relu')
-        self.class_output_activation = self.run_file.class_output_activation
-        self.class_output_activation = default_value(self.class_output_activation , 'softmax')
-
-        self.dann_hidden_size = self.run_file.dann_hidden_size
-        self.dann_hidden_size = default_value(self.dann_hidden_size , None) # default value will be initialize as [(bottleneck_size + num_batches)/2] once we'll know num_classes
-        self.dann_hidden_dropout = self.run_file.dann_hidden_dropout
-        self.dann_batchnorm = self.run_file.dann_batchnorm
-        self.dann_batchnorm = default_value(self.dann_batchnorm , True)
-        self.dann_activation = self.run_file.dann_activation
-        self.dann_activation = default_value(self.dann_activation , 'relu')
-        self.dann_output_activation =  self.run_file.dann_output_activation
-        self.dann_output_activation = default_value(self.dann_output_activation , 'softmax')
-
+        self.class_param = CLASS_PARAM(run_file)
+        self.dann_param = DANN_PARAM(run_file)
+    
         self.dann_ae = None
 
         
@@ -316,7 +301,7 @@ class Workflow:
             self.ae_param.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer2, self.layer1]
 
         if self.dropout:
-            self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_param.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
+            self.dann_param.dann_hidden_dropout, self.class_param.class_hidden_dropout, self.ae_param.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
         
         adata_list = {'full': self.dataset.adata,
                       'train': self.dataset.adata_train,
@@ -348,11 +333,12 @@ class Workflow:
 
         bottleneck_size = int(self.ae_param.ae_hidden_size[int(len(self.ae_param.ae_hidden_size)/2)])
 
-        self.class_hidden_size = default_value(self.class_hidden_size , (bottleneck_size + self.num_classes)/2) # default value [(bottleneck_size + num_classes)/2]
-        self.dann_hidden_size = default_value(self.dann_hidden_size , (bottleneck_size + self.num_batches)/2) # default value [(bottleneck_size + num_batches)/2]
+        self.class_param.class_hidden_size = default_value(self.class_param.class_hidden_size , (bottleneck_size + self.num_classes)/2) # default value [(bottleneck_size + num_classes)/2]
+        self.dann_param.dann_hidden_size = default_value(self.dann_param.dann_hidden_size , (bottleneck_size + self.num_batches)/2) # default value [(bottleneck_size + num_batches)/2]
 
 
         # Creation of model
+        ######## TO DO fix params with AE_PARAM, DANN_PARAM and CLASS_PARAM
         self.dann_ae = DANN_AE(ae_hidden_size=self.ae_param.ae_hidden_size, 
                         ae_hidden_dropout=self.ae_param.ae_hidden_dropout,
                         ae_activation=self.ae_param.ae_activation,
@@ -363,17 +349,17 @@ class Workflow:
                         ae_l1_enc_coef=self.ae_param.ae_l1_enc_coef,
                         ae_l2_enc_coef=self.ae_param.ae_l2_enc_coef,
                         num_classes=self.num_classes,
-                        class_hidden_size=self.class_hidden_size,
-                        class_hidden_dropout=self.class_hidden_dropout,
-                        class_batchnorm=self.class_batchnorm,
-                        class_activation=self.class_activation,
-                        class_output_activation=self.class_output_activation,
+                        class_hidden_size=self.class_param.class_hidden_size,
+                        class_hidden_dropout=self.class_param.class_hidden_dropout,
+                        class_batchnorm=self.class_param.class_batchnorm,
+                        class_activation=self.class_param.class_activation,
+                        class_output_activation=self.class_param.class_output_activation,
                         num_batches=self.num_batches,
-                        dann_hidden_size=self.dann_hidden_size,
-                        dann_hidden_dropout=self.dann_hidden_dropout,
-                        dann_batchnorm=self.dann_batchnorm,
-                        dann_activation=self.dann_activation,
-                        dann_output_activation=self.dann_output_activation)
+                        dann_hidden_size=self.dann_param.dann_hidden_size,
+                        dann_hidden_dropout=self.dann_param.dann_hidden_dropout,
+                        dann_batchnorm=self.dann_param.dann_batchnorm,
+                        dann_activation=self.dann_param.dann_activation,
+                        dann_output_activation=self.dann_param.dann_output_activation)
 
         self.optimizer = self.get_optimizer(self.learning_rate, self.weight_decay, self.optimizer_type)
         self.rec_loss_fn, self.clas_loss_fn, self.dann_loss_fn = self.get_losses() # redundant
@@ -601,7 +587,7 @@ class Workflow:
 
             
             # tracker_class = ClassTracker()
-            # self.tr = tracker.SummaryTracker()
+            self.tr = tracker.SummaryTracker()
             # tracker_class.track_class(Workflow, resolution_level=3, trace=2)
             for epoch in range(1, n_epochs+1):
                 # self.tr.print_diff() 

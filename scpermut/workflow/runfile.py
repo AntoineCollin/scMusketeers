@@ -49,7 +49,7 @@ def get_runfile():
     dataset_group.add_argument('--use_hvg', type=int, nargs='?', const=5000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
     
     
-    # Dataset arguments
+    # Training Parameters
     training_group = parser.add_argument_group('Training Parameters')
     training_group.add_argument('--batch_size', type = int, nargs='?', default = 128, help ='Training batch size') # Default identified with hp optimization
     training_group.add_argument('--test_split_key', type = str, default = 'TRAIN_TEST_split', help ='key of obs containing the test split')
@@ -115,5 +115,5 @@ def get_runfile():
     dann_group.add_argument('--dann_batchnorm', type=str2bool.str2bool, nargs='?',const=True, default=True , help ='')
     dann_group.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
     dann_group.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
-    print(parser)
+    
     return parser.parse_args()
