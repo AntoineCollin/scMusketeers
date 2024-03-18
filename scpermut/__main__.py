@@ -3,7 +3,7 @@ from scpermut.workflow.runfile import get_runfile, set_hyperparameters
 from scpermut.workflow.runfile import PROCESS_TYPE
 
 from scpermut.workflow.neptune_log import start_neptune_log, stop_neptune_log
-
+from scpermut.workflow.dataset import process_dataset, split_train_test, split_train_val
 
 # JSON_PATH_DEFAULT = '/home/acollin/scPermut/experiment_script/hp_ranges/'
 JSON_PATH_DEFAULT = '/home/becavin/scPermut/experiment_script/hp_ranges/'
@@ -63,9 +63,9 @@ class MakeExperiment:
             self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
             set_hyperparameters(self.workflow, params)
             start_neptune_log(self.workflow)
-            self.workflow.process_dataset()
-            self.workflow.split_train_test()
-            self.workflow.split_train_val()
+            process_dataset(self.workflow)
+            split_train_test(self.workflow)
+            split_train_val(self.workflow)
             opt_metric = self.workflow.make_experiment() # This starts the logging
             self.workflow.add_custom_log('task', 'hp_optim')
             self.workflow.add_custom_log('total_trial', total_trial)
@@ -88,9 +88,9 @@ if __name__ == '__main__':
         print(run_file.dataset_name, run_file.class_key, run_file.batch_key)
         workflow = Workflow(run_file=run_file, working_dir=run_file.working_dir)
         start_neptune_log(workflow)
-        workflow.process_dataset()
-        workflow.split_train_test()
-        workflow.split_train_val()
+        process_dataset(workflow)
+        split_train_test(workflow)
+        split_train_val(workflow)
         mcc = workflow.make_experiment()
         stop_neptune_log(workflow)
     
