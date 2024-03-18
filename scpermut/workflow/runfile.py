@@ -117,3 +117,21 @@ def get_runfile():
     dann_group.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
     
     return parser.parse_args()
+
+
+def set_hyperparameters(workflow, params):
+    workflow.run_file.use_hvg = params['use_hvg']
+    workflow.run_file.batch_size = params['batch_size']
+    workflow.run_file.clas_w =  params['clas_w']    
+    workflow.run_file.dann_w = params['dann_w']
+    workflow.run_file.rec_w =  params['rec_w']
+    workflow.ae_param.ae_bottleneck_activation = params['ae_bottleneck_activation']
+    workflow.run_file.size_factor = params['size_factor']
+    workflow.run_file.weight_decay =  params['weight_decay']
+    workflow.run_file.learning_rate = params['learning_rate']
+    workflow.run_file.warmup_epoch =  params['warmup_epoch']
+    workflow.run_file.dropout =  params['dropout']
+    workflow.run_file.layer1 = params['layer1']
+    workflow.run_file.layer2 =  params['layer2']
+    workflow.run_file.bottleneck = params['bottleneck']
+    workflow.run_file.hp_params = params

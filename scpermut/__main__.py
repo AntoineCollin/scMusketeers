@@ -1,5 +1,5 @@
 from workflow.optimize_hp import *
-from scpermut.workflow.runfile import get_runfile
+from scpermut.workflow.runfile import get_runfile, set_hyperparameters
 from scpermut.workflow.runfile import PROCESS_TYPE
 
 from scpermut.workflow.neptune_log import start_neptune_log, stop_neptune_log
@@ -61,7 +61,7 @@ class MakeExperiment:
         split, metric = self.run_file.opt_metric.split('-')
         if result.empty or pd.isna(result.loc[:,f'evaluation/{split}/{metric}'].iloc[0]): # we run the trial
             self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
-            self.workflow.set_hyperparameters(params)
+            set_hyperparameters(self.workflow, params)
             start_neptune_log(self.workflow)
             self.workflow.process_dataset()
             self.workflow.split_train_test()

@@ -125,11 +125,14 @@ class Workflow:
         # print("NOOOOO EAGERRRRR")
         # tf.compat.v1.disable_eager_execution()
         self.process = run_file.process
-        self.sess = tf.compat.v1.Session()
+        # self.sess = tf.compat.v1.Session()
         self.run_file = run_file
         self.ae_param = AE_PARAM(run_file)
         self.class_param = CLASS_PARAM(run_file)
         self.dann_param = DANN_PARAM(run_file)
+        
+        self.run_neptune = None
+        self.hp_params = None
 
         self.dataset = None
         self.model = None
@@ -137,20 +140,14 @@ class Workflow:
         self.dann_ae = None
 
         self.metrics = []
+        self.working_dir = working_dir
+        self.data_dir = working_dir + '/data'
 
-
-        # dataset identifiers
-        
+        ### USED ?
         self.n_perm = 1
         self.semi_sup = False # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         
-
-        
-        
-        self.working_dir = working_dir
-        self.data_dir = working_dir + '/data'
-
         self.training_kwds = {}
         self.network_kwds = {}
 
@@ -159,21 +156,14 @@ class Workflow:
         self.clas_loss_fn = None
         self.dann_loss_fn = None
         self.rec_loss_fn = None
-
         self.num_classes = None
         self.num_batches = None
-            
-
         self.mean_loss_fn = keras.metrics.Mean(name='total_loss') # This is a running average : it keeps the previous values in memory when it's called ie computes the previous and current values
         self.mean_clas_loss_fn = keras.metrics.Mean(name='classification_loss')
         self.mean_dann_loss_fn = keras.metrics.Mean(name='dann_loss')
         self.mean_rec_loss_fn = keras.metrics.Mean(name='reconstructionloss')
 
-        self.run = None
-
-        self.hp_params = None
         
-
     def set_hyperparameters(self, params):
         
         # print(params)
