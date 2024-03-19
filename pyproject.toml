@@ -19,6 +19,7 @@ jupyterlab = "^4.1.0"
 pyyaml = "^6.0.1"
 ax-platform = "^0.3.6"
 str2bool = "^1.1"
+neptune = "^1.9.1"
 
 [tool.poetry.group.dev]
 optional = true

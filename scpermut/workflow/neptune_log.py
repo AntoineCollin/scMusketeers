@@ -26,9 +26,9 @@ def start_neptune_log(workflow : Workflow):
                 for par,val in workflow.hp_params.items():
                     workflow.run_neptune[f"parameters/{par}"] = stringify_unsupported(val)
 
-def add_custom_log(self, name, value):
-        self.run_neptune[f"parameters/{name}"] = stringify_unsupported(value)
+def add_custom_log(workflow : Workflow, name, value):
+        workflow.run_neptune[f"parameters/{name}"] = stringify_unsupported(value)
 
-def stop_neptune_log(self):
-        self.run.stop()
+def stop_neptune_log(workflow : Workflow):
+        workflow.run_neptune.stop()
 

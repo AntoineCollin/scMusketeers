@@ -397,12 +397,12 @@ class Workflow:
                             self.run_neptune[f"evaluation/{group}/{metric}"] = (
                                 BATCH_METRICS_LIST[metric](enc, batches)
                             )
-                            print(type(self.batch_metrics_list[metric](enc, batches)))
+                            print(type(BATCH_METRICS_LIST[metric](enc, batches)))
 
                     # Computing classification metrics
                     for metric in PRED_METRICS_LIST:
                         self.run_neptune[f"evaluation/{group}/{metric}"] = (
-                            BATCH_METRICS_LIST[metric](y_true, y_pred)
+                            PRED_METRICS_LIST[metric](y_true, y_pred)
                         )
 
                     for metric in PRED_METRICS_LIST_BALANCED:
@@ -484,7 +484,7 @@ class Workflow:
                             return_fig=True,
                         )
                         fig_batch = sc.pl.umap(
-                            pred_adata, color=self.batch_key, size=10, return_fig=True
+                            pred_adata, color=self.run_file.batch_key, size=10, return_fig=True
                         )
                         fig_split = sc.pl.umap(
                             pred_adata, color="train_split", size=10, return_fig=True
@@ -500,11 +500,12 @@ class Workflow:
                             fig_split
                         )
 
-        split, metric = self.opt_metric.split("-")
+        split, metric = self.run_file.opt_metric.split("-")
         self.run_neptune.wait()
         opt_metric = self.run_neptune[f"evaluation/{split}/{metric}"].fetch()
-        print("opt_metric")
-        print(opt_metric)
+        if self.run_file.verbose:
+            print(f"opt_metric {opt_metric}")
+        
 
         # Redondant, à priori c'est le mcc qu'on a déjà calculé au dessus.
         # with tf.device('CPU'):
@@ -566,7 +567,7 @@ class Workflow:
                 self.run_file.weight_decay,
                 self.run_file.optimizer_type,
             )  # resetting optimizer state when switching strategy
-            if verbose:
+            if self.run_file.verbose:
                 print(
                     f"Step number {i}, running {strategy} strategy with permutation = {use_perm} for {n_epochs} epochs"
                 )
@@ -726,6 +727,7 @@ class Workflow:
 
         # Batch steps
         for step in range(1, n_steps + 1):
+            # self.tr = tracker.SummaryTracker()
             self.batch_step(step, ae, clas_loss_fn, dann_loss_fn, rec_loss_fn,
                     batch_generator, training_strategy, optimizer,
                     n_samples, n_obs)
@@ -749,8 +751,8 @@ class Workflow:
     def batch_step(self, step, ae, clas_loss_fn, dann_loss_fn, rec_loss_fn,
                     batch_generator, training_strategy, optimizer,
                     n_samples, n_obs):
-        # tracker_class.create_snapshot()
-        # tracker_class.stats.print_summary()
+        #tracker_class.create_snapshot()
+        #tracker_class.stats.print_summary()
         # print(f"size {asizeof.asizeof(self.dann_ae)}")
         # print(f"size {asizeof.asizeof(self.dataset)}")
         # print(f"size {asizeof.asizeof(self.history)}")
@@ -786,6 +788,13 @@ class Workflow:
         # print(len(my_types))
         # for t in my_types:
         #     print(t)
+        # tracker_class = ClassTracker()
+        # tracker_class.track_class(Workflow, resolution_level=3, trace=2)
+        # tracker_class.create_snapshot()
+        # tracker_class.stats.print_summary()
+        # print(f"New step : {step}")
+        # gpu_mem = []
+        # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
         self.run_neptune["training/train/tf_GPU_memory"].append(
             tf.config.experimental.get_memory_info("GPU:0")["current"] / 1e6
         )
@@ -793,10 +802,16 @@ class Workflow:
         input_batch, output_batch = next(batch_generator)
         # X_batch, sf_batch = input_batch.values()
         clas_batch, dann_batch, rec_batch = output_batch.values()
-
+        # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
         with tf.GradientTape() as tape:
+            # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
+        
             input_batch = {k: tf.convert_to_tensor(v) for k, v in input_batch.items()}
+            # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
+        
             enc, clas, dann, rec = ae(input_batch, training=True).values()
+            # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
+        
             clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
             dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
             rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
@@ -825,16 +840,22 @@ class Workflow:
                 loss = tf.add_n([self.run_file.clas_w * clas_loss] + ae.losses)
             elif training_strategy == "permutation_only":
                 loss = tf.add_n([self.run_file.rec_w * rec_loss] + ae.losses)
-
+        # print(f"loss {asizeof.asizeof(loss)}")
+        # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
         n_samples += enc.shape[0]
+        # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
         gradients = tape.gradient(loss, ae.trainable_variables)
-
+        # print(f"gradients {asizeof.asizeof(gradients)}")
+        # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
+        
         optimizer.apply_gradients(zip(gradients, ae.trainable_variables))
-
+        # print(f"optimizer {asizeof.asizeof(optimizer)}")
+        # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
         """ self.mean_loss_fn(loss.__float__())
         self.mean_clas_loss_fn(clas_loss.__float__())
         self.mean_dann_loss_fn(dann_loss.__float__())
         self.mean_rec_loss_fn(rec_loss.__float__()) """
+        
 
         if self.run_file.verbose:
             print_status_bar(
@@ -848,6 +869,16 @@ class Workflow:
                 ],
                 self.metrics,
             )
+        
+        # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
+        
+        # gpu_mem_diff = []
+        # for i in range(len(gpu_mem)-1):
+        #     gpu_mem_diff.append(gpu_mem[i+1] - gpu_mem[i])
+        # print(gpu_mem_diff)
+        # print(np.sum(gpu_mem_diff))
+        # self.tr.print_diff()
+        
 
 
     def evaluation_pass(
@@ -969,7 +1000,6 @@ def get_optimizer(learning_rate, weight_decay, optimizer_type, momentum=0.9):
         an optimizer object
     """
     # TODO Add more optimizers
-    print(optimizer_type)
     if optimizer_type == "adam":
         optimizer = tf.keras.optimizers.Adam(
             learning_rate=learning_rate,
