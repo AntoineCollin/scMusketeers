@@ -5,7 +5,8 @@ import scipy
 from sklearn.model_selection import train_test_split
 import argparse
 import json
-
+from PIL import ImageColor
+import matplotlib.colors as mcolors
 def densify(X):
     if (type(X) == scipy.sparse.csr_matrix) or (type(X) == scipy.sparse.csc_matrix):
         return np.asarray(X.todense())
@@ -29,6 +30,11 @@ def nan_to_0(val):
     else :
         return val
 
+def rgb2hex(r,g,b):
+    return "#{:02x}{:02x}{:02x}".format(int(r),int(g),int(b))
+def hex2rgb(hexcode):
+    return np.array(ImageColor.getcolor(hexcode, "RGB"))
+    
 def save_json(dico,p):
     if not p.startswith('/'):
         p = p

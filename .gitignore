@@ -36,6 +36,10 @@ htap_celltype.csv
 ajrccm_celltypes.csv
 *.log
 
+experiment_script/benchmark/compute_size_metrics.py
+experiment_script/benchmark/*csv
+experiment_script/benchmark/zzlaunch_size_metrics.sh
+
 compute_single_metrics.py
 metricsbatch_mixing_expe2_htap_C1.csv
 metricsbatch_mixing_expe2_htap_C5.csv

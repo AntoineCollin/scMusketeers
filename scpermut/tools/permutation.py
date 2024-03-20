@@ -217,7 +217,10 @@ def batch_generator_training_permuted(X,
             random_seed = make_random_seed()
             perm_indices = sklearn.utils.shuffle(perm_indices, random_state = random_seed) # Shuffles the orders of observations
             ind_in = [ind[0] for ind in perm_indices]
-            ind_out = [ind[1] for ind in perm_indices]
+            if use_perm:
+                ind_out = [ind[1] for ind in perm_indices]
+            else:
+                ind_out = ind_in # Here, we're not using permutations
             if same_class_pct:
                 sim = y[ind_in].values == y[ind_out].values
             debug = pd.DataFrame({'in':ind_in,'out':ind_out})

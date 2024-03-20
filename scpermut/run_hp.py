@@ -38,7 +38,7 @@ class MakeExperiment:
         checkpoint = {'parameters/' + k: i for k,i in params.items()}
         checkpoint['parameters/dataset_name'] = self.run_file.dataset_name
         checkpoint['parameters/opt_metric'] = self.run_file.opt_metric
-
+        checkpoint['parameters/task'] = 'hp_optim_V2'
         # checkpoint = {'parameters/dataset_name': self.run_file.dataset_name,
         #               'parameters/total_trial': total_trial, 'parameters/trial_count': self.trial_count, 
         #               'parameters/opt_metric': self.opt_metric, 'parameters/hp_random_seed': random_seed}
@@ -52,7 +52,7 @@ class MakeExperiment:
             self.workflow.split_train_test()
             self.workflow.split_train_val()
             opt_metric = self.workflow.make_experiment() # This starts the logging
-            self.workflow.add_custom_log('task', 'hp_optim')
+            self.workflow.add_custom_log('task', 'hp_optim_V2')
             self.workflow.add_custom_log('total_trial', total_trial)
             self.workflow.add_custom_log('hp_random_seed', random_seed)
             self.workflow.add_custom_log('trial_count', self.trial_count)
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
-    parser.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_mcc', help ='The metric top optimize in hp search as it appears in neptune (split-metricname)')
+    parser.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_mcc', help ='The metric used for early stopping as well as optimizes in hp search. Should be formatted as it appears in neptune (split-metricname)')
 
     # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
     

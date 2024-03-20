@@ -87,6 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
+    parser.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_mcc', help ='The metric used for early stopping as well as optimizes in hp search. Should be formatted as it appears in neptune (split-metricname)')
 
     run_file = parser.parse_args()
     print(run_file.class_key, run_file.batch_key)
@@ -124,7 +125,7 @@ if __name__ == '__main__':
     fixed_test_obs = test_obs_json[run_file.dataset_name]
 
     for i, (train_index, test_index) in enumerate(kf_test.split(X, classes, groups)):
-        test_obs = list(groups.iloc[test_index].unique()) # the batches that go in the test set
+        test_obs = list(groups.iloc[test_index].unique()) # the batches that go in the test set, old
 
         if set(test_obs) == set(fixed_test_obs):
             experiment.test_obs = test_obs

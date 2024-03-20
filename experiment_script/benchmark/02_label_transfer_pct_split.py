@@ -12,7 +12,7 @@ from scpermut.tools.utils import str2bool,load_json
 print(str2bool('True'))
 from scpermut.workflow.benchmark import Workflow
 
-model_list_cpu = ['scmap_cells', 'scmap_cluster', 'pca_svm','harmony_svm']#,'celltypist','uce']
+model_list_cpu = ['scmap_cells', 'scmap_cluster', 'pca_svm','harmony_svm','celltypist','uce']
 model_list_gpu = ['scanvi']
 
 
@@ -85,9 +85,12 @@ if __name__ == '__main__':
     test_fold_fixed = test_fold_fixed_list[run_file.dataset_name]
     test_obs_fixed = test_obs_fixed_list[run_file.dataset_name]
     
-    for i, (train_index, test_index) in enumerate(kf_test.split(experiment.dataset.adata.X, experiment.dataset.adata.obs[experiment.class_key], experiment.dataset.adata.obs[experiment.batch_key])):
-        groups = experiment.dataset.adata.obs[experiment.batch_key]
-        test_obs = list(experiment.dataset.adata.obs[experiment.batch_key].iloc[test_index].unique()) # the batches that go in the test set
+    X = experiment.dataset.adata.X
+    classes = experiment.dataset.adata.obs[experiment.class_key]
+    groups = experiment.dataset.adata.obs[experiment.batch_key]
+
+    for i, (train_index, test_index) in enumerate(kf_test.split(X, classes, groups)):
+        test_obs = list(groups.iloc[test_index].unique()) # the batches that go in the test set
         
         if set(test_obs) == set(test_obs_fixed):
             experiment.dataset.test_split(test_obs = test_obs) # splits the train and test dataset

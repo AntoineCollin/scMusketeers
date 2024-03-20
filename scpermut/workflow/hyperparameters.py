@@ -1,3 +1,4 @@
+from unittest import TestResult
 import keras
 import sys
 import os
@@ -15,6 +16,7 @@ import argparse
 import functools
 
 from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef, f1_score,cohen_kappa_score, adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score,davies_bouldin_score,adjusted_rand_score,confusion_matrix,accuracy_score
+from sklearn.neighbors import KNeighborsClassifier
 
 import argparse
 import functools
@@ -161,7 +163,7 @@ class Workflow:
         self.dann_loss_fn = None
         self.rec_loss_fn = None
 
-        # self.weight_decay = self.run_file.weight_decay
+        self.weight_decay = self.run_file.weight_decay
         self.weight_decay = None
         self.optimizer_type = self.run_file.optimizer_type
         self.optimizer_type = default_value(self.optimizer_type , 'adam')
@@ -256,7 +258,7 @@ class Workflow:
 
         self.hparam_path = self.run_file.hparam_path
         self.hp_params = None
-        self.opt_metric = self.run_file.opt_metric
+        self.opt_metric = default_value(self.run_file.opt_metric, None)
         
     def set_hyperparameters(self, params):
         
@@ -275,6 +277,7 @@ class Workflow:
         self.layer1 = params['layer1']
         self.layer2 =  params['layer2']
         self.bottleneck = params['bottleneck']
+        self.training_scheme = params['training_scheme']
         self.hp_params = params
             
     def start_neptune_log(self):
@@ -340,6 +343,10 @@ class Workflow:
         if self.dropout:
             self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
         
+        if not 'X_pca' in self.dataset.adata:
+            print('Did not find existing PCA, computing it')
+            sc.tl.pca(self.dataset.adata)
+
         adata_list = {'full': self.dataset.adata,
                       'train': self.dataset.adata_train,
                       'val': self.dataset.adata_val,
@@ -359,6 +366,25 @@ class Workflow:
                       'train': self.dataset.batch_train_one_hot,
                       'val': self.dataset.batch_val_one_hot,
                       'test': self.dataset.batch_test_one_hot}
+
+        X_pca_list = {'full': self.dataset.adata.obsm['X_pca'],
+                      'train': self.dataset.adata_train.obsm['X_pca'],
+                      'val': self.dataset.adata_val.obsm['X_pca'],
+                      'test': self.dataset.adata_test.obsm['X_pca']}
+
+        knn_cl = KNeighborsClassifier(n_neighbors = 5)
+        knn_cl.fit(X_pca_list['train'], y_list['train'])
+
+        pseudo_y_val = pd.Series(knn_cl.transform(X_pca_list['val']), index = adata_list['val'].obs_names)
+        pseudo_y_test = pd.Series(knn_cl.transform(X_pca_list['test']), index = adata_list['test'].obs_names)
+
+        pseudo_y_full = pd.concat([pseudo_y_val, pseudo_y_test, y_list['train']])
+        pseudo_y_full = pseudo_y_full[y_list['full'].index]
+
+        pseudo_y_list = {'full': self.dataset.ohe_celltype.transform(np.array(pseudo_y_full).reshape(-1,1)).astype(float).todense(),
+                      'train': y_list['train'],
+                      'val': self.dataset.ohe_celltype.transform(np.array(pseudo_y_val).reshape(-1,1)).astype(float).todense(),
+                      'test': self.dataset.ohe_celltype.transform(np.array(pseudo_y_test).reshape(-1,1)).astype(float).todense()}
 
         print({i:adata_list[i] for i in adata_list})
         print({i:len(y_list[i]) for i in y_list})
@@ -411,6 +437,7 @@ class Workflow:
                                      X_list= X_list,
                                      y_list= y_list,
                                      batch_list= batch_list,
+                                     pseudo_y_list=pseudo_y_list,
                                     #  optimizer= self.optimizer, # not an **loop_param since it resets between strategies
                                      clas_loss_fn = self.clas_loss_fn,
                                      dann_loss_fn = self.dann_loss_fn,
@@ -446,7 +473,7 @@ class Workflow:
                     y_pred = self.dataset.ohe_celltype.inverse_transform(clas).reshape(-1,)
                     y_true = adata_list[group].obs[f'true_{self.class_key}']
                     batches = np.asarray(batch_list[group].argmax(axis=1)).reshape(-1,)
-                    split = adata_list[group].obs[f'train_split']
+                    split = adata_list[group].obs['train_split']
 
 
                     # Saving confusion matrices
@@ -530,12 +557,14 @@ class Workflow:
                         self.run[f'evaluation/{group}/batch_umap'].upload(fig_batch)
                         self.run[f'evaluation/{group}/split_umap'].upload(fig_split)
 
-        split, metric = self.opt_metric.split('-')
-        self.run.wait()
-        opt_metric = self.run[f'evaluation/{split}/{metric}'].fetch()
-        print('opt_metric')
-        print(opt_metric)
-
+        if self.opt_metric:
+            split, metric = self.opt_metric.split('-')
+            self.run.wait()
+            opt_metric = self.run[f'evaluation/{split}/{metric}'].fetch()
+            print('opt_metric')
+            print(opt_metric)
+        else :
+            opt_metric = None
         # Redondant, à priori c'est le mcc qu'on a déjà calculé au dessus.
         # with tf.device('CPU'):
         #     inp = scanpy_to_input(adata_list['val'],['size_factors'])
@@ -553,12 +582,12 @@ class Workflow:
         # del input_tensor
         # # del inp
         del self.dann_ae
-        del self.dataset
+        # del self.dataset
         del history
-        # del self.optimizer
-        # del self.rec_loss_fn
-        # del self.clas_loss_fn
-        # del self.dann_loss_fn
+        del self.optimizer
+        del self.rec_loss_fn
+        del self.clas_loss_fn
+        del self.dann_loss_fn
 
         gc.collect()
         tf.keras.backend.clear_session()
@@ -581,6 +610,8 @@ class Workflow:
                             'rec_loss':[]}
             for m in self.pred_metrics_list:
                 history[group][m] = []
+            for m in self.pred_metrics_list_balanced:
+                history[group][m] = []
 
         # if self.log_neptune:
         #     for group in history:
@@ -601,13 +632,14 @@ class Workflow:
             if strategy in  ['full_model', 'classifier_branch', 'permutation_only']:
                 wait = 0
                 best_epoch = 0
-                patience = 10
-                min_delta = 0.01
+                patience = 15
+                min_delta = 0
                 if strategy == 'permutation_only':
                     monitored = 'rec_loss'
                     es_best = np.inf # initialize early_stopping
                 else:
-                    monitored = 'mcc'
+                    split, metric = self.opt_metric.split('-')
+                    monitored = metric
                     es_best = -np.inf
 
 
@@ -666,7 +698,7 @@ class Workflow:
                             clas_loss_fn,
                             dann_loss_fn,
                             rec_loss_fn,
-                            use_perm=None,
+                            use_perm=True,
                             training_strategy="full_model",
                             verbose = False):
         '''
@@ -704,9 +736,9 @@ class Workflow:
             self.freeze_block(ae, 'all_but_autoencoder')
             use_perm = True
 
-        if not use_perm:
-            use_perm = True
-
+        # if not use_perm:
+        #     use_perm = True
+        print(f'use_per = {use_perm}')
         batch_generator = batch_generator_training_permuted(X = X_list[group],
                                                             y = y_list[group],
                                                             batch_ID = batch_list[group],
@@ -791,6 +823,8 @@ class Workflow:
                 clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
                 for metric in self.pred_metrics_list: # only classification metrics ATM
                     history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas.argmax(axis=1))] # y_list are onehot encoded
+                for metric in self.pred_metrics_list_balanced: # only classification metrics ATM
+                    history[group][metric] += [self.pred_metrics_list_balanced[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas.argmax(axis=1))] # y_list are onehot encoded
         del inp
         return history, _, clas, dann, rec
 
@@ -850,13 +884,13 @@ class Workflow:
 
     def freeze_block(self, ae, strategy):
         if strategy == "all_but_classifier_branch":
-            layers_to_freeze = [ae.dann_discriminator, ae.enc, ae.dec, ae.ae_output_layer]
+            layers_to_freeze = [ae.dann_discriminator, ae.enc, ae.dec]
         elif strategy == "all_but_classifier":
-            layers_to_freeze = [ae.dann_discriminator, ae.dec, ae.ae_output_layer]
+            layers_to_freeze = [ae.dann_discriminator, ae.dec]
         elif strategy == "all_but_dann_branch":
-            layers_to_freeze = [ae.classifier, ae.dec, ae.ae_output_layer, ae.enc]
+            layers_to_freeze = [ae.classifier, ae.dec, ae.enc]
         elif strategy == "all_but_dann":
-            layers_to_freeze = [ae.classifier, ae.dec, ae.ae_output_layer]
+            layers_to_freeze = [ae.classifier, ae.dec]
         elif strategy == "all_but_autoencoder":
             layers_to_freeze = [ae.classifier, ae.dann_discriminator]
         else:
@@ -877,12 +911,24 @@ class Workflow:
     def get_scheme(self):
         if self.training_scheme == 'training_scheme_1':
             self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
-                                  ("full_model", 100, False)] # This will end with a callback
+                                  ("full_model", 100, True)] # This will end with a callback
         if self.training_scheme == 'training_scheme_2':
+            self.training_scheme = [("warmup_dann_no_rec", self.warmup_epoch, False),
+                                  ("full_model", 100, True)] # This will end with a callback
+        if self.training_scheme == 'training_scheme_3':
+            self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
+                                  ("full_model", 100, True),
+                                  ("classifier_branch", 50, False)] # This will end with a callback
+        if self.training_scheme == 'training_scheme_4':
             self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
                                 ("permutation_only", 100, True),  # This will end with a callback
                                 ("classifier_branch", 50, False)] # This will end with a callback
-        if self.training_scheme == 'training_scheme_3':
+        if self.training_scheme == 'training_scheme_5':
+            self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
+                                  ("full_model", 100, False)] # This will end with a callback, NO PERMUTATION HERE
+            
+       
+        if self.training_scheme == 'training_scheme_7':
             self.training_scheme = [("permutation_only", 100, True),  # This will end with a callback
                                 ("classifier_branch", 50, False)]
         return self.training_scheme
