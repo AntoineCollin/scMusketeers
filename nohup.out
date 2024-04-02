@@ -1,25 +1,53 @@
 test_obs=donor1
 train_obs=donor2
-2024-03-19 10:28:07.528125: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2024-03-19 10:28:07.565716: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2024-03-19 10:28:07.565765: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2024-03-19 10:28:07.566743: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2024-03-19 10:28:07.572609: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2024-04-02 23:43:23.615301: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2024-04-02 23:43:23.684776: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2024-04-02 23:43:23.685017: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2024-04-02 23:43:23.686571: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2024-04-02 23:43:23.696579: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2024-03-19 10:28:12.711934: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 38362 MB memory:  -> device: 0, name: NVIDIA A100-PCIE-40GB, pci bus id: 0000:37:00.0, compute capability: 8.0
-tran_2021 Original_annotation batch
-[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/becavin-lab/sc-permut-packaging/e/SCPERP1-223
-/home/becavin/scPermut/scpermut/../scpermut/workflow/dataset.py:331: ImplicitModificationWarning: Trying to modify attribute `.obs` of view, initializing view as actual.
+tf [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+tf [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/becavin-lab/sc-permut-packaging/
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/becavin-lab/sc-permut-packaging/metadata
+[INFO 04-02 23:43:36] ax.service.ax_client: Starting optimization with verbose logging. To disable logging, set the `verbose_logging` argument to `False`. Note that float values in the logs are rounded to 6 decimal points.
+/data/analysis/ML_models/conda_env/sc_permut_2/lib/python3.11/site-packages/ax/core/parameter.py:594: UserWarning: `is_ordered` is not specified for `ChoiceParameter` "ae_bottleneck_activation". Defaulting to `False` for parameters of `ParameterType` STRING. To override this behavior (or avoid this warning), specify `is_ordered` during `ChoiceParameter` construction.
+  warn(
+/data/analysis/ML_models/conda_env/sc_permut_2/lib/python3.11/site-packages/ax/core/parameter.py:594: UserWarning: `sort_values` is not specified for `ChoiceParameter` "ae_bottleneck_activation". Defaulting to `False` for parameters of `ParameterType` STRING. To override this behavior (or avoid this warning), specify `sort_values` during `ChoiceParameter` construction.
+  warn(
+/data/analysis/ML_models/conda_env/sc_permut_2/lib/python3.11/site-packages/ax/core/parameter.py:594: UserWarning: `is_ordered` is not specified for `ChoiceParameter` "size_factor". Defaulting to `False` for parameters of `ParameterType` STRING. To override this behavior (or avoid this warning), specify `is_ordered` during `ChoiceParameter` construction.
+  warn(
+/data/analysis/ML_models/conda_env/sc_permut_2/lib/python3.11/site-packages/ax/core/parameter.py:594: UserWarning: `sort_values` is not specified for `ChoiceParameter` "size_factor". Defaulting to `False` for parameters of `ParameterType` STRING. To override this behavior (or avoid this warning), specify `sort_values` during `ChoiceParameter` construction.
+  warn(
+[INFO 04-02 23:43:36] ax.service.utils.instantiation: Created search space: SearchSpace(parameters=[RangeParameter(name='use_hvg', parameter_type=INT, range=[1000, 5000]), RangeParameter(name='batch_size', parameter_type=INT, range=[64, 512]), RangeParameter(name='clas_w', parameter_type=FLOAT, range=[0.0001, 100.0], log_scale=True), RangeParameter(name='rec_w', parameter_type=FLOAT, range=[0.0001, 30.0], log_scale=True), RangeParameter(name='dann_w', parameter_type=FLOAT, range=[0.0001, 100.0], log_scale=True), ChoiceParameter(name='ae_bottleneck_activation', parameter_type=STRING, values=['linear', 'relu', 'sigmoid'], is_ordered=False, sort_values=False), ChoiceParameter(name='size_factor', parameter_type=STRING, values=['raw', 'constant', 'default'], is_ordered=False, sort_values=False), RangeParameter(name='learning_rate', parameter_type=FLOAT, range=[0.0001, 0.01], log_scale=True), RangeParameter(name='weight_decay', parameter_type=FLOAT, range=[1e-08, 0.0001], log_scale=True), RangeParameter(name='warmup_epoch', parameter_type=INT, range=[1, 70]), RangeParameter(name='dropout', parameter_type=FLOAT, range=[0.0, 0.5]), RangeParameter(name='bottleneck', parameter_type=INT, range=[32, 128]), RangeParameter(name='layer2', parameter_type=INT, range=[32, 512]), RangeParameter(name='layer1', parameter_type=INT, range=[512, 2048])], parameter_constraints=[]).
+[INFO 04-02 23:43:36] ax.modelbridge.dispatch_utils: Using Models.BOTORCH_MODULAR since there are more ordered parameters than there are categories for the unordered categorical parameters.
+[INFO 04-02 23:43:36] ax.modelbridge.dispatch_utils: Calculating the number of remaining initialization trials based on num_initialization_trials=None max_initialization_trials=None num_tunable_parameters=14 num_trials=None use_batch_trials=False
+[INFO 04-02 23:43:36] ax.modelbridge.dispatch_utils: calculated num_initialization_trials=28
+[INFO 04-02 23:43:36] ax.modelbridge.dispatch_utils: num_completed_initialization_trials=0 num_remaining_initialization_trials=28
+[INFO 04-02 23:43:36] ax.modelbridge.dispatch_utils: `verbose`, `disable_progbar`, and `jit_compile` are not yet supported when using `choose_generation_strategy` with ModularBoTorchModel, dropping these arguments.
+[INFO 04-02 23:43:36] ax.modelbridge.dispatch_utils: Using Bayesian Optimization generation strategy: GenerationStrategy(name='Sobol+BoTorch', steps=[Sobol for 28 trials, BoTorch for subsequent trials]). Iterations after 28 will take longer to generate due to model-fitting.
+[INFO 04-02 23:43:36] ax.service.ax_client: Generated new trial 0 with parameters {'use_hvg': 2481, 'batch_size': 509, 'clas_w': 0.001706, 'rec_w': 0.010649, 'dann_w': 2.200013, 'learning_rate': 0.000116, 'weight_decay': 1e-06, 'warmup_epoch': 47, 'dropout': 0.338469, 'bottleneck': 99, 'layer2': 507, 'layer1': 1795, 'ae_bottleneck_activation': 'linear', 'size_factor': 'default'} using model Sobol.
+2024-04-02 23:43:36.929090: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 38362 MB memory:  -> device: 0, name: NVIDIA A100-PCIE-40GB, pci bus id: 0000:37:00.0, compute capability: 8.0
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/becavin-lab/sc-permut-packaging/e/SCPERP1-339
+/data/analysis/ML_models/conda_env/sc_permut_2/lib/python3.11/site-packages/scpermut/workflow/dataset.py:331: ImplicitModificationWarning: Trying to modify attribute `.obs` of view, initializing view as actual.
   self.adata_train_extended.obs['train_split'] = to_keep
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/keras/src/optimizers/base_optimizer.py:576: UserWarning: Gradients do not exist for variables ['kernel', 'bias', 'gamma', 'beta', 'kernel', 'bias'] when minimizing the loss. If using `model.compile()`, did you forget to provide a `loss` argument?
+/data/analysis/ML_models/conda_env/sc_permut_2/lib/python3.11/site-packages/keras/src/optimizers/base_optimizer.py:576: UserWarning: Gradients do not exist for variables ['kernel', 'bias', 'gamma', 'beta', 'kernel', 'bias'] when minimizing the loss. If using `model.compile()`, did you forget to provide a `loss` argument?
   warnings.warn(
-[neptune] [warning] /home/becavin/scPermut/scpermut/workflow/optimize_hp.py:611: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'list'>).
+[neptune] [warning] /home/becavin/scPermut/scpermut/workflow/optimize_hp.py:604: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'list'>).
         Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
         for dictionaries or collections that contain unsupported values.
         For more, see https://docs.neptune.ai/help/value_of_unsupported_type
 dataset loaded at /data/analysis/data_becavin/scpermut_test//data/tran_2021.h5ad
+Searching for highly variable genes in 3 batches
+Found 1362 highly variable genes using 3 batches
+Searching for highly variable genes in 2 batches
+Found 753 highly variable genes using 2 batches
+Searching for highly variable genes in 1 batches
+Found 1851 highly variable genes using 1 batches. Selecting top 366
 test obs :['donor1']
-splitting this adata train/val : View of AnnData object with n_obs × n_vars = 5754 × 15966
+splitting this adata train/val : View of AnnData object with n_obs × n_vars = 5754 × 2481
     obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors'
     var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
     uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
@@ -30,496 +58,205 @@ train    3909
 val      1845
 Name: count, dtype: int64
 dataset has been preprocessed
+WARMUPDANNNNNNNN 47
+COMPLETE 100
 bottleneck activation : linear
-Epoch 1/150, Current strat Epoch 1/50
-Step - Switching permutation
-Step - Switching permutation
-23849487
-Epoch 2/150, Current strat Epoch 2/50
-Step - Switching permutation
-Step - Switching permutation
-3642272
-Epoch 3/150, Current strat Epoch 3/50
-Step - Switching permutation
-Step - Switching permutation
-56431579
-Epoch 4/150, Current strat Epoch 4/50
-Step - Switching permutation
-Step - Switching permutation
-90482330
-Epoch 5/150, Current strat Epoch 5/50
-Step - Switching permutation
-Step - Switching permutation
-51599884
-Epoch 6/150, Current strat Epoch 6/50
-Step - Switching permutation
-Step - Switching permutation
-90957641
-Epoch 7/150, Current strat Epoch 7/50
-Step - Switching permutation
-Step - Switching permutation
-93695449
-Epoch 8/150, Current strat Epoch 8/50
-Step - Switching permutation
-Step - Switching permutation
-31721115
-Epoch 9/150, Current strat Epoch 9/50
-Step - Switching permutation
-Step - Switching permutation
-11704826
-Epoch 10/150, Current strat Epoch 10/50
-Step - Switching permutation
-Step - Switching permutation
-14695930
-Epoch 11/150, Current strat Epoch 11/50
-Step - Switching permutation
-Step - Switching permutation
-33817481
-Epoch 12/150, Current strat Epoch 12/50
-Step - Switching permutation
-Step - Switching permutation
-46457099
-Epoch 13/150, Current strat Epoch 13/50
-Step - Switching permutation
-Step - Switching permutation
-79779052
-Epoch 14/150, Current strat Epoch 14/50
-Step - Switching permutation
-Step - Switching permutation
-83586883
-Epoch 15/150, Current strat Epoch 15/50
-Step - Switching permutation
-Step - Switching permutation
-77789688
-Epoch 16/150, Current strat Epoch 16/50
-Step - Switching permutation
-Step - Switching permutation
-22302436
-Epoch 17/150, Current strat Epoch 17/50
-Step - Switching permutation
-Step - Switching permutation
-92554473
-Epoch 18/150, Current strat Epoch 18/50
-Step - Switching permutation
-Step - Switching permutation
-84148788
-Epoch 19/150, Current strat Epoch 19/50
-Step - Switching permutation
-Step - Switching permutation
-72870635
-Epoch 20/150, Current strat Epoch 20/50
-Step - Switching permutation
-Step - Switching permutation
-45262336
-Epoch 21/150, Current strat Epoch 21/50
-Step - Switching permutation
-Step - Switching permutation
-71806907
-Epoch 22/150, Current strat Epoch 22/50
-Step - Switching permutation
-Step - Switching permutation
-78364181
-Epoch 23/150, Current strat Epoch 23/50
-Step - Switching permutation
-Step - Switching permutation
-12090301
-Epoch 24/150, Current strat Epoch 24/50
-Step - Switching permutation
-Step - Switching permutation
-45692443
-Epoch 25/150, Current strat Epoch 25/50
-Step - Switching permutation
-Step - Switching permutation
-74728012
-Epoch 26/150, Current strat Epoch 26/50
-Step - Switching permutation
-Step - Switching permutation
-96147918
-Epoch 27/150, Current strat Epoch 27/50
-Step - Switching permutation
-Step - Switching permutation
-96869277
-Epoch 28/150, Current strat Epoch 28/50
-Step - Switching permutation
-Step - Switching permutation
-3581047
-Epoch 29/150, Current strat Epoch 29/50
-Step - Switching permutation
-Step - Switching permutation
-24327087
-Epoch 30/150, Current strat Epoch 30/50
-Step - Switching permutation
-Step - Switching permutation
-8306121
-Epoch 31/150, Current strat Epoch 31/50
-Step - Switching permutation
-Step - Switching permutation
-45034217
-Epoch 32/150, Current strat Epoch 32/50
-Step - Switching permutation
-Step - Switching permutation
-38896179
-Epoch 33/150, Current strat Epoch 33/50
-Step - Switching permutation
-Step - Switching permutation
-31392288
-Epoch 34/150, Current strat Epoch 34/50
-Step - Switching permutation
-Step - Switching permutation
-72201919
-Epoch 35/150, Current strat Epoch 35/50
-Step - Switching permutation
-Step - Switching permutation
-14583969
-Epoch 36/150, Current strat Epoch 36/50
-Step - Switching permutation
-Step - Switching permutation
-47083473
-Epoch 37/150, Current strat Epoch 37/50
-Step - Switching permutation
-Step - Switching permutation
-94612503
-Epoch 38/150, Current strat Epoch 38/50
-Step - Switching permutation
-Step - Switching permutation
-70482826
-Epoch 39/150, Current strat Epoch 39/50
-Step - Switching permutation
-Step - Switching permutation
-6546783
-Epoch 40/150, Current strat Epoch 40/50
-Step - Switching permutation
-Step - Switching permutation
-1908874
-Epoch 41/150, Current strat Epoch 41/50
-Step - Switching permutation
-Step - Switching permutation
-51867294
-Epoch 42/150, Current strat Epoch 42/50
-Step - Switching permutation
-Step - Switching permutation
-72744369
-Epoch 43/150, Current strat Epoch 43/50
-Step - Switching permutation
-Step - Switching permutation
-58164978
-Epoch 44/150, Current strat Epoch 44/50
-Step - Switching permutation
-Step - Switching permutation
-15364456
-Epoch 45/150, Current strat Epoch 45/50
-Step - Switching permutation
-Step - Switching permutation
-26166534
-Epoch 46/150, Current strat Epoch 46/50
-Step - Switching permutation
-Step - Switching permutation
-30357360
-Epoch 47/150, Current strat Epoch 47/50
-Step - Switching permutation
-Step - Switching permutation
-49208831
-Epoch 48/150, Current strat Epoch 48/50
-Step - Switching permutation
-Step - Switching permutation
-63580322
-Epoch 49/150, Current strat Epoch 49/50
-Step - Switching permutation
-Step - Switching permutation
-1987838
-Epoch 50/150, Current strat Epoch 50/50
-Step - Switching permutation
-Step - Switching permutation
-50911140
-Epoch 51/150, Current strat Epoch 1/100
-Step - Switching permutation
-Step - Switching permutation
-68272972
-Epoch 52/150, Current strat Epoch 2/100
-Step - Switching permutation
-Step - Switching permutation
-24239730
-Epoch 53/150, Current strat Epoch 3/100
-Step - Switching permutation
-Step - Switching permutation
-71894073
-Epoch 54/150, Current strat Epoch 4/100
-Step - Switching permutation
-Step - Switching permutation
-84074020
-Epoch 55/150, Current strat Epoch 5/100
-Step - Switching permutation
-Step - Switching permutation
-75197601
-Epoch 56/150, Current strat Epoch 6/100
-Step - Switching permutation
-Step - Switching permutation
-91989898
-Epoch 57/150, Current strat Epoch 7/100
-Step - Switching permutation
-Step - Switching permutation
-45545578
-Epoch 58/150, Current strat Epoch 8/100
-Step - Switching permutation
-Step - Switching permutation
-54108810
-Epoch 59/150, Current strat Epoch 9/100
-Step - Switching permutation
-Step - Switching permutation
-96175765
-Epoch 60/150, Current strat Epoch 10/100
-Step - Switching permutation
-Step - Switching permutation
-34355163
-Epoch 61/150, Current strat Epoch 11/100
-Step - Switching permutation
-Step - Switching permutation
-9534835
-Epoch 62/150, Current strat Epoch 12/100
-Step - Switching permutation
-Step - Switching permutation
-21513938
-Epoch 63/150, Current strat Epoch 13/100
-Step - Switching permutation
-Step - Switching permutation
-41914749
-Epoch 64/150, Current strat Epoch 14/100
-Step - Switching permutation
-Step - Switching permutation
-66254615
-Epoch 65/150, Current strat Epoch 15/100
-Step - Switching permutation
-Step - Switching permutation
-53883171
-Epoch 66/150, Current strat Epoch 16/100
-Step - Switching permutation
-Step - Switching permutation
-28860855
-Epoch 67/150, Current strat Epoch 17/100
-Step - Switching permutation
-Step - Switching permutation
-5176734
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/lib/function_base.py:520: RuntimeWarning: Mean of empty slice.
-  avg = a.mean(axis, **keepdims_kw)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:708: RuntimeWarning: invalid value encountered in scalar divide
-  k = np.sum(w_mat * confusion) / np.sum(w_mat * expected)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:708: RuntimeWarning: invalid value encountered in scalar divide
-  k = np.sum(w_mat * confusion) / np.sum(w_mat * expected)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2458: UserWarning: y_pred contains classes not in y_true
-  warnings.warn("y_pred contains classes not in y_true")
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2458: UserWarning: y_pred contains classes not in y_true
-  warnings.warn("y_pred contains classes not in y_true")
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/scanpy/plotting/_tools/scatterplots.py:1234: FutureWarning: The default value of 'ignore' for the `na_action` parameter in pandas.Categorical.map is deprecated and will be changed to 'None' in a future version. Please set na_action to the desired value to avoid seeing this warning
-  color_vector = pd.Categorical(values.map(color_map))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/scanpy/plotting/_tools/scatterplots.py:394: UserWarning: No data for colormapping provided via 'c'. Parameters 'cmap' will be ignored
-  cax = scatter(
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/scanpy/plotting/_tools/scatterplots.py:1234: FutureWarning: The default value of 'ignore' for the `na_action` parameter in pandas.Categorical.map is deprecated and will be changed to 'None' in a future version. Please set na_action to the desired value to avoid seeing this warning
-  color_vector = pd.Categorical(values.map(color_map))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/scanpy/plotting/_tools/scatterplots.py:394: UserWarning: No data for colormapping provided via 'c'. Parameters 'cmap' will be ignored
-  cax = scatter(
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/scanpy/plotting/_tools/scatterplots.py:1234: FutureWarning: The default value of 'ignore' for the `na_action` parameter in pandas.Categorical.map is deprecated and will be changed to 'None' in a future version. Please set na_action to the desired value to avoid seeing this warning
-  color_vector = pd.Categorical(values.map(color_map))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/scanpy/plotting/_tools/scatterplots.py:394: UserWarning: No data for colormapping provided via 'c'. Parameters 'cmap' will be ignored
-  cax = scatter(
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/scanpy/plotting/_tools/scatterplots.py:1234: FutureWarning: The default value of 'ignore' for the `na_action` parameter in pandas.Categorical.map is deprecated and will be changed to 'None' in a future version. Please set na_action to the desired value to avoid seeing this warning
-  color_vector = pd.Categorical(values.map(color_map))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/scanpy/plotting/_tools/scatterplots.py:394: UserWarning: No data for colormapping provided via 'c'. Parameters 'cmap' will be ignored
-  cax = scatter(
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/lib/function_base.py:520: RuntimeWarning: Mean of empty slice.
-  avg = a.mean(axis, **keepdims_kw)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:708: RuntimeWarning: invalid value encountered in scalar divide
-  k = np.sum(w_mat * confusion) / np.sum(w_mat * expected)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:708: RuntimeWarning: invalid value encountered in scalar divide
-  k = np.sum(w_mat * confusion) / np.sum(w_mat * expected)
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2458: UserWarning: y_pred contains classes not in y_true
-  warnings.warn("y_pred contains classes not in y_true")
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/lib/function_base.py:520: RuntimeWarning: Mean of empty slice.
-  avg = a.mean(axis, **keepdims_kw)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:708: RuntimeWarning: invalid value encountered in scalar divide
-  k = np.sum(w_mat * confusion) / np.sum(w_mat * expected)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:708: RuntimeWarning: invalid value encountered in scalar divide
-  k = np.sum(w_mat * confusion) / np.sum(w_mat * expected)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2458: UserWarning: y_pred contains classes not in y_true
-  warnings.warn("y_pred contains classes not in y_true")
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2458: UserWarning: y_pred contains classes not in y_true
-  warnings.warn("y_pred contains classes not in y_true")
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/lib/function_base.py:520: RuntimeWarning: Mean of empty slice.
-  avg = a.mean(axis, **keepdims_kw)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:708: RuntimeWarning: invalid value encountered in scalar divide
-  k = np.sum(w_mat * confusion) / np.sum(w_mat * expected)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:708: RuntimeWarning: invalid value encountered in scalar divide
-  k = np.sum(w_mat * confusion) / np.sum(w_mat * expected)
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2458: UserWarning: y_pred contains classes not in y_true
-  warnings.warn("y_pred contains classes not in y_true")
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/data/analysis/ML_models/conda_env/sc_permut/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2458: UserWarning: y_pred contains classes not in y_true
-  warnings.warn("y_pred contains classes not in y_true")
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-/home/becavin/scPermut/scpermut/tools/clust_compute.py:311: FutureWarning: Downcasting behavior in `replace` is deprecated and will be removed in a future version. To retain the old behavior, explicitly call `result.infer_objects(copy=False)`. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
-  weights = np.array(y_true_s.replace(ct_weights))
-Early stopping at epoch 7, restoring model parameters from this epoch
-no label : (14, 14)
-label : (14, 14)
-label df : (14, 14)
-Computing neighborhood graph
-[0.42842952 0.3882984  0.18327208]
-Entropy mixing ----- step 0
-Entropy mixing ----- step 10
-Entropy mixing ----- step 20
-Entropy mixing ----- step 30
-Entropy mixing ----- step 40
-Entropy mixing ----- step 50
-Entropy mixing ----- step 60
-Entropy mixing ----- step 70
-Entropy mixing ----- step 80
-Entropy mixing ----- step 90
-Computing neighborhood graph
-[0.42842952 0.3882984  0.18327208]
-Entropy mixing ----- step 0
-Entropy mixing ----- step 10
-Entropy mixing ----- step 20
-Entropy mixing ----- step 30
-Entropy mixing ----- step 40
-Entropy mixing ----- step 50
-Entropy mixing ----- step 60
-Entropy mixing ----- step 70
-Entropy mixing ----- step 80
-Entropy mixing ----- step 90
-<class 'numpy.float64'>
-no label : (13, 13)
-label : (13, 13)
-label df : (13, 13)
-no label : (13, 13)
-label : (13, 13)
-label df : (13, 13)
-no label : (14, 14)
-label : (14, 14)
-label df : (14, 14)
-Traceback (most recent call last):
-  File "/home/becavin/scPermut/scpermut/__main__.py", line 95, in <module>
-    stop_neptune_log(workflow)
-  File "/home/becavin/scPermut/scpermut/../scpermut/workflow/neptune_log.py", line 33, in stop_neptune_log
-    self.run.stop()
-    ^^^^^^^^
-AttributeError: 'Workflow' object has no attribute 'run'
-[neptune] [info   ] Shutting down background jobs, please wait a moment...
-[neptune] [info   ] Done!
-[neptune] [info   ] Waiting for the remaining 36 operations to synchronize with Neptune. Do not kill this process.
-[neptune] [info   ] All 36 operations synced, thanks for waiting!
-[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/becavin-lab/sc-permut-packaging/e/SCPERP1-223/metadata
+Step number 0, running warmup_dann strategy with permutation = False for 47 epochs
+Epoch 1/147, Current strat Epoch 1/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+133132
+Epoch 2/147, Current strat Epoch 2/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+96259689
+Epoch 3/147, Current strat Epoch 3/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+12675476
+Epoch 4/147, Current strat Epoch 4/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+82102012
+Epoch 5/147, Current strat Epoch 5/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+51307296
+Epoch 6/147, Current strat Epoch 6/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+32524490
+Epoch 7/147, Current strat Epoch 7/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+48700904
+Epoch 8/147, Current strat Epoch 8/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+2340698
+Epoch 9/147, Current strat Epoch 9/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+24111938
+Epoch 10/147, Current strat Epoch 10/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+99883270
+Epoch 11/147, Current strat Epoch 11/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+86991310
+Epoch 12/147, Current strat Epoch 12/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+56744384
+Epoch 13/147, Current strat Epoch 13/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+82389450
+Epoch 14/147, Current strat Epoch 14/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+45544052
+Epoch 15/147, Current strat Epoch 15/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+91915130
+Epoch 16/147, Current strat Epoch 16/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+72673606
+Epoch 17/147, Current strat Epoch 17/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+83066940
+Epoch 18/147, Current strat Epoch 18/47
+obs 10067
+AnnData object with n_obs × n_vars = 10067 × 2481
+    obs: 'Dataset', 'donor_id', 'development_stage', 'sex', 'suspension_type', 'assay', 'Original_annotation', 'CellHint_harmonised_group', 'cell_type', 'Curated_annotation', 'organism', 'disease', 'tissue', 'batch', 'Original_annotation_batch', 'TRAIN_TEST_split', 'TRAIN_TEST_split_batch', 'n_genes', 'true_Original_annotation', 'n_counts', 'size_factors', 'train_split'
+    var: 'exist_in_Ayhan2021', 'exist_in_Franjic2022', 'exist_in_Tran2021', 'exist_in_Siletti2022', 'n_cells', 'n_counts'
+    uns: 'Curated_annotation_colors', 'Original_annotation_colors', 'donor_id_colors', 'schema_version', 'title', 'log1p'
+    obsm: 'X_uce', 'X_umap'
+obs 20
+Step - Switching permutation
+Step - Switching permutation
+39056587

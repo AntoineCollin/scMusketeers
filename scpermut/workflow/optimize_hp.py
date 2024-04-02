@@ -4,6 +4,15 @@ import os
 from pympler import asizeof
 from pympler.classtracker import ClassTracker
 from pympler import tracker
+import time
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import scanpy as sc
+import numpy as np
+import gc
+import tensorflow as tf
+
 
 # try :
 #     from .dataset import Dataset, load_dataset
@@ -32,8 +41,6 @@ from sklearn.metrics import (
     accuracy_score,
 )
 
-import argparse
-import functools
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
@@ -77,28 +84,14 @@ except ImportError:
 
 
 f1_score = functools.partial(f1_score, average="macro")
-import time
-import matplotlib.pyplot as plt
-import seaborn as sns
-import json
-import pandas as pd
-import scanpy as sc
-import numpy as np
-import os
-import sys
-import gc
-import tensorflow as tf
-import neptune
 
-# from numba import cuda
-from neptune.utils import stringify_unsupported
-import subprocess
 
-from ax.service.managed_loop import optimize
+
 
 # from ax import RangeParameter, SearchSpace, ParameterType, FixedParameter, ChoiceParameter
 
 physical_devices = tf.config.list_physical_devices("GPU")
+print("tf",physical_devices)
 for gpu_instance in physical_devices:
     tf.config.experimental.set_memory_growth(gpu_instance, True)
 
@@ -173,7 +166,7 @@ class Workflow:
         self.mean_dann_loss_fn = keras.metrics.Mean(name="dann_loss")
         self.mean_rec_loss_fn = keras.metrics.Mean(name="reconstructionloss")
 
-    def make_experiment(self):
+    def make_workflow(self):
         if self.run_file.layer1:
             self.ae_param.ae_hidden_size = [
                 self.run_file.layer1,
@@ -609,14 +602,14 @@ class Workflow:
                     for group in history:
                         for par, value in history[group].items():
                             self.run_neptune[f"training/{group}/{par}"].append(value[-1])
-                            if physical_devices:
+                            """ if physical_devices:
                                 # print(f"memory {tf.config.experimental.get_memory_info('GPU:0')['current']}")
-                                self.run_neptune["training/train/tf_GPU_memory"].append(
+                                self.run_neptune["training/train/tf_GPU_memory_epoch"].append(
                                     tf.config.experimental.get_memory_info("GPU:0")[
                                         "current"
                                     ]
                                     / 1e6
-                                )
+                                ) """
                 if strategy in ["full_model", "classifier_branch", "permutation_only"]:
                     # Early stopping
                     wait += 1
@@ -716,8 +709,12 @@ class Workflow:
             use_perm=use_perm,
         )
         n_obs = adata_list[group].n_obs
+        print(f"obs {n_obs}")
+        print(adata_list[group])
         steps = n_obs // self.run_file.batch_size + 1
         n_steps = steps
+        print(f"obs {n_steps}")
+        
         n_samples = 0
 
         self.mean_loss_fn.reset_state()
@@ -795,11 +792,13 @@ class Workflow:
         # print(f"New step : {step}")
         # gpu_mem = []
         # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
-        self.run_neptune["training/train/tf_GPU_memory"].append(
+        self.run_neptune["training/train/tf_GPU_memory_step"].append(
             tf.config.experimental.get_memory_info("GPU:0")["current"] / 1e6
         )
+        self.run_neptune["training/train/step"].append(step)
         # self.tr.print_diff()
         input_batch, output_batch = next(batch_generator)
+        # print(f"input {type(input_batch)}")
         # X_batch, sf_batch = input_batch.values()
         clas_batch, dann_batch, rec_batch = output_batch.values()
         # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
@@ -858,7 +857,7 @@ class Workflow:
         
 
         if self.run_file.verbose:
-            print_status_bar(
+            """ print_status_bar(
                 n_samples,
                 n_obs,
                 [
@@ -868,7 +867,7 @@ class Workflow:
                     self.mean_rec_loss_fn,
                 ],
                 self.metrics,
-            )
+            ) """
         
         # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
         
@@ -953,20 +952,22 @@ class Workflow:
 
     def get_scheme(self):
         if self.run_file.training_scheme == "training_scheme_1":
+            print(f"WARMUPDANNNNNNNN {self.run_file.warmup_epoch}")
+            print(f"COMPLETE {self.run_file.fullmodel_epoch}")
             self.run_file.training_scheme = [
                 ("warmup_dann", self.run_file.warmup_epoch, False),
-                ("full_model", 100, False),
+                ("full_model", self.run_file.fullmodel_epoch, False),
             ]  # This will end with a callback
         if self.run_file.training_scheme == "training_scheme_2":
             self.run_file.training_scheme = [
                 ("warmup_dann", self.run_file.warmup_epoch, False),
-                ("permutation_only", 100, True),  # This will end with a callback
-                ("classifier_branch", 50, False),
+                ("permutation_only", self.run_file.permonly_epoch, True),  # This will end with a callback
+                ("classifier_branch", self.run_file.classifier_epoch, False),
             ]  # This will end with a callback
         if self.run_file.training_scheme == "training_scheme_3":
             self.run_file.training_scheme = [
-                ("permutation_only", 100, True),  # This will end with a callback
-                ("classifier_branch", 50, False),
+                ("permutation_only", self.run_file.permonly_epoch, True),  # This will end with a callback
+                ("classifier_branch", self.run_file.classifier_epoch, False),
             ]
         return self.run_file.training_scheme
 

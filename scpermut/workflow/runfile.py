@@ -70,7 +70,13 @@ def get_runfile():
     training_group.add_argument('--weight_decay', type = float,nargs='?', default = 2e-6, help ='Weight decay applied by th optimizer') # Default identified with hp optimization
     training_group.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')# Default identified with hp optimization
     training_group.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop'], default = 'adam' , help ='Name of the optimizer to use')
-    training_group.add_argument('--warmup_epoch', type = float,nargs='?', default = 50, help ='Number of epoch to warmup DANN')
+    
+    # epoch groups
+    epoch_group = parser.add_argument_group('Epoch Parameters')
+    epoch_group.add_argument('--warmup_epoch', type = int,nargs='?', default = 50, help ='Number of epoch to warmup DANN')
+    epoch_group.add_argument('--fullmodel_epoch', type = int,nargs='?', default = 100, help ='Number of epoch to train full model')
+    epoch_group.add_argument('--permonly_epoch', type = int,nargs='?', default = 100, help ='Number of epoch to train in permutation only mode')
+    epoch_group.add_argument('--classifier_epoch', type = int,nargs='?', default = 50, help ='Number of epoch to train te classifier only')
 
     # Loss function Arguments
     loss_group = parser.add_argument_group('Loss function Parameters')
@@ -124,10 +130,14 @@ def set_hyperparameters(workflow, params):
     workflow.run_file.batch_size = params['batch_size']
     workflow.run_file.clas_w =  params['clas_w']    
     workflow.run_file.dann_w = params['dann_w']
-    workflow.run_file.rec_w =  params['rec_w']
-    workflow.ae_param.ae_bottleneck_activation = params['ae_bottleneck_activation']
-    workflow.run_file.size_factor = params['size_factor']
-    workflow.run_file.weight_decay =  params['weight_decay']
+    if 'rec_w' in params:
+        workflow.run_file.rec_w =  params['rec_w']
+    if 'ae_bottleneck_activation' in params:
+        workflow.ae_param.ae_bottleneck_activation = params['ae_bottleneck_activation']
+    if 'size_factor' in params:
+        workflow.run_file.size_factor = params['size_factor']
+    if 'weight_decay' in params:
+        workflow.run_file.weight_decay =  params['weight_decay']
     workflow.run_file.learning_rate = params['learning_rate']
     workflow.run_file.warmup_epoch =  params['warmup_epoch']
     workflow.run_file.dropout =  params['dropout']

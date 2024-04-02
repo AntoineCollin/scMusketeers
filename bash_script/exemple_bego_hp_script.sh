@@ -23,7 +23,9 @@ keep_obs=$(echo "$json_train" | grep -o "\"$dataset_name\": \[[^]]*\]" | cut -d 
 keep_obs=$(echo "$keep_obs" | tr -d '[:space:]' | tr -d '"' | tr ',' ' ')
 echo train_obs=$keep_obs
 
-python $python_script hyperparameter --dataset_name $dataset_name --class_key $class_key --batch_key $batch_key --test_obs $test_obs --mode entire_condition --obs_key $batch_key --keep_obs $keep_obs --working_dir $working_dir &> ${log_file}
+python $python_script hyperparameter --dataset_name $dataset_name --class_key $class_key --batch_key \
+$batch_key --test_obs $test_obs --mode entire_condition --obs_key $batch_key --keep_obs $keep_obs \
+--working_dir $working_dir --hparam_path $json_path --fullmodel_epoch 100 &> ${log_file}
 
 # singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python $python_script \
 # --working_dir $singularity_working_dir --dataset_name htap_final_by_batch --class_key celltype --batch_key donor --use_hvg 5000 \
