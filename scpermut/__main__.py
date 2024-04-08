@@ -48,15 +48,14 @@ if __name__ == '__main__':
         hparams = load_json(hparam_path)
 
         ### Loop API
-        """ best_parameters, values, experiment, model = optimize(
+        best_parameters, values, experiment, model = optimize(
             parameters=hparams,
             evaluation_function=experiment.train,
             objective_name=run_file.opt_metric,
             minimize=False,
             total_trials=experiment.total_trial,
             random_seed=experiment.random_seed,
-
-        ) """
+        )
 
         ### Service API
         ax_client = AxClient()
@@ -71,7 +70,6 @@ if __name__ == '__main__':
             # Local evaluation here can be replaced with deployment to external system.
             ax_client.complete_trial(trial_index=trial_index, raw_data=experiment.train(parameterization))
 
-        
         best_parameters, values = ax_client.get_best_parameters()
         print(best_parameters)
     else:

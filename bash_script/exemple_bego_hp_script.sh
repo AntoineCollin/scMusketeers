@@ -5,7 +5,7 @@ singularity_path=$working_dir"/scPermut_gpu_jupyter.sif"
 #python_script=$script_dir/scpermut/scpermut_optimize.py
 python_script=$script_dir/scpermut/__main__.py
 log_file=$working_dir"/experiment_script/htap_scheme_1.log"
-json_path="/home/becavin/scPermut/experiment_script/hp_ranges/generic_r1.json"
+json_path="/home/becavin/scPermut/experiment_script/hp_ranges/generic_r1_debug.json"
 
 dataset_name=tran_2021
 class_key=Original_annotation
@@ -25,7 +25,7 @@ echo train_obs=$keep_obs
 
 python $python_script hyperparameter --dataset_name $dataset_name --class_key $class_key --batch_key \
 $batch_key --test_obs $test_obs --mode entire_condition --obs_key $batch_key --keep_obs $keep_obs \
---working_dir $working_dir --hparam_path $json_path --fullmodel_epoch 100 &> ${log_file}
+--working_dir $working_dir --hparam_path $json_path --fullmodel_epoch 50 &> ${log_file}
 
 # singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python $python_script \
 # --working_dir $singularity_working_dir --dataset_name htap_final_by_batch --class_key celltype --batch_key donor --use_hvg 5000 \

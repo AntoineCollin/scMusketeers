@@ -254,19 +254,22 @@ class Workflow:
             dann_output_activation=self.dann_param.dann_output_activation,
         )
 
+        # Get optimizer object
         self.optimizer = get_optimizer(
             self.run_file.learning_rate,
             self.run_file.weight_decay,
             self.run_file.optimizer_type,
         )
+
+        # Get loss functions
         self.rec_loss_fn, self.clas_loss_fn, self.dann_loss_fn = (
             self.get_losses()
         )  # redundant
+
+        # Training
+
         self.run_file.training_scheme = self.get_scheme()
         start_time = time.time()
-
-        print("bottleneck activation : " + self.dann_ae.ae_bottleneck_activation)
-        # Training
         history = self.train_scheme(
             training_scheme=self.run_file.training_scheme,
             verbose=self.run_file.verbose,
@@ -282,6 +285,25 @@ class Workflow:
         )
         stop_time = time.time()
 
+        # Reporting
+        self.reporting(stop_time, start_time, adata_list,
+                        batch_list)
+        
+        # Get optimization metric
+        split, metric = self.run_file.opt_metric.split("-")
+        self.run_neptune.wait()
+        opt_metric = self.run_neptune[f"evaluation/{split}/{metric}"].fetch()
+        if self.run_file.verbose:
+            print(f"opt_metric {opt_metric}")
+        
+
+        tf.keras.backend.clear_session()
+
+        return opt_metric
+
+
+    def reporting(self, stop_time, start_time, adata_list,
+                batch_list):
         # Reporting after training
         if self.run_file.log_neptune:
             self.run_neptune["evaluation/training_time"] = stop_time - start_time
@@ -294,6 +316,7 @@ class Workflow:
             )
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
+            
             y_true_full = adata_list["full"].obs[f"true_{self.run_file.class_key}"]
             ct_prop = (
                 pd.Series(y_true_full).value_counts()
@@ -307,7 +330,7 @@ class Workflow:
             }
 
             for group in ["full", "train", "val", "test"]:
-                with tf.device("CPU"):
+                with tf.device("GPU"):
                     input_tensor = {
                         k: tf.convert_to_tensor(v)
                         for k, v in scanpy_to_input(
@@ -493,41 +516,6 @@ class Workflow:
                             fig_split
                         )
 
-        split, metric = self.run_file.opt_metric.split("-")
-        self.run_neptune.wait()
-        opt_metric = self.run_neptune[f"evaluation/{split}/{metric}"].fetch()
-        if self.run_file.verbose:
-            print(f"opt_metric {opt_metric}")
-        
-
-        # Redondant, à priori c'est le mcc qu'on a déjà calculé au dessus.
-        # with tf.device('CPU'):
-        #     inp = scanpy_to_input(adata_list['val'],['size_factors'])
-        #     inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
-        #     _, clas, dann, rec = self.dann_ae(inp, training=False).values()
-        #     clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-        #     opt_metric = self.pred_metrics_list_balanced['balanced_mcc'](np.asarray(y_list['val'].argmax(axis=1)), clas.argmax(axis=1)) # We retrieve the last metric of interest
-        # if self.log_neptune:
-        #     self.run_neptune.stop()
-        del enc
-        del clas
-        del dann
-        del rec
-        # # del _
-        # del input_tensor
-        # # del inp
-        del self.dann_ae
-        del self.dataset
-        del history
-        # del self.optimizer
-        # del self.rec_loss_fn
-        # del self.clas_loss_fn
-        # del self.dann_loss_fn
-
-        gc.collect()
-        tf.keras.backend.clear_session()
-
-        return opt_metric
 
     def train_scheme(self, training_scheme, verbose, **loop_params):
         """
@@ -709,11 +697,11 @@ class Workflow:
             use_perm=use_perm,
         )
         n_obs = adata_list[group].n_obs
-        print(f"obs {n_obs}")
-        print(adata_list[group])
+        # print(f"obs {n_obs}")
+        # print(adata_list[group])
         steps = n_obs // self.run_file.batch_size + 1
         n_steps = steps
-        print(f"obs {n_steps}")
+        # print(f"obs {n_steps}")
         
         n_samples = 0
 
