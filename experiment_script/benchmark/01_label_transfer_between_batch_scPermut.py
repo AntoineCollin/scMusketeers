@@ -49,7 +49,8 @@ if __name__ == '__main__':
     parser.add_argument('--true_celltype', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--false_celltype', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--pct_false', type = float,nargs='?', default = None, help ='')
-    parser.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
+    parser.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy', 'categorical_focal_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
+    parser.add_argument('--balance_classes', type=str2bool, nargs='?',const=True, default=True , help ='Wether to weight the classification loss by inverse of classes weight')
     parser.add_argument('--dann_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
     parser.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
     parser.add_argument('--weight_decay', type = float,nargs='?', default = 2e-6, help ='Weight decay applied by th optimizer') # Default identified with hp optimization
@@ -87,7 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
-    parser.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_mcc', help ='The metric used for early stopping as well as optimizes in hp search. Should be formatted as it appears in neptune (split-metricname)')
+    parser.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_acc', help ='The metric used for early stopping as well as optimizes in hp search. Should be formatted as it appears in neptune (split-metricname)')
 
     run_file = parser.parse_args()
     print(run_file.class_key, run_file.batch_key)
@@ -154,21 +155,28 @@ if __name__ == '__main__':
                 print(set(groups_train_val.iloc[val_index].unique()) & set(groups.iloc[test_index].unique()))
 
                 experiment.split_train_val()
-
-                print(experiment.dataset.adata.obs.loc[:,[experiment.test_split_key,experiment.batch_key]].drop_duplicates())
-                
-                checkpoint={'parameters/dataset_name': experiment.dataset_name, 'parameters/task': 'task_1',
-                    'parameters/model': model, 'parameters/test_fold_nb':i,'parameters/val_fold_nb':j}
+                checkpoint={'parameters/dataset_name': experiment.dataset_name, 
+                            'parameters/training_scheme': experiment.training_scheme,
+                            'parameters/clas_loss_name': experiment.clas_loss_name,
+                            'parameters/use_hvg': experiment.use_hvg,
+                            'parameters/task': 'task_1',
+                            'parameters/model': model, 
+                            'parameters/test_fold_nb':i,
+                            'parameters/val_fold_nb':j,
+                            'parameters/deprecated_status': False}
+                # for k, v in vars(run_file).items():
+                #     checkpoint['parameters/' + k] = v
+                print(f'checkpoint : {checkpoint}')
                 result = runs_table_df[runs_table_df[list(checkpoint.keys())].eq(list(checkpoint.values())).all(axis=1)]
                 if result.empty:
-                    print(checkpoint)
                     print(f'Running {model}')
                     experiment.start_neptune_log()
+                    experiment.make_experiment()
                     experiment.add_custom_log('test_fold_nb',i)
                     experiment.add_custom_log('val_fold_nb',j)
                     experiment.add_custom_log('test_obs',test_obs)
                     experiment.add_custom_log('val_obs',val_obs)
                     experiment.add_custom_log('train_obs',experiment.keep_obs)
                     experiment.add_custom_log('task','task_1')
-                    experiment.make_experiment()
+                    experiment.add_custom_log('deprecated_status', False)
                     experiment.stop_neptune_log()

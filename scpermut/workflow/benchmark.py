@@ -21,7 +21,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 try:
     from .dataset import Dataset, load_dataset
-    from .benchmark_models import pca_svm, harmony_svm, scanvi,uce,scmap_cells, scmap_cluster,celltypist_model
+    from .benchmark_models import pca_svm,pca_knn, harmony_svm, scanvi,uce,scmap_cells, scmap_cluster,celltypist_model
 except ImportError:
     from workflow.dataset import Dataset, load_dataset
     from workflow.benchmark_models import pca_svm, harmony_svm, scanvi,uce,scmap_cells, scmap_cluster,celltypist_model
@@ -88,10 +88,12 @@ class Workflow:
         self.keep_obs = self.run_file.keep_obs
         self.train_test_random_seed = self.run_file.train_test_random_seed
         self.obs_subsample = self.run_file.obs_subsample
-        
+        self.test_index_name = self.run_file.test_index_name
+        self.test_obs = self.run_file.test_obs
+
         self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
 
-        self.models_fn = {'pca_svm':pca_svm, 'harmony_svm':harmony_svm,
+        self.models_fn = {'pca_svm':pca_svm,'pca_knn':pca_knn, 'harmony_svm':harmony_svm,
                          'scanvi':scanvi,
                         'scmap_cells':scmap_cells,
                          'scmap_cluster':scmap_cluster,
@@ -177,6 +179,9 @@ class Workflow:
         # Processing dataset. 
         self.dataset.normalize()
 
+    def split_train_test(self):
+        self.dataset.test_split(test_obs = self.test_obs, test_index_name = self.test_index_name)
+    
     def split_train_test_val(self):
         #Splitting train/val. 
         self.dataset.train_split(mode = self.mode,

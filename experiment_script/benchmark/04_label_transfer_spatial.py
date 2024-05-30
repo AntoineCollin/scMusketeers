@@ -7,7 +7,7 @@ import neptune
 WD_PATH = '/home/acollin/scPermut/'
 sys.path.append(WD_PATH)
 
-from scpermut.tools.utils import str2bool
+from scpermut.tools.utils import str2bool, load_json
 print(str2bool('True'))
 from scpermut.workflow.benchmark import Workflow
 
@@ -28,6 +28,9 @@ if __name__ == '__main__':
     parser.add_argument('--scale_input', type=str2bool, nargs='?',const=False, default=False, help ='Weither to scale input the count values')
     parser.add_argument('--logtrans_input', type=str2bool, nargs='?',const=True, default=True, help ='Weither to log transform count values')
     parser.add_argument('--use_hvg', type=int, nargs='?', const=3000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
+
+    parser.add_argument('--test_index_name', type = str,nargs='+', default = None, help ='indexes to be used as test. Overwrites test_obs')
+    parser.add_argument('--test_obs', type = str,nargs='+', default = None, help ='')
 
     parser.add_argument('--test_split_key', type = str, default = 'TRAIN_TEST_split', help ='key of obs containing the test split')
     parser.add_argument('--mode', type = str, default = 'percentage', help ='Train test split mode to be used by Dataset.train_split')
@@ -81,47 +84,38 @@ if __name__ == '__main__':
     kf_test = GroupShuffleSplit(n_splits=3, test_size=nfold_test, random_state=random_seed)
     test_split_key = experiment.dataset.test_split_key
 
-    for i, (train_index, test_index) in enumerate(kf_test.split(X, classes, groups)):
-        groups = groups
-        test_obs = list(groups.iloc[test_index].unique()) # the batches that go in the test set
+    test_obs_json = load_json(working_dir + 'experiment_script/benchmark/hp_test_obs.json')
+    test_obs = test_obs_json[run_file.dataset_name]
 
-        experiment.dataset.test_split(test_obs = test_obs) # splits the train and test dataset
-        nfold_val = max(1,round((n_batches-len(test_obs))/5)) # represents 20% of the remaining train set
-        kf_val = GroupShuffleSplit(n_splits=5, test_size=nfold_val, random_state=random_seed)
+    experiment.test_obs = test_obs
+    experiment.split_train_test()
 
-        X_train_val = experiment.dataset.adata_train_extended.X
-        classes_train_val = experiment.dataset.adata_train_extended.obs[experiment.class_key]
-        groups_train_val = experiment.dataset.adata_train_extended.obs[experiment.batch_key]
+    nfold_val = max(1,round((n_batches-len(test_obs))/5)) # represents 20% of the remaining train set
+    kf_val = GroupShuffleSplit(n_splits=5, test_size=nfold_val, random_state=random_seed)
+   
+    X_train_val = experiment.dataset.adata_train_extended.X
+    classes_train_val = experiment.dataset.adata_train_extended.obs[experiment.class_key]
+    groups_train_val = experiment.dataset.adata_train_extended.obs[experiment.batch_key]
 
-        for j, (train_index, val_index) in enumerate(kf_val.split(X_train_val, classes_train_val, groups_train_val)):
+    for j, (train_index, val_index) in enumerate(kf_val.split(X_train_val, classes_train_val, groups_train_val)):
+        if j == 1: # Running only on the first split at first because it takes time
             experiment.keep_obs = list(groups_train_val[train_index].unique()) # keeping only train idx
             val_obs = list(groups_train_val[val_index].unique())
-            print(f"Fold {i,j}:")
-            print(f"train = {list(groups_train_val.iloc[train_index].unique())}, len = {len(groups_train_val.iloc[train_index].unique())}")
-            print(f"val = {list(groups_train_val.iloc[val_index].unique())}, len = {len(groups_train_val.iloc[val_index].unique())}")
-            print(f"test = {list(groups.iloc[test_index].unique())}, len = {len(groups.iloc[test_index].unique())}")
-
-            
-            print(set(groups_train_val.iloc[train_index].unique()) & set(groups.iloc[test_index].unique()))
-            print(set(groups_train_val.iloc[train_index].unique()) & set(groups_train_val.iloc[val_index].unique()))
-            print(set(groups_train_val.iloc[val_index].unique()) & set(groups.iloc[test_index].unique()))
             experiment.split_train_test_val()
-            print(experiment.dataset.adata.obs.loc[:,[experiment.test_split_key,experiment.batch_key]].drop_duplicates())
             for model in model_list:
-                checkpoint={'parameters/dataset_name': experiment.dataset_name, 'parameters/task': 'task_1', 'parameters/use_hvg': experiment.use_hvg,
-                    'parameters/model': model, 'parameters/test_fold_nb':i,'parameters/val_fold_nb':j}
+                checkpoint={'parameters/dataset_name': experiment.dataset_name, 'parameters/task': 'task_4', 'parameters/use_hvg': experiment.use_hvg,
+                    'parameters/model': model, 'parameters/val_fold_nb':j}
                 result = runs_table_df[runs_table_df[list(checkpoint.keys())].eq(list(checkpoint.values())).all(axis=1)]
                 if result.empty:
                     print(checkpoint)
                     print(f'Running {model}')
                     experiment.start_neptune_log()
-                    experiment.add_custom_log('test_fold_nb',i)
                     experiment.add_custom_log('val_fold_nb',j)
                     experiment.add_custom_log('test_obs',test_obs)
                     experiment.add_custom_log('val_obs',val_obs)
                     experiment.add_custom_log('train_obs',experiment.keep_obs)
-                    experiment.add_custom_log('task','task_1')
-                    experiment.add_custom_log('deprecated_status','False')
+                    experiment.add_custom_log('task','task_4')
+                    experiment.add_custom_log('deprecated_status',False)
                     experiment.train_model(model)
                     experiment.compute_metrics()
                     experiment.stop_neptune_log()

@@ -1,73 +1,16 @@
-from workflow.hyperparameters import *
 import argparse
-JSON_PATH_DEFAULT = '/home/acollin/scPermut/experiment_script/hp_ranges/'
+from ast import Expression
+import sys
+from sklearn.model_selection import GroupShuffleSplit
+import pandas as pd
+import neptune
 
-def load_json(json_path):
-    with open(json_path, 'r') as fichier_json:
-        dico = json.load(fichier_json)
-    return dico
-    
-total_trial = 50
-random_seed=40
+WD_PATH = '/home/acollin/scPermut/'
+sys.path.append(WD_PATH)
 
-class MakeExperiment:
-    def __init__(self, run_file, working_dir):
-        # super().__init__()
-        self.run_file = run_file
-        self.working_dir = working_dir
-        self.workflow = None
-        self.trial_count = 0
-        project = neptune.init_project(
-            project="becavin-lab/benchmark",
-        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
-        mode="read-only",
-            )# For checkpoint
-        self.runs_table_df = project.fetch_runs_table().to_pandas()
-        project.stop()
-        
-
-    def train(self, params):
-        # cuda.select_device(0)
-        # device = cuda.get_current_device()
-        # device.reset()
-        #import tensorflow as tf
-
-        self.trial_count += 1
-        # print('params')
-        # print(params)
-        checkpoint = {'parameters/' + k: i for k,i in params.items()}
-        checkpoint['parameters/dataset_name'] = self.run_file.dataset_name
-        checkpoint['parameters/opt_metric'] = self.run_file.opt_metric
-        checkpoint['parameters/task'] = 'hp_optim_V2'
-        print(checkpoint)
-        # checkpoint = {'parameters/dataset_name': self.run_file.dataset_name,
-        #               'parameters/total_trial': total_trial, 'parameters/trial_count': self.trial_count, 
-        #               'parameters/opt_metric': self.opt_metric, 'parameters/hp_random_seed': random_seed}
-        result = self.runs_table_df[self.runs_table_df[list(checkpoint.keys())].eq(list(checkpoint.values())).all(axis=1)]
-        print(result)
-        split, metric = self.run_file.opt_metric.split('-')
-        if result.empty or pd.isna(result.loc[:,f'evaluation/{split}/{metric}'].iloc[-1]): # we run the trial
-            print(f'Trial {self.trial_count} does not exist, running trial')
-            self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
-            self.workflow.set_hyperparameters(params)
-            self.workflow.start_neptune_log()
-            self.workflow.process_dataset()
-            self.workflow.split_train_test()
-            self.workflow.split_train_val()
-            opt_metric = self.workflow.make_experiment() # This starts the logging
-            self.workflow.add_custom_log('task', 'hp_optim_V2')
-            self.workflow.add_custom_log('total_trial', total_trial)
-            self.workflow.add_custom_log('hp_random_seed', random_seed)
-            self.workflow.add_custom_log('trial_count', self.trial_count)
-            self.workflow.add_custom_log('opt_metric', self.run_file.opt_metric)
-            self.workflow.stop_neptune_log()
-            # del self.workflow  # Should not be necessary
-            return opt_metric
-        else: # we return the already computed value
-            print(f'Trial {self.trial_count} already exists, retrieving value')
-            return result.loc[:,f'evaluation/{split}/{metric}'].iloc[0]
-
-
+from scpermut.tools.utils import str2bool, load_json
+print(str2bool('True'))
+from scpermut.workflow.hyperparameters import Workflow
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -116,18 +59,18 @@ if __name__ == '__main__':
     parser.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Weight of the classification loss')
     parser.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Weight of the DANN loss')
     parser.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Weight of the reconstruction loss')
-    parser.add_argument('--warmup_epoch', type = float,nargs='?', default = 50, help ='Number of epoch to warmup DANN')
+    parser.add_argument('--warmup_epoch', type = int,nargs='?', default = 50, help ='Number of epoch to warmup DANN')
 
-    parser.add_argument('--dropout', type=int,nargs='?', default = None, help ='dropout applied to every layers of the model. If specified, overwrites other dropout arguments')
+    parser.add_argument('--dropout', type=float,nargs='?', default = None, help ='dropout applied to every layers of the model. If specified, overwrites other dropout arguments')
     parser.add_argument('--layer1', type=int,nargs='?', default = None, help ='size of the first layer for a 2-layers model. If specified, overwrites ae_hidden_size')
     parser.add_argument('--layer2', type=int,nargs='?', default = None, help ='size of the second layer for a 2-layers model. If specified, overwrites ae_hidden_size')
     parser.add_argument('--bottleneck', type=int,nargs='?', default = None, help ='size of the bottleneck layer. If specified, overwrites ae_hidden_size')
-    
+
     parser.add_argument('--ae_hidden_size', type = int,nargs='+', default = [128,64,128], help ='Hidden sizes of the successive ae layers')
     parser.add_argument('--ae_hidden_dropout', type =float, nargs='?', default = None, help ='')
     parser.add_argument('--ae_activation', type = str ,nargs='?', default = 'relu' , help ='')
     parser.add_argument('--ae_bottleneck_activation', type = str ,nargs='?', default = 'linear' , help ='activation of the bottleneck layer')
-    parser.add_argument('--ae_output_activation', type = str,nargs='?', const = 'relu',default = 'relu', help ='')
+    parser.add_argument('--ae_output_activation', type = str,nargs='?', default = 'relu', help ='')
     parser.add_argument('--ae_init', type = str,nargs='?', default = 'glorot_uniform', help ='')
     parser.add_argument('--ae_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--ae_l1_enc_coef', type = float,nargs='?', default = None, help ='')
@@ -145,46 +88,81 @@ if __name__ == '__main__':
     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
-    parser.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_mcc', help ='The metric used for early stopping as well as optimizes in hp search. Should be formatted as it appears in neptune (split-metricname)')
+    parser.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_acc', help ='The metric used for early stopping as well as optimizes in hp search. Should be formatted as it appears in neptune (split-metricname)')
 
-    # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
-    
     run_file = parser.parse_args()
     print(run_file.class_key, run_file.batch_key)
-    experiment = MakeExperiment(run_file=run_file, working_dir=run_file.working_dir)
+    working_dir = run_file.working_dir
+    print(f'working directory : {working_dir}')
 
-    if not run_file.hparam_path:
-        hparam_path = JSON_PATH_DEFAULT + 'generic_r1.json'
-    else:
-        hparam_path = run_file.hparam_path
+    project = neptune.init_project(
+            project="becavin-lab/benchmark",
+        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
+        mode="read-only",
+            )# For checkpoint
 
-    hparams = load_json(hparam_path)
-        
-    # else:
-    #     hparams = [{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
-    #         {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-    #         {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-    #         {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
-    #         {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
-    #         {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
-    #         {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
-    #         {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
-    #         {"name": "layer2", "type": "range", "bounds": [64, 512]},
-    #         {"name": "layer1", "type": "range", "bounds": [512, 2048]},
-
-    #     ]
-
-    # workflow.make_experiment(hparams)
-
-    best_parameters, values, experiment, model = optimize(
-        parameters=hparams,
-        evaluation_function=experiment.train,
-        objective_name=run_file.opt_metric,
-        minimize=False,
-        total_trials=total_trial,
-        random_seed=random_seed,
-
-    )
-
-    print(best_parameters)
+    runs_table_df = project.fetch_runs_table().to_pandas()
+    project.stop()
     
+    experiment = Workflow(run_file=run_file, working_dir=working_dir)
+
+    experiment.process_dataset()
+
+    experiment.mode = "entire_condition"
+
+    random_seed = 2
+    model = 'scPermut'
+    
+    X = experiment.dataset.adata.X
+    classes = experiment.dataset.adata.obs[experiment.class_key]
+    groups = experiment.dataset.adata.obs[experiment.batch_key]
+
+    n_batches = len(groups.unique())
+    nfold_test = max(1,round(n_batches/5)) # if less than 8 batches, this comes to 1 batch per fold, otherwise, 20% of the number of batches for test
+    kf_test = GroupShuffleSplit(n_splits=3, test_size=nfold_test, random_state=random_seed)
+    test_split_key = experiment.dataset.test_split_key
+
+    test_obs_json = load_json(working_dir + 'experiment_script/benchmark/hp_test_obs.json')
+    test_obs = test_obs_json[run_file.dataset_name]
+
+
+    experiment.test_obs = test_obs
+    experiment.split_train_test()
+    # experiment.dataset.test_split(test_obs = test_obs) # splits the train and test dataset
+    nfold_val = max(1,round((n_batches-len(test_obs))/5)) # represents 20% of the remaining train set
+    kf_val = GroupShuffleSplit(n_splits=5, test_size=nfold_val, random_state=random_seed)
+   
+    X_train_val = experiment.dataset.adata_train_extended.X
+    classes_train_val = experiment.dataset.adata_train_extended.obs[experiment.class_key]
+    groups_train_val = experiment.dataset.adata_train_extended.obs[experiment.batch_key]
+
+    for j, (train_index, val_index) in enumerate(kf_val.split(X_train_val, classes_train_val, groups_train_val)):
+        if j == 1: # Running only on the first split at first because it takes time
+            groups_sub = groups_train_val
+            experiment.keep_obs = list(groups_train_val[train_index].unique()) # keeping only train idx
+            val_obs = list(groups_train_val[val_index].unique())
+
+            experiment.split_train_val()
+            checkpoint={'parameters/dataset_name': experiment.dataset_name, 
+                        'parameters/training_scheme': experiment.training_scheme,
+                        'parameters/clas_loss_name': experiment.clas_loss_name,
+                        'parameters/use_hvg': experiment.use_hvg,
+                        'parameters/task': 'task_4',
+                        'parameters/model': model, 
+                        'parameters/val_fold_nb':j,
+                        'parameters/deprecated_status': False}
+            # for k, v in vars(run_file).items():
+            #     checkpoint['parameters/' + k] = v
+            print(f'checkpoint : {checkpoint}')
+            result = runs_table_df[runs_table_df[list(checkpoint.keys())].eq(list(checkpoint.values())).all(axis=1)]
+            if result.empty:
+                print(f'Running {model}')
+                experiment.start_neptune_log()
+                experiment.make_experiment()
+                experiment.add_custom_log('val_fold_nb',j)
+                experiment.add_custom_log('test_obs',test_obs)
+                experiment.add_custom_log('val_obs',val_obs)
+                experiment.add_custom_log('train_obs',experiment.keep_obs)
+                experiment.add_custom_log('task','task_4')
+                experiment.add_custom_log('deprecated_status', False)
+                experiment.stop_neptune_log()

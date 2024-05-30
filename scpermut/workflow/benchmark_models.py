@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from sklearn import svm
+from sklearn.neighbors import KNeighborsClassifier
 import anndata as ad
 import pandas as pd
 import scanpy as sc
@@ -43,6 +44,47 @@ def svm_label(X_full, y_list, assign, pred_full = True):
         
     return y_pred
 
+def knn_label(X_full, y_list, assign, pred_full = True):
+    X_train = X_full[assign == 'train', :]
+    X_test_val = X_full[assign != 'train', :]
+ 
+    y_train = y_list['full'][assign == 'train']
+#    y_train = y_list['train']
+    # y_test = y_list['full'][assign != 'train']
+    
+    clf = KNeighborsClassifier(n_neighbors = 5) # default rbf ok ? or Linear Kernel ?
+    clf.fit(X_train, y_train)
+
+    if pred_full:
+        y_pred = clf.predict(X_full)
+    else:
+        y_pred = clf.predict(X_test_val)
+        
+    return y_pred
+
+def pca_knn(X_list, y_list, batch_list, assign, adata_list, pred_full = True): 
+    """ Perform PCA reduction and then predict cell type's 
+    annotation with a SVM algorithm 
+    return :
+        - latent = X_pca
+        - y_pred = prediction for all cells"""
+    # adata = sc.AnnData(X = X_list['full'],
+    #                    obs = pd.DataFrame({
+    #                        'celltype': y_list['full'],
+    #                        'batch': batch_list['full'],
+    #                        'split': assign},index =  y_list['full'].index))
+    adata = adata_list['full'] # adding PCA to adata_list['full'] the first time and reuses it for the next function calls
+    if not 'X_pca' in adata.obsm:
+        print('Did not find existing PCA, computing it')
+        sc.tl.pca(adata)
+    X_pca = adata.obsm['X_pca']
+    y_pred = knn_label(X_pca, y_list, assign, pred_full = pred_full)
+    
+    X_pca_list = {group : X_pca[assign == group, :] for group in np.unique(assign)}
+    X_pca_list['full'] = X_pca
+    y_pred_list =  {group : y_pred[assign == group] for group in np.unique(assign)}
+    y_pred_list['full'] = y_pred
+    return X_pca_list, y_pred_list
 
 def pca_svm(X_list, y_list, batch_list, assign, adata_list, pred_full = True): 
     """ Perform PCA reduction and then predict cell type's 

@@ -6,7 +6,30 @@ from sklearn.model_selection import train_test_split
 import argparse
 import json
 from PIL import ImageColor
+import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import os
+
+def check_dir(p):
+    if not os.path.exists(p):
+        os.makedirs(p)
+        
+def df_to_dict(df, key_column, value_column, singleton_to_str = False):
+    result_dict = df.groupby(key_column)[value_column].apply(list).to_dict()
+    if singleton_to_str:
+        for k, v in result_dict.items():
+            if len(v) == 1 :
+                result_dict[k] = v[0]
+    return result_dict
+
+
+def dict_to_df(dico,  val_name ='values',key_name ='keys',):
+    keys = [k for k, v in dico.items() for _ in v]
+    values = [v for v in dico.values() for v in v]
+    df = pd.DataFrame({val_name: values, key_name: keys})
+    return df
+
+
 def densify(X):
     if (type(X) == scipy.sparse.csr_matrix) or (type(X) == scipy.sparse.csc_matrix):
         return np.asarray(X.todense())
@@ -138,3 +161,87 @@ def split_adata(adata, cats):
     adata_train = adata[adata.obs['TRAIN_TEST_split'] == 'train'].copy()
     adata_test = adata[adata.obs['TRAIN_TEST_split'] == 'test'].copy()
     return adata_train, adata_test
+
+
+def result_dir(neptune_id, working_dir = None):
+    if working_dir :
+        save_dir = working_dir + 'experiment_script/results/' + str(neptune_id) + '/'
+    else :
+        save_dir = './experiment_script/results/' + str(neptune_id) + '/'
+    return save_dir
+    
+def load_confusion_matrix(neptune_id,train_split= 'val', working_dir = None):
+    save_dir = result_dir(neptune_id, working_dir)
+    return pd.read_csv(save_dir + f'confusion_matrix_{train_split}.csv', index_col =0)
+
+def load_pred(neptune_id, working_dir = None):
+    save_dir = result_dir(neptune_id, working_dir)
+    return pd.read_csv(save_dir + f'predictions_full.csv', index_col =0).squeeze()
+
+def load_proba_pred(neptune_id, working_dir = None):
+    save_dir = result_dir(neptune_id, working_dir)
+    return pd.read_csv(save_dir + f'y_pred_proba_full.csv', index_col =0).squeeze()
+
+def load_split(neptune_id, working_dir = None):
+    save_dir = result_dir(neptune_id, working_dir)
+    return pd.read_csv(save_dir + f'split_full.csv', index_col =0).squeeze()
+    
+def load_latent_space(neptune_id, working_dir = None):
+    save_dir = result_dir(neptune_id, working_dir)
+    return np.load(save_dir + f'latent_space_full.npy')
+
+def load_umap(neptune_id, working_dir = None):
+    save_dir = result_dir(neptune_id, working_dir)
+    return np.load(save_dir + f'umap_full.npy')
+
+def load_expe(neptune_id, working_dir):
+    save_dir = result_dir(neptune_id, working_dir)
+    X = load_latent_space(neptune_id, working_dir)
+    pred = load_pred(neptune_id, working_dir)
+    adata = sc.AnnData(X = X, obs = pred)
+    # proba_pred = load_proba_pred(neptune_id, working_dir)
+    umap = load_umap(neptune_id, working_dir)
+    # adata.obsm['proba_pred'] = proba_pred
+    adata.obsm['X_umap'] = umap
+    return adata
+
+def plot_umap_proba(adata, celltype, **kwargs):
+    adata.obs[celltype] = adata.obsm['proba_pred'][celltype]
+    sc.pl.umap(adata, color = celltype, **kwargs)
+
+
+def plot_size_conf_correlation(adata):
+    proba_pred = adata.obsm['proba_pred']
+    class_df_dict = {ct : proba_pred.loc[adata.obs['true'] == ct, :] for ct in adata.obs['true'].cat.categories} # The order of the plot is defined here (adata.obs['true_louvain'].cat.categories)
+    mean_acc_dict = {ct : df.mean(axis = 0) for ct, df in class_df_dict.items()}
+
+    f, axes = plt.subplots(1,2, figsize = (10,5))
+    f.suptitle('correlation between confidence and class size')
+    pd.Series({ct : class_df_dict[ct].shape[0] for ct in mean_acc_dict.keys()}).plot.bar(ax = axes[0])
+    pd.Series({ct : mean_acc_dict[ct][ct] for ct in mean_acc_dict.keys()}).plot.bar(ax =axes[1])
+    
+def plot_class_accuracy(adata,layout = True, **kwargs):
+    '''
+    mode is either bar (average) or box (boxplot)
+    '''
+    adata = self.latent_spaces[ID]
+    workflow = self.workflow_list[ID]
+    true_key = f'true_{workflow.class_key}'
+    pred_key = f'{workflow.class_key}_pred'
+    labels = adata.obs[true_key].cat.categories
+    conf_mat = pd.DataFrame(confusion_matrix(adata.obs[true_key], adata.obs[pred_key], labels=labels),index = labels, columns = labels)
+
+    n = math.ceil(np.sqrt(len(labels)))
+    f, axes = plt.subplots(n,n, constrained_layout=layout)
+    f.suptitle("Accuracy & confusion by celltype")
+#     plt.constrained_layout()
+    i = 0
+    for ct in labels:
+        r = i // n
+        c = i % n
+        ax = axes[r,c]
+        df = conf_mat.loc[ct,:]/conf_mat.loc[ct,:].sum()  
+        df.plot.bar(ax = ax, figsize = (20,15), ylim = (0,1), **kwargs)
+        ax.tick_params(axis='x', labelrotation=90 )
+        ax.set_title(ct + f'- {conf_mat.loc[ct,:].sum()} cells')
+        i+=1

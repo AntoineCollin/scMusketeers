@@ -152,7 +152,10 @@ def load_dataset(dataset_name,dataset_dir):
                 'dominguez_2022_spleen' : 'celltypist_dataset/dominguez_2022/dominguez_2022_spleen',
                 'tabula_2022_spleen' : 'celltypist_dataset/tabula_2022/tabula_2022_spleen',
                 'litvinukova_2020' : 'celltypist_dataset/litvinukova_2020/litvinukova_2020',
-                 'lake_2021': 'celltypist_dataset/lake_2021/lake_2021'
+                 'lake_2021': 'celltypist_dataset/lake_2021/lake_2021',
+                 'tenx_hlca' : 'tenx_hlca',
+                 'wmb_full' : 'whole_mouse_brain_class_modality',
+                 'wmb_it_et' : 'it_et_brain_subclass_modality'
                 }
         dataset_path = dataset_dir + '/' + dataset_names[dataset_name] + '.h5ad'
         adata = sc.read_h5ad(dataset_path)
@@ -302,10 +305,26 @@ class Dataset:
             self.pct_split = pct_split
             print(self.adata_train_extended.obs[self.class_key].value_counts())
             if split_strategy == 'random' or not split_strategy :
+                # Dirty workaround for celltypes with 1 cell only, which is a rare case
+                stratification = self.adata_train_extended.obs[self.class_key].copy()
+                if min(stratification.value_counts()) == 1:
+                    solo_ct = list(stratification.value_counts()[stratification.value_counts() == 1].index)
+                    max_ct = list(stratification.value_counts()[stratification.value_counts() == stratification.value_counts().max()].index)[0]
+                    mapping = {}
+                    for i in solo_ct:
+                        w = np.where(stratification == i)[0]
+                        stratification.iloc[w] = max_ct
+                        mapping[i] = w
                 train_idx, val_idx = train_test_split(np.arange(self.adata_train_extended.n_obs), 
-                                                    train_size=self.pct_split, 
-                                                    stratify =self.adata_train_extended.obs[self.class_key], 
+                                                    train_size = self.pct_split, 
+                                                    stratify = stratification, 
                                                     random_state=self.train_test_random_seed) # split on the index
+                if min(stratification.value_counts()) == 1:
+                    for ct, w in mapping.items() :
+                        # Adding the single celltype to the training dataset.
+                        if not w in train_idx:
+                            train_idx = np.append(train_idx, w)
+                            val_idx = val_idx[val_idx != w]
             if split_strategy == 'avg_marker_ranking':
                 val_idx = []
                 for ct in self.adata_train_extended.obs[self.class_key].unique():
