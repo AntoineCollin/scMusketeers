@@ -60,7 +60,7 @@ def make_training_set(y, n_perm,same_class_pct=None,unlabeled_category='UNK'):
     same_class_pct : When using contrastive loss, indicates the pct of samples to permute within their class. set to None when not using contrastive loss
     '''
     permutations = [[],[]]
-    print('switching perm')
+    print('Step - Switching permutation')
     
 
     # y = np.array(y).astype(str) If passing labels as string

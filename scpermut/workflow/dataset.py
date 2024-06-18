@@ -7,13 +7,14 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import sys
 import os
+
+
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-print(sys.path[0])
+
 try :
     from ..tools.utils import densify
 except ImportError:
     from tools.utils import densify
-
 
 
 def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduce_adata=True): 
@@ -147,7 +148,8 @@ def load_dataset(dataset_name,dataset_dir):
                 'tosti_2021' : 'celltypist_dataset/tosti_2021/tosti_2021',
                 'yoshida_2021' : 'celltypist_dataset/yoshida_2021/yoshida_2021',
                 'yoshida_2021_debug' : 'celltypist_dataset/yoshida_2021/yoshida_2021_debug',
-                'tran_2021' : 'celltypist_dataset/tran_2021/tran_2021',
+                # 'tran_2021' : 'celltypist_dataset/tran_2021/tran_2021',
+                'tran_2021' : 'tran_2021',
                 'dominguez_2022_lymph' : 'celltypist_dataset/dominguez_2022/dominguez_2022_lymph',
                 'dominguez_2022_spleen' : 'celltypist_dataset/dominguez_2022/dominguez_2022_spleen',
                 'tabula_2022_spleen' : 'celltypist_dataset/tabula_2022/tabula_2022_spleen',
@@ -162,7 +164,6 @@ def load_dataset(dataset_name,dataset_dir):
         if not adata.raw:
             adata.raw = adata
         print(f'dataset loaded at {dataset_path}')
-        print(adata)
         return adata
 
 
@@ -475,3 +476,39 @@ class Dataset:
         self.adata.obs.loc[inf_n_cells, 'train_split'] = 'test'
         self.adata_test = self.adata[self.adata.obs['train_split'] == 'test'].copy()
 
+
+def process_dataset(workflow):
+    # Loading dataset
+    adata = load_dataset(dataset_dir = workflow.data_dir,
+                            dataset_name = workflow.run_file.dataset_name)
+    
+    workflow.dataset = Dataset(adata = adata,
+                            class_key = workflow.run_file.class_key,
+                            batch_key= workflow.run_file.batch_key,
+                            filter_min_counts = workflow.run_file.filter_min_counts,
+                            normalize_size_factors = workflow.run_file.normalize_size_factors,
+                            size_factor = workflow.run_file.size_factor,
+                            scale_input = workflow.run_file.scale_input,
+                            logtrans_input = workflow.run_file.logtrans_input,
+                            use_hvg = workflow.run_file.use_hvg,
+                            test_split_key= workflow.run_file.test_split_key,
+                            unlabeled_category = workflow.unlabeled_category)
+    
+    # Processing dataset. Splitting train/test. 
+    workflow.dataset.normalize()
+    
+def split_train_test(workflow):
+    workflow.dataset.test_split(test_obs = workflow.run_file.test_obs, test_index_name = workflow.run_file.test_index_name)
+
+def split_train_val(workflow):
+    workflow.dataset.train_split(mode = workflow.run_file.mode,
+                        pct_split = workflow.run_file.pct_split,
+                        obs_key = workflow.run_file.obs_key,
+                        n_keep = workflow.run_file.n_keep,
+                        keep_obs = workflow.run_file.keep_obs,
+                        split_strategy = workflow.run_file.split_strategy,
+                        obs_subsample = workflow.run_file.obs_subsample,
+                        train_test_random_seed = workflow.run_file.train_test_random_seed)
+
+    print('dataset has been preprocessed')
+    workflow.dataset.create_inputs()

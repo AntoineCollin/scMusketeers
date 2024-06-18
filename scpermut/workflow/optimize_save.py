@@ -1,4 +1,3 @@
-from unittest import TestResult
 import keras
 import sys
 import os
@@ -20,8 +19,6 @@ import argparse
 import functools
 
 from sklearn.metrics import balanced_accuracy_score,matthews_corrcoef, f1_score,cohen_kappa_score, adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score,davies_bouldin_score,adjusted_rand_score,confusion_matrix,accuracy_score
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.utils import compute_class_weight
 
 import argparse
 import functools
@@ -95,8 +92,9 @@ class Workflow:
         '''
         run_file : a dictionary outputed by the function load_runfile
         '''
-        print("NOOOOO EAGERRRRR")
-        tf.compat.v1.disable_eager_execution()
+        # print("NOOOOO EAGERRRRR")
+        # tf.compat.v1.disable_eager_execution()
+        self.process = run_file.process
         self.sess = tf.compat.v1.Session()
         self.run_file = run_file
         # dataset identifiers
@@ -114,11 +112,12 @@ class Workflow:
         # self.optimizer = self.run_file.optimizer
         # self.verbose = self.run_file[model_training_spec][verbose] # TODO : not implemented yet for DANN_AE
         # self.threads = self.run_file[model_training_spec][threads] # TODO : not implemented yet for DANN_AE
+        self.verbose = self.run_file.verbose
         self.learning_rate = self.run_file.learning_rate
         self.n_perm = 1
         self.semi_sup = False # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
         self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
-      
+        
 
         # train test split # TODO : Simplify this, or at first only use the case where data is split according to batch
         self.test_split_key = self.run_file.test_split_key
@@ -161,19 +160,18 @@ class Workflow:
         ##### TODO : Add to runfile
 
         self.clas_loss_name = self.run_file.clas_loss_name
-        self.clas_loss_name = default_value(self.clas_loss_name, 'categorical_crossentropy')
-        self.balance_classes = self.run_file.balance_classes
+        self.clas_loss_name = default_value(self.clas_loss_name, 'MSE')
         self.dann_loss_name = self.run_file.dann_loss_name
         self.dann_loss_name = default_value(self.dann_loss_name ,'categorical_crossentropy')
         self.rec_loss_name = self.run_file.rec_loss_name
-        self.rec_loss_name = default_value(self.rec_loss_name , 'MSE')
+        self.rec_loss_name = default_value(self.rec_loss_name , 'categorical_crossentropy')
 
         self.clas_loss_fn = None
         self.dann_loss_fn = None
         self.rec_loss_fn = None
 
-        self.weight_decay = self.run_file.weight_decay
-        self.weight_decay = default_value(self.clas_loss_name, None)
+        # self.weight_decay = self.run_file.weight_decay
+        self.weight_decay = None
         self.optimizer_type = self.run_file.optimizer_type
         self.optimizer_type = default_value(self.optimizer_type , 'adam')
 
@@ -268,20 +266,17 @@ class Workflow:
 
         self.hparam_path = self.run_file.hparam_path
         self.hp_params = None
-        self.opt_metric = default_value(self.run_file.opt_metric, None)
-
+        self.opt_metric = self.run_file.opt_metric
         
     def set_hyperparameters(self, params):
         
-        print(f'setting hparams {params}')
-
+        # print(params)
         self.use_hvg = params['use_hvg']
         self.batch_size = params['batch_size']
         self.clas_w =  params['clas_w']
         self.dann_w = params['dann_w']
         self.rec_w =  params['rec_w']
         self.ae_bottleneck_activation = params['ae_bottleneck_activation']
-        self.clas_loss_name = params['clas_loss_name']
         self.size_factor = params['size_factor']
         self.weight_decay =  params['weight_decay']
         self.learning_rate = params['learning_rate']
@@ -290,7 +285,6 @@ class Workflow:
         self.layer1 = params['layer1']
         self.layer2 =  params['layer2']
         self.bottleneck = params['bottleneck']
-        self.training_scheme = params['training_scheme']
         self.hp_params = params
             
     def start_neptune_log(self):
@@ -333,10 +327,6 @@ class Workflow:
                                test_split_key= self.test_split_key,
                                unlabeled_category = self.unlabeled_category)
         
-        if not 'X_pca' in self.dataset.adata.obsm:
-            print('Did not find existing PCA, computing it')
-            sc.tl.pca(self.dataset.adata)
-            self.dataset.adata.obsm['X_pca'] = np.asarray(self.dataset.adata.obsm['X_pca'])
         # Processing dataset. Splitting train/test. 
         self.dataset.normalize()
         
@@ -358,9 +348,11 @@ class Workflow:
         
 
     def make_experiment(self):
-        self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer2, self.layer1]
+        if self.layer1 :
+            self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer2, self.layer1]
 
-        self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
+        if self.dropout:
+            self.dann_hidden_dropout, self.class_hidden_dropout, self.ae_hidden_dropout = self.dropout, self.dropout, self.dropout
         
         adata_list = {'full': self.dataset.adata,
                       'train': self.dataset.adata_train,
@@ -372,11 +364,6 @@ class Workflow:
                 'val': self.dataset.X_val,
                 'test': self.dataset.X_test}
 
-        y_nooh_list = {'full': self.dataset.y,
-                      'train': self.dataset.y_train,
-                      'val': self.dataset.y_val,
-                      'test': self.dataset.y_test}
-
         y_list = {'full': self.dataset.y_one_hot,
                       'train': self.dataset.y_train_one_hot,
                       'val': self.dataset.y_val_one_hot,
@@ -387,32 +374,10 @@ class Workflow:
                       'val': self.dataset.batch_val_one_hot,
                       'test': self.dataset.batch_test_one_hot}
 
-        X_pca_list = {'full': self.dataset.adata.obsm['X_pca'],
-                      'train': self.dataset.adata_train.obsm['X_pca'],
-                      'val': self.dataset.adata_val.obsm['X_pca'],
-                      'test': self.dataset.adata_test.obsm['X_pca']}
-
-        knn_cl = KNeighborsClassifier(n_neighbors = 5)
-        knn_cl.fit(X_pca_list['train'], y_nooh_list['train'])
-
-        pseudo_y_val = pd.Series(knn_cl.predict(X_pca_list['val']), index = adata_list['val'].obs_names)
-        pseudo_y_test = pd.Series(knn_cl.predict(X_pca_list['test']), index = adata_list['test'].obs_names)
-
-        pseudo_y_full = pd.concat([pseudo_y_val, pseudo_y_test, y_nooh_list['train']])
-        pseudo_y_full = pseudo_y_full[adata_list['full'].obs_names] # reordering cells in the right order
-
-        print(f'pseudo_y_full = {pseudo_y_full}')
-
-        pseudo_y_list = {'full': self.dataset.ohe_celltype.transform(np.array(pseudo_y_full).reshape(-1,1)).astype(float).todense(),
-                      'train': y_list['train'],
-                      'val': self.dataset.ohe_celltype.transform(np.array(pseudo_y_val).reshape(-1,1)).astype(float).todense(),
-                      'test': self.dataset.ohe_celltype.transform(np.array(pseudo_y_test).reshape(-1,1)).astype(float).todense()}
-
-        print({i:adata_list[i] for i in adata_list})
-        print({i:len(y_list[i]) for i in y_list})
-        print(f"sum : {len(y_list['train']) + len(y_list['test']) + len(y_list['val'])}")
-        print(f"full: {len(y_list['full'])}")
-
+        # print({i:adata_list[i] for i in adata_list})
+        # print({i:len(y_list[i]) for i in y_list})
+        # print(f"sum : {len(y_list['train']) + len(y_list['test']) + len(y_list['val'])}")
+        # print(f"full: {len(y_list['full'])}")
 
         self.num_classes = len(np.unique(self.dataset.y_train))
         self.num_batches = len(np.unique(self.dataset.batch))
@@ -421,6 +386,7 @@ class Workflow:
 
         self.class_hidden_size = default_value(self.class_hidden_size , (bottleneck_size + self.num_classes)/2) # default value [(bottleneck_size + num_classes)/2]
         self.dann_hidden_size = default_value(self.dann_hidden_size , (bottleneck_size + self.num_batches)/2) # default value [(bottleneck_size + num_batches)/2]
+
 
         # Creation of model
         self.dann_ae = DANN_AE(ae_hidden_size=self.ae_hidden_size, 
@@ -446,20 +412,19 @@ class Workflow:
                         dann_output_activation=self.dann_output_activation)
 
         self.optimizer = self.get_optimizer(self.learning_rate, self.weight_decay, self.optimizer_type)
-        self.rec_loss_fn, self.clas_loss_fn, self.dann_loss_fn = self.get_losses(y_list) # redundant
-        training_scheme = self.get_scheme()
+        self.rec_loss_fn, self.clas_loss_fn, self.dann_loss_fn = self.get_losses() # redundant
+        self.training_scheme = self.get_scheme()
         start_time = time.time()
 
         print("bottleneck activation : " + self.dann_ae.ae_bottleneck_activation)
         # Training
-        history = self.train_scheme(training_scheme=training_scheme,
+        history = self.train_scheme(training_scheme=self.training_scheme,
                                     verbose = False,
                                     ae = self.dann_ae,
                                      adata_list= adata_list,
                                      X_list= X_list,
                                      y_list= y_list,
                                      batch_list= batch_list,
-                                     pseudo_y_list=pseudo_y_list,
                                     #  optimizer= self.optimizer, # not an **loop_param since it resets between strategies
                                      clas_loss_fn = self.clas_loss_fn,
                                      dann_loss_fn = self.dann_loss_fn,
@@ -468,7 +433,6 @@ class Workflow:
         if self.log_neptune :
             self.run['evaluation/training_time'] = stop_time - start_time
         # TODO also make it on gpu with smaller batch size
-        sess = tf.compat.v1.Session()
         if self.log_neptune:
             neptune_run_id = self.run['sys/id'].fetch()
             save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
@@ -491,27 +455,24 @@ class Workflow:
                         y_pred_proba.to_csv(save_dir + f'y_pred_proba_full.csv')
                         self.run[f'evaluation/{group}/y_pred_proba_full'].track_files(save_dir + f'y_pred_proba_full.csv')
 
-                    # clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-                    argmax_op = tf.math.argmax(clas, axis=1)
-                    # print(argmax_op)
-                    # print(clas.shape)
-                    # Create the fetch operation to retrieve the ArgMax result
+                    
+                    # In Eager Mode
+                    numpy_argmax = np.argmax(clas, axis=1)
+                    
+                    # In Graph mode
+                    """ argmax_op = tf.math.argmax(clas, axis=1)
                     fetch_op = argmax_op
                     if self.sess is not None:
                         input_data = np.random.randint(0, 100, size=(clas.shape[0],clas.shape[1]))  # Sample input data
-                        numpy_argmax = self.sess.run(fetch_op, feed_dict={clas: input_data})
-                
-                
-                    #tensor_list = numpy_tensor(tensor_arg)
-                    # print(f"numpy argmax : {numpy_argmax}")
-                    clas = np.eye(clas.shape[1])[numpy_argmax]
+                        numpy_argmax = self.sess.run(fetch_op, feed_dict={clas: input_data}) """
+                    
+                    # Get Classif hot encoding
+                    class_tf = np.eye(clas.shape[1])[numpy_argmax]
 
-
-
-                    y_pred = self.dataset.ohe_celltype.inverse_transform(clas).reshape(-1,)
+                    y_pred = self.dataset.ohe_celltype.inverse_transform(class_tf).reshape(-1,)
                     y_true = adata_list[group].obs[f'true_{self.class_key}']
                     batches = np.asarray(batch_list[group].argmax(axis=1)).reshape(-1,)
-                    split = adata_list[group].obs['train_split']
+                    split = adata_list[group].obs[f'train_split']
 
 
                     # Saving confusion matrices
@@ -595,14 +556,12 @@ class Workflow:
                         self.run[f'evaluation/{group}/batch_umap'].upload(fig_batch)
                         self.run[f'evaluation/{group}/split_umap'].upload(fig_split)
 
-        if self.opt_metric:
-            split, metric = self.opt_metric.split('-')
-            self.run.wait()
-            opt_metric = self.run[f'evaluation/{split}/{metric}'].fetch()
-            print('opt_metric')
-            print(opt_metric)
-        else :
-            opt_metric = None
+        split, metric = self.opt_metric.split('-')
+        self.run.wait()
+        opt_metric = self.run[f'evaluation/{split}/{metric}'].fetch()
+        print('opt_metric')
+        print(opt_metric)
+
         # Redondant, à priori c'est le mcc qu'on a déjà calculé au dessus.
         # with tf.device('CPU'):
         #     inp = scanpy_to_input(adata_list['val'],['size_factors'])
@@ -620,12 +579,12 @@ class Workflow:
         # del input_tensor
         # # del inp
         del self.dann_ae
-        # del self.dataset
+        del self.dataset
         del history
-        del self.optimizer
-        del self.rec_loss_fn
-        del self.clas_loss_fn
-        del self.dann_loss_fn
+        # del self.optimizer
+        # del self.rec_loss_fn
+        # del self.clas_loss_fn
+        # del self.dann_loss_fn
 
         gc.collect()
         tf.keras.backend.clear_session()
@@ -648,8 +607,6 @@ class Workflow:
                             'rec_loss':[]}
             for m in self.pred_metrics_list:
                 history[group][m] = []
-            for m in self.pred_metrics_list_balanced:
-                history[group][m] = []
 
         # if self.log_neptune:
         #     for group in history:
@@ -670,40 +627,19 @@ class Workflow:
             if strategy in  ['full_model', 'classifier_branch', 'permutation_only']:
                 wait = 0
                 best_epoch = 0
-                patience = 20
-                min_delta = 0
+                patience = 10
+                min_delta = 0.01
                 if strategy == 'permutation_only':
                     monitored = 'rec_loss'
                     es_best = np.inf # initialize early_stopping
                 else:
-                    split, metric = self.opt_metric.split('-')
-                    monitored = metric
+                    monitored = 'mcc'
                     es_best = -np.inf
 
-                    
-            memory = {}
-            if strategy in ['warmup_dann_pseudolabels', 'full_model_pseudolabels']: # We use the pseudolabels computed with the model
-                input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(loop_params['adata_list']['full'],['size_factors']).items()}
-                enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values() # Model predict
-                pseudo_full = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-                pseudo_full[loop_params['adata_list']['full'].obs['train_split'] == 'train',:] = loop_params['pseudo_y_list']['train'] # the true labels 
-                loop_params['pseudo_y_list']['full'] = pseudo_full
-                for group in ['val', 'test']:
-                    loop_params['pseudo_y_list'][group] = pseudo_full[loop_params['adata_list']['full'].obs['train_split'] == group,:]# the predicted labels in test and val 
-                        
-            elif strategy in ['warmup_dann_semisup']:
-                memory = {}
-                memory['pseudo_full'] = loop_params['pseudo_y_list']['full']
-                for group in ['val', 'test']:
-                    loop_params['pseudo_y_list']['full'][loop_params['adata_list']['full'].obs['train_split'] == group,:] = self.unlabeled_category # set val and test to self.unlabeled_category
-                    loop_params['pseudo_y_list'][group] = pseudo_full[loop_params['adata_list']['full'].obs['train_split'] == group,:]
-
-            else:
-                if memory : # In case we are no longer using semi sup config, we reset to the previous known pseudolabels
-                    for group in ['val', 'test', 'full']:
-                        loop_params['pseudo_y_list'][group] = memory[group]
-                    memory = {}
-
+            
+            # tracker_class = ClassTracker()
+            # self.tr = tracker.SummaryTracker()
+            # tracker_class.track_class(Workflow, resolution_level=3, trace=2)
             for epoch in range(1, n_epochs+1):
                 # self.tr.print_diff() 
                 # tracker_class.create_snapshot()
@@ -795,13 +731,12 @@ class Workflow:
                             adata_list,
                             X_list,
                             y_list,
-                            pseudo_y_list,
                             batch_list,
                             optimizer,
                             clas_loss_fn,
                             dann_loss_fn,
                             rec_loss_fn,
-                            use_perm=True,
+                            use_perm=None,
                             training_strategy="full_model",
                             verbose = False):
         '''
@@ -820,40 +755,35 @@ class Workflow:
         self.unfreeze_all(ae) # resetting freeze state
         if training_strategy == "full_model":
             group = 'train'
-        elif training_strategy == 'full_model_pseudolabels':
-            group = 'full'
-        elif training_strategy in ["warmup_dann", 'warmup_dann_pseudolabels', 'warmup_dann_semisup']:
-            group = 'full' # semi-supervised setting
+        elif training_strategy == "warmup_dann":
+            group = 'full' # unsupervised setting
             ae.classifier.trainable = False # Freezing classifier just to be sure but should not be necessary since gradient won't be propagating in this branch
-        elif training_strategy == 'warmup_dann_train':
-            group = 'train' # semi-supervised setting
-            ae.classifier.trainable = False # Freezing classifier just to be sure but should not be necessary since gradient won't be propagating in this branch
+            use_perm = False # no permutation for warming up the dann. No need to specify it in the no rec version since we don't reconstruct
         elif training_strategy == "warmup_dann_no_rec":
             group = 'full'
             self.freeze_block(ae, 'all_but_dann')
         elif training_strategy == "dann_with_ae":
             group = 'train'
             ae.classifier.trainable = False
+            use_perm = True
         elif training_strategy == "classifier_branch":
             group = 'train'
-            self.freeze_block(ae, 'all_but_classifier_branch') # training only classifier branch
+            self.freeze_block(ae, 'all_but_classifier_branch') # traning only classifier branch
         elif training_strategy == "permutation_only":
             group = 'train'
             self.freeze_block(ae, 'all_but_autoencoder')
-        elif training_strategy == "no_dann":
-            group = 'train'
-            self.freeze_block(ae, 'freeze_dann')
+            use_perm = True
 
+        if not use_perm:
+            use_perm = True
 
-        print(f'use_perm = {use_perm}')
         batch_generator = batch_generator_training_permuted(X = X_list[group],
-                                                            y = pseudo_y_list[group], # We use pseudo labels for val and test. y_train are true labels  
+                                                            y = y_list[group],
                                                             batch_ID = batch_list[group],
                                                             sf = adata_list[group].obs['size_factors'],                    
                                                             ret_input_only=False,
                                                             batch_size=self.batch_size,
                                                             n_perm=1, 
-                                                            unlabeled_category = self.unlabeled_category, # Those cells are matched with themselves during AE training
                                                             use_perm=use_perm)
         n_obs = adata_list[group].n_obs
         steps = n_obs // self.batch_size + 1
@@ -880,9 +810,9 @@ class Workflow:
                 clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
                 dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
                 rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
-                if training_strategy in ["full_model", 'full_model_pseudolabels']:
+                if training_strategy == "full_model":
                     loss = tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses)
-                elif training_strategy in ["warmup_dann", 'warmup_dann_pseudolabels', 'warmup_dann_train', 'warmup_dann_semisup']:
+                elif training_strategy == "warmup_dann":
                     loss = tf.add_n([self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses)
                 elif training_strategy == "warmup_dann_no_rec":
                     loss = tf.add_n([self.dann_w * dann_loss] + ae.losses)
@@ -892,8 +822,6 @@ class Workflow:
                     loss = tf.add_n([self.clas_w * clas_loss] + ae.losses)
                 elif training_strategy == "permutation_only":
                     loss = tf.add_n([self.rec_w * rec_loss] + ae.losses)
-                elif training_strategy == "no_dann":
-                    loss = tf.add_n([self.rec_w * rec_loss] + [self.clas_w * clas_loss] + ae.losses)
                 
             n_samples += enc.shape[0]
             gradients = tape.gradient(loss, ae.trainable_variables)
@@ -941,27 +869,22 @@ class Workflow:
                 history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + ae.losses] # using numpy to prevent memory leaks
                 # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
 
-                # Perform ArgMax operation
-                argmax_op = tf.math.argmax(clas, axis=1)
-                # print(argmax_op)
-                # print(clas.shape)
-                # Create the fetch operation to retrieve the ArgMax result
+                # In Eager Mode
+                numpy_argmax = np.argmax(clas, axis=1)
+                
+                # In Graph mode
+                """ argmax_op = tf.math.argmax(clas, axis=1)
                 fetch_op = argmax_op
                 if self.sess is not None:
                     input_data = np.random.randint(0, 100, size=(clas.shape[0],clas.shape[1]))  # Sample input data
-                    numpy_argmax = self.sess.run(fetch_op, feed_dict={clas: input_data})
+                    numpy_argmax = self.sess.run(fetch_op, feed_dict={clas: input_data}) """
                 
-                
-                #tensor_list = numpy_tensor(tensor_arg)
-                # print(f"numpy argmax : {numpy_argmax}")
-                clas_tf = np.eye(clas.shape[1])[numpy_argmax]
-                # clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+                # Get Classif hot encoding
+                class_tf = np.eye(clas.shape[1])[numpy_argmax]
                 
                 # clas = tf.eye(clas.shape[1])[tf.math.argmax(clas, axis=0)]
                 for metric in self.pred_metrics_list: # only classification metrics ATM
-                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas.argmax(axis=1))] # y_list are onehot encoded
-                for metric in self.pred_metrics_list_balanced: # only classification metrics ATM
-                    history[group][metric] += [self.pred_metrics_list_balanced[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas.argmax(axis=1))] # y_list are onehot encoded
+                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), class_tf.argmax(axis=1))] # y_list are onehot encoded
         del inp
         return history, _, clas, dann, rec
 
@@ -1025,13 +948,11 @@ class Workflow:
         elif strategy == "all_but_classifier":
             layers_to_freeze = [ae.dann_discriminator, ae.dec, ae.ae_output_layer]
         elif strategy == "all_but_dann_branch":
-            layers_to_freeze = [ae.classifier, ae.enc, ae.dec, ae.ae_output_layer]
+            layers_to_freeze = [ae.classifier, ae.dec, ae.ae_output_layer, ae.enc]
         elif strategy == "all_but_dann":
             layers_to_freeze = [ae.classifier, ae.dec, ae.ae_output_layer]
         elif strategy == "all_but_autoencoder":
             layers_to_freeze = [ae.classifier, ae.dann_discriminator]
-        elif strategy == "freeze_dann":
-            layers_to_freeze = [ae.dann_discriminator]
         else:
             raise ValueError("Unknown freeze strategy: " + strategy)
 
@@ -1049,122 +970,30 @@ class Workflow:
 
     def get_scheme(self):
         if self.training_scheme == 'training_scheme_1':
-            training_scheme = [("warmup_dann", self.warmup_epoch, False),
-                                  ("full_model", 100, True)] # This will end with a callback
+            self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
+                                  ("full_model", 100, False)] # This will end with a callback
         if self.training_scheme == 'training_scheme_2':
-            training_scheme = [("warmup_dann_no_rec", self.warmup_epoch, False),
-                                  ("full_model", 100, True)] # This will end with a callback
-        if self.training_scheme == 'training_scheme_3':
-            training_scheme = [("warmup_dann", self.warmup_epoch, False),
-                                  ("full_model", 100, True),
-                                  ("classifier_branch", 50, False)] # This will end with a callback
-        if self.training_scheme == 'training_scheme_4':
-            training_scheme = [("warmup_dann", self.warmup_epoch, False),
+            self.training_scheme = [("warmup_dann", self.warmup_epoch, False),
                                 ("permutation_only", 100, True),  # This will end with a callback
                                 ("classifier_branch", 50, False)] # This will end with a callback
-        if self.training_scheme == 'training_scheme_5':
-            training_scheme = [("warmup_dann" , self.warmup_epoch, False),
-                                  ("full_model", 100, False)] # This will end with a callback, NO PERMUTATION HERE
-        if self.training_scheme == 'training_scheme_6':
-            training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
-                                  ("full_model", 100, True)]
-        
-        if self.training_scheme == 'training_scheme_7':
-            training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
-                                  ("full_model", 100, False)]
-        
-        if self.training_scheme == 'training_scheme_8':
-            training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
-                                ("full_model", 100, False),
-                                ("classifier_branch", 50, False)] # This will end with a callback]
-        
-        if self.training_scheme == 'training_scheme_9':
-            training_scheme = [("warmup_dann", self.warmup_epoch, False), 
-                                ("full_model", 100, True),
-                                ("classifier_branch", 50, False)
-                                ] # This will end with a callback]
-            
-        if self.training_scheme == 'training_scheme_10':
-            training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
-                                ("full_model", 100, False),
-                                ("classifier_branch", 50, False),
-                                ("warmup_dann_pseudolabels", self.warmup_epoch, True), # Permutating with pseudo labels from the current model state 
-                                ("full_model", 100, False),
-                                ("classifier_branch", 50, False)] # This will end with a callback
-            
-        if self.training_scheme == 'training_scheme_11':
-            training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
-                                ("full_model", 100, False),
-                                ("classifier_branch", 50, False),
-                                ("full_model_pseudolabels", 100, True), # using permutations on plabels for full training
-                                ("classifier_branch", 50, False)] # This will end with a callback
-            
-        if self.training_scheme == 'training_scheme_12':
-            training_scheme = [("permutation_only", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
+        if self.training_scheme == 'training_scheme_3':
+            self.training_scheme = [("permutation_only", 100, True),  # This will end with a callback
                                 ("classifier_branch", 50, False)]
-        
-        if self.training_scheme == 'training_scheme_13':
-            training_scheme = [("full_model", 100, True),
-                               ("classifier_branch", 50, False)]
-        
-        if self.training_scheme == 'training_scheme_14':
-            training_scheme = [("full_model", 100, False),
-                                ("classifier_branch", 50, False)]
-            
-        if self.training_scheme == 'training_scheme_15':
-            training_scheme = [("warmup_dann_train", self.warmup_epoch, True),
-                               ("full_model", 100, False),
-                                ("classifier_branch", 50, False)]
-        
-        if self.training_scheme == 'training_scheme_16':
-            training_scheme = [("warmup_dann", self.warmup_epoch, True),
-                               ("full_model", 100, True),
-                                ("classifier_branch", 50, False)]
-            
-        if self.training_scheme == 'training_scheme_17':
-            training_scheme = [("no_dann", 100, True),
-                                ("classifier_branch", 50, False)]
-
-        if self.training_scheme == 'training_scheme_18':
-            training_scheme = [("no_dann", 100, False),
-                                ("classifier_branch", 50, False)]
-            
-        if self.training_scheme == 'training_scheme_19':
-            training_scheme = [("warmup_dann", self.warmup_epoch, False), # Permutating with pseudo labels during warmup 
-                                ("full_model", 100, False),
-                                ("classifier_branch", 50, False)]
-            
-        if self.training_scheme == 'training_scheme_20':
-            training_scheme = [("warmup_dann_semisup", self.warmup_epoch, True), # Permutating in semisup fashion ie unknown cells reconstruc themselves
-                                ("full_model", 100, False),
-                                ("classifier_branch", 50, False)]
-            
-        if self.training_scheme == 'training_scheme_21':
-            training_scheme = [("warmup_dann", self.warmup_epoch, False),
-                                ("no_dann", 100, False),
-                                ("classifier_branch", 50, False)]
-        return training_scheme
+        return self.training_scheme
 
 
 
-    def get_losses(self, y_list):
+    def get_losses(self):
         if self.rec_loss_name == 'MSE':
             self.rec_loss_fn = tf.keras.losses.mean_squared_error
         else:
             print(self.rec_loss_name + ' loss not supported for rec')
 
-        if self.balance_classes:
-            y_integers = np.argmax(np.asarray(y_list['train']), axis=1)
-            class_weights = compute_class_weight(class_weight = 'balanced', classes = np.unique(y_integers), y= y_integers)
-
         if self.clas_loss_name == 'categorical_crossentropy':
             self.clas_loss_fn = tf.keras.losses.categorical_crossentropy
-        elif self.clas_loss_name == 'categorical_focal_crossentropy':
-            
-            self.clas_loss_fn = tf.keras.losses.CategoricalFocalCrossentropy(alpha = class_weights, gamma = 3)
         else:
             print(self.clas_loss_name + ' loss not supported for classif')
-
+        
         if self.dann_loss_name == 'categorical_crossentropy':
             self.dann_loss_fn = tf.keras.losses.categorical_crossentropy
         else:
@@ -1222,149 +1051,5 @@ class Workflow:
 
 
 
-# if __name__ == '__main__':
-#     parser = argparse.ArgumentParser()
-
-#     # parser.add_argument('--run_file', type = , default = , help ='')
-#     # parser.add_argument('--workflow_ID', type = , default = , help ='')
-#     parser.add_argument('--dataset_name', type = str, default = 'disco_ajrccm_downsampled', help ='Name of the dataset to use, should indicate a raw h5ad AnnData file')
-#     parser.add_argument('--class_key', type = str, default = 'celltype_lv2_V3', help ='Key of the class to classify')
-#     parser.add_argument('--batch_key', type = str, default = 'manip', help ='Key of the batches')
-#     parser.add_argument('--filter_min_counts', type=str2bool, nargs='?',const=True, default=True, help ='Filters genes with <1 counts')# TODO :remove, we always want to do that
-#     parser.add_argument('--normalize_size_factors', type=str2bool, nargs='?',const=True, default=True, help ='Weither to normalize dataset or not')
-#     parser.add_argument('--scale_input', type=str2bool, nargs='?',const=False, default=False, help ='Weither to scale input the count values')
-#     parser.add_argument('--logtrans_input', type=str2bool, nargs='?',const=True, default=True, help ='Weither to log transform count values')
-#     parser.add_argument('--use_hvg', type=int, nargs='?', const=10000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
-#     # parser.add_argument('--reduce_lr', type = , default = , help ='')
-#     # parser.add_argument('--early_stop', type = , default = , help ='')
-#     parser.add_argument('--batch_size', type = int, nargs='?', default = 256, help = 'Training batch size')
-#     # parser.add_argument('--verbose', type = , default = , help ='')
-#     # parser.add_argument('--threads', type = , default = , help ='')
-#     parser.add_argument('--mode', type = str, default = 'percentage', help ='Train test split mode to be used by Dataset.train_split')
-#     parser.add_argument('--pct_split', type = float,nargs='?', default = 0.9, help ='')
-#     parser.add_argument('--obs_key', type = str,nargs='?', default = 'manip', help ='')
-#     parser.add_argument('--n_keep', type = int,nargs='?', default = 0, help ='')
-#     parser.add_argument('--split_strategy', type = str,nargs='?', default = None, help ='')
-#     parser.add_argument('--keep_obs', type = str,nargs='+',default = None, help ='')
-#     parser.add_argument('--train_test_random_seed', type = float,nargs='?', default = 0, help ='')
-#     parser.add_argument('--obs_subsample', type = str,nargs='?', default = None, help ='')
-#     parser.add_argument('--make_fake', type=str2bool, nargs='?',const=False, default=False, help ='')
-#     parser.add_argument('--true_celltype', type = str,nargs='?', default = None, help ='')
-#     parser.add_argument('--false_celltype', type = str,nargs='?', default = None, help ='')
-#     parser.add_argument('--pct_false', type = float,nargs='?', default = 0, help ='')
-#     parser.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
-#     parser.add_argument('--dann_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
-#     parser.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
-#     parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
-#     parser.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
-#     parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop'], default = 'adam' , help ='Name of the optimizer to use')
-#     parser.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Wight of the classification loss')
-#     parser.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Wight of the DANN loss')
-#     parser.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Wight of the reconstruction loss')
-#     parser.add_argument('--warmup_epoch', type = float,nargs='?', default = 50, help ='Number of epoch to warmup DANN')
-#     parser.add_argument('--ae_hidden_size', type = int,nargs='+', default = [128,64,128], help ='Hidden sizes of the successive ae layers')
-#     parser.add_argument('--ae_hidden_dropout', type =float, nargs='?', default = 0, help ='')
-#     parser.add_argument('--ae_activation', type = str ,nargs='?', default = 'relu' , help ='')
-#     parser.add_argument('--ae_output_activation', type = str,nargs='?', default = 'linear', help ='')
-#     parser.add_argument('--ae_init', type = str,nargs='?', default = 'glorot_uniform', help ='')
-#     parser.add_argument('--ae_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
-#     parser.add_argument('--ae_l1_enc_coef', type = float,nargs='?', default = 0, help ='')
-#     parser.add_argument('--ae_l2_enc_coef', type = float,nargs='?', default = 0, help ='')
-#     parser.add_argument('--class_hidden_size', type = int,nargs='+', default = [64], help ='Hidden sizes of the successive classification layers')
-#     parser.add_argument('--class_hidden_dropout', type =float, nargs='?', default = 0, help ='')
-#     parser.add_argument('--class_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
-#     parser.add_argument('--class_activation', type = str ,nargs='?', default = 'relu' , help ='')
-#     parser.add_argument('--class_output_activation', type = str,nargs='?', default = 'softmax', help ='')
-#     parser.add_argument('--dann_hidden_size', type = int,nargs='?', default = [64], help ='')
-#     parser.add_argument('--dann_hidden_dropout', type =float, nargs='?', default = 0, help ='')
-#     parser.add_argument('--dann_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
-#     parser.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
-#     parser.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
-#     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
-#     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
-#     parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
-#     # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
-
-#     run_file = parser.parse_args()
-#     # experiment = MakeExperiment(run_file=run_file, working_dir=working_dir)
-#     # workflow = Workflow(run_file=run_file, working_dir=working_dir)
-#     print("Workflow loaded")
-#     if run_file.hparam_path:
-#         with open(run_file.hparam_path, 'r') as hparam_json:
-#             hparams = json.load(hparam_json)
-        
-#     else:
-#         hparams = [ # round 1
-#             #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
-#             {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-#             {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
-#             {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
-#             {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
-#             {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
-#             {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
-#             {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
-#             {"name": "layer2", "type": "range", "bounds": [64, 512]},
-#             {"name": "layer1", "type": "range", "bounds": [512, 2048]},
-
-#         ]
-
-
-#     def train_cmd(params):
-#         print(params)
-#         run_file.clas_w =  params['clas_w']
-#         run_file.dann_w = params['dann_w']
-#         run_file.rec_w =  1
-#         run_file.learning_rate = params['learning_rate']
-#         run_file.weight_decay =  params['weight_decay']
-#         run_file.warmup_epoch =  params['warmup_epoch']
-#         dropout =  params['dropout']
-#         layer1 = params['layer1']
-#         layer2 =  params['layer2']
-#         bottleneck = params['bottleneck']
-
-#         run_file.ae_hidden_size = [layer1, layer2, bottleneck, layer2, layer1]
-
-#         run_file.dann_hidden_dropout, run_file.class_hidden_dropout, run_file.ae_hidden_dropout = dropout, dropout, dropout
-        
-#         cmd = ['sbatch', '--wait', '/home/simonp/dca_permuted_workflow/workflow/run_workflow_cmd.sh']
-#         for k, v in run_file.__dict__.items():
-#             cmd += ([f'--{k}'])
-#             if type(v) == list:
-#                 cmd += ([str(i) for i in v])
-#             else :
-#                 cmd += ([str(v)])
-#         print(cmd)
-#         subprocess.Popen(cmd).wait()
-#         with open(working_dir + 'mcc_res.txt', 'r') as my_file:
-#             mcc = float(my_file.read())
-#         os.remove(working_dir + 'mcc_res.txt')
-#         return mcc
-
-#     best_parameters, values, experiment, model = optimize(
-#         parameters=hparams,
-#         evaluation_function=train_cmd,
-#         objective_name='mcc',
-#         minimize=False,
-#         total_trials=50,
-#         random_seed=40,
-#     )
-
-    # best_parameters, values, experiment, model = optimize(
-    #     parameters=hparams,
-    #     evaluation_function=workflow.make_experiment,
-    #     objective_name='mcc',
-    #     minimize=False,
-    #     total_trials=30,
-    #     random_seed=40,
-    # )
-
-# print(best_parameters)
-
-
-
-# run_workflow_cmd.py --run_file --wd --args --params
-
-# self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
-# mcc = self.workflow.make_experiment(params)
-# mcc.write('somewhere')
-
+if __name__ == '__main__':
+    print("Load optimize_hp")

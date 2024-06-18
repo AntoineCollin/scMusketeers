@@ -1,5 +1,6 @@
 conda create --name sc_permut tensorflow-gpu
 conda activate sc_permut
+conda activate sc_permut_2
 
     pip install scanpy==1.9.5
     pip install jupyterlab
