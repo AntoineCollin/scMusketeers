@@ -67,7 +67,7 @@ def create_argparser():
     
     # Dataset arguments
     dataset_group = parser.add_argument_group('Dataset Parameters')
-    dataset_group.add_argument('--dataset_name', type = str, default = 'htap_final_by_batch', help ='Name of the dataset to use, should indicate a raw h5ad AnnData file')
+    dataset_group.add_argument('--unlabeled_category', type=str, nargs='?', default='UNK', help ='Mandatory if only one dataset is passed. Tag of the cells to predict.')
     dataset_group.add_argument('--filter_min_counts', type=str2bool.str2bool, nargs='?',const=True, default=True, help ='Filters genes with <1 counts')# TODO :remove, we always want to do that
     dataset_group.add_argument('--normalize_size_factors', type=str2bool.str2bool, nargs='?',const=True, default=True, help ='Weither to normalize dataset or not')
     dataset_group.add_argument('--size_factor', type=str, nargs='?',const='default', default='default', help ='Which size factor to use. "default" computes size factor on the chosen level of preprocessing. "raw" uses size factor computed on raw data as n_counts/median(n_counts). "constant" uses a size factor of 1 for every cells')
