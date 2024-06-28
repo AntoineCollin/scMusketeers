@@ -11,8 +11,8 @@ from scpermut.tools.utils import str2bool
 print(str2bool('True'))
 from scpermut.workflow.benchmark import Workflow
 
-model_list_cpu = ['scmap_cells', 'scmap_cluster', 'pca_svm', 'pca_knn','harmony_svm','celltypist','uce']
-model_list_gpu = ['scanvi']
+model_list_cpu = ['scbalance'] #'scmap_cells', 'scmap_cluster', 'pca_svm', 'pca_knn','harmony_svm','celltypist','uce']
+model_list_gpu = ['scanvi', ]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -38,6 +38,8 @@ if __name__ == '__main__':
     parser.add_argument('--keep_obs', type = str,nargs='+',default = None, help ='')
     parser.add_argument('--train_test_random_seed', type = float,nargs='?', default = 0, help ='')
     parser.add_argument('--obs_subsample', type = str,nargs='?', default = None, help ='')
+    parser.add_argument('--test_obs', type = str,nargs='+', default = None, help ='batches from batch_key to use as test')
+    parser.add_argument('--test_index_name', type = str,nargs='+', default = None, help ='indexes to be used as test. Overwrites test_obs')
     
     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
     parser.add_argument('--gpu_models', type=str2bool, nargs='?',const=False, default=False , help ='')

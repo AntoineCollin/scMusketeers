@@ -21,10 +21,10 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 try:
     from .dataset import Dataset, load_dataset
-    from .benchmark_models import pca_svm,pca_knn, harmony_svm, scanvi,uce,scmap_cells, scmap_cluster,celltypist_model
+    from .benchmark_models import pca_svm,pca_knn, harmony_svm, scanvi,uce,scmap_cells, scmap_cluster,celltypist_model,scBalance_model
 except ImportError:
     from workflow.dataset import Dataset, load_dataset
-    from workflow.benchmark_models import pca_svm, harmony_svm, scanvi,uce,scmap_cells, scmap_cluster,celltypist_model
+    from workflow.benchmark_models import pca_svm, harmony_svm, scanvi,uce,scmap_cells, scmap_cluster,celltypist_model,scBalance_model
 
 try:
     from ..tools.utils import str2bool, nan_to_0
@@ -98,7 +98,8 @@ class Workflow:
                         'scmap_cells':scmap_cells,
                          'scmap_cluster':scmap_cluster,
                          'uce':uce, 
-                         'celltypist': celltypist_model}#
+                         'celltypist': celltypist_model,
+                         'scbalance' : scBalance_model}#
 
         self.training_kwds = {}
         self.network_kwds = {}
@@ -225,7 +226,7 @@ class Workflow:
     def train_model(self, model, **kwds):
         if self.log_neptune :
             self.run[f"parameters/model"] = model
-        self.latent_space_list, self.y_pred_list,= self.models_fn[model](self.X_list, self.y_list, self.batch_list,self.dataset.adata.obs['train_split'],self.adata_list, **kwds) # include the self.run object
+        self.latent_space_list, self.y_pred_list = self.models_fn[model](self.X_list, self.y_list, self.batch_list,self.dataset.adata.obs['train_split'],self.adata_list, **kwds) # include the self.run object
         self.stop_time = time.time()
         print(f'latent shapes : {{i:self.latent_space_list[i].shape for i in self.latent_space_list}}')
         print(f'pred shapes : {{i:self.y_pred_list[i].shape for i in self.y_pred_list}}')

@@ -6,7 +6,7 @@
 
 working_dir="/home/acollin/scPermut"
 singularity_working_dir="/data/scPermut"
-singularity_path=$working_dir"/scanvi_sin.sif"
+singularity_path=$working_dir"/scanvi_sin_copy.sif"
 dataset_name=$1
 class_key=$2
 batch_key=$3

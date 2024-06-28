@@ -770,7 +770,9 @@ class Workflow:
         elif training_strategy == "no_dann":
             group = 'train'
             self.freeze_block(ae, 'freeze_dann')
-
+        elif training_strategy == "no_decoder":
+            group = 'train'
+            self.freeze_block(ae, 'freeze_dec')
 
         print(f'use_perm = {use_perm}')
         batch_generator = batch_generator_training_permuted(X = X_list[group],
@@ -817,6 +819,8 @@ class Workflow:
                     loss = tf.add_n([self.rec_w * rec_loss] + ae.losses)
                 elif training_strategy == "no_dann":
                     loss = tf.add_n([self.rec_w * rec_loss] + [self.clas_w * clas_loss] + ae.losses)
+                elif training_strategy == "no_decoder":
+                    loss = tf.add_n([self.dann_w * dann_loss] + [self.clas_w * clas_loss] + ae.losses)
                 
             n_samples += enc.shape[0]
             gradients = tape.gradient(loss, ae.trainable_variables)
@@ -932,6 +936,8 @@ class Workflow:
             layers_to_freeze = [ae.classifier, ae.dann_discriminator]
         elif strategy == "freeze_dann":
             layers_to_freeze = [ae.dann_discriminator]
+        elif strategy == 'freeze_dec':
+            layers_to_freeze = [ae.dec]
         else:
             raise ValueError("Unknown freeze strategy: " + strategy)
 
@@ -1043,6 +1049,22 @@ class Workflow:
             training_scheme = [("warmup_dann", self.warmup_epoch, False),
                                 ("no_dann", 100, False),
                                 ("classifier_branch", 50, False)]
+            
+        if self.training_scheme == 'training_scheme_22':
+            training_scheme = [("permutation_only", self.warmup_epoch, True),
+                                ("warmup_dann", self.warmup_epoch, True),
+                                ("full_model", 100, False),
+                                ("classifier_branch", 50, False)]
+            
+        if self.training_scheme == 'training_scheme_23':
+            training_scheme = [("full_model", 100, True)]
+            
+        if self.training_scheme == 'training_scheme_24':
+            training_scheme = [("full_model", 100, False),]
+
+        if self.training_scheme == 'training_scheme_25':
+            training_scheme = [("no_decoder", 100, False),]
+        
         return training_scheme
 
 

@@ -20,7 +20,8 @@ try :
     from ..tools.utils import densify
 except ImportError:
     from scpermut.tools.utils import densify
-
+import scBalance as sb
+import scBalance.scbalance_IO as ss
 # from tools.utils import densify
 
 
@@ -158,7 +159,11 @@ def celltypist_model(X_list, y_list, batch_list, assign, adata_list,n_jobs=30, p
     X_pca = adata.obsm['X_pca']
 
     print("Start train model")
-    model = celltypist.train(adata_train, 'celltype', n_jobs = n_jobs, 
+    if adata_train.n_obs > 100000:
+        model = celltypist.train(adata_train, 'celltype', n_jobs = n_jobs, use_SGD = True, use_GPU = True, mini_batch = True,
+                             check_expression = False)
+    else : 
+        model = celltypist.train(adata_train, 'celltype', n_jobs = n_jobs, 
                              check_expression = False)
     # .X = expect log1p normalized expression to 10000 counts per cell
     # if not -> check_expression = False
@@ -324,3 +329,18 @@ def scanvi(X_list, y_list, batch_list, assign, adata_list):
     y_pred_list['full'] = adata.obs[SCANVI_PREDICTION_KEY]
     return latent_list, y_pred_list
 
+def scBalance_model(X_list, y_list, batch_list, assign, adata_list):
+    full, reference, ref_label = ss.Scanpy_Obj_IO(test_obj=adata_list['full'], ref_obj=adata_list['train'], label_obj=y_list['train'], scale = False)
+    y_pred_full = sb.scBalance(full, reference, ref_label, 'cpu')
+    print(len(y_pred_full))
+    adata = adata_list['full'] # adding PCA to adata_list['full'] the first time and reuses it for the next function calls
+    if not 'X_pca' in adata.obsm:
+        print('Did not find existing PCA, computing it')
+        sc.tl.pca(adata)
+    X_pca = adata.obsm['X_pca']
+    
+    X_pca_list = {group : X_pca[assign == group, :] for group in np.unique(assign)}
+    X_pca_list['full'] = X_pca
+    y_pred_list =  {group : y_pred_full[assign == group] for group in np.unique(assign)}
+    y_pred_list['full'] = y_pred_full
+    return X_pca_list,y_pred_list
