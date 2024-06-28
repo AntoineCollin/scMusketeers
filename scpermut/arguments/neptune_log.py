@@ -3,7 +3,7 @@ from neptune.utils import stringify_unsupported
 try:
     from .optimize_hp import Workflow
 except ImportError:
-    from workflow.optimize_hp import Workflow
+    from ..transfer.hyperparameters_chris import Workflow
 
 
 def start_neptune_log(workflow : Workflow):

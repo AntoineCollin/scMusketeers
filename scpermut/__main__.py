@@ -1,10 +1,10 @@
 import json
-from scpermut.arguments.runfile import get_runfile
+from scpermut.arguments.runfile import get_runfile, create_argparser
 from scpermut.arguments.runfile import PROCESS_TYPE
-from scpermut.transfer.optimize_hp import Workflow
+from scpermut.transfer.hyperparameters_chris import Workflow
 from scpermut.transfer.experiment import MakeExperiment
 from scpermut.arguments.neptune_log import start_neptune_log, stop_neptune_log
-from scpermut.workflow.dataset import process_dataset, split_train_test, split_train_val
+from scpermut.workflow import dataset
 
 
 from ax.service.ax_client import AxClient, ObjectiveProperties
@@ -21,19 +21,18 @@ def load_json(json_path):
     return dico
     
 
-if __name__ == '__main__':
-    
+def run_scpermut():
     run_file = get_runfile()
     if run_file.process == PROCESS_TYPE[0]:
-        # Single training
+        # Transfer data
         print(run_file.dataset_name, run_file.class_key, run_file.batch_key)
-        workflow = Workflow(run_file=run_file, working_dir=run_file.working_dir)
-        start_neptune_log(workflow)
-        process_dataset(workflow)
-        split_train_test(workflow)
-        split_train_val(workflow)
-        mcc = workflow.make_workflow()
-        stop_neptune_log(workflow)
+        workflow = Workflow(run_file=run_file)
+        #start_neptune_log(workflow)
+        workflow.process_dataset()
+        workflow.train_val_split()
+        adata_pred, model, history, X_scCER, query_pred  = workflow.make_experiment()
+        #stop_neptune_log(workflow)
+        print(query_pred)
     
     elif run_file.process == PROCESS_TYPE[1]:
         # Hyperparameter optimization
@@ -74,7 +73,8 @@ if __name__ == '__main__':
         print(best_parameters)
     else:
         # No process
-        print("Process not regnoozied")
+        print("Process not recognized")
         
-    
-    
+
+if __name__ == '__main__':
+    run_scpermut()

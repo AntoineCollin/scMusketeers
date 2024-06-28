@@ -29,7 +29,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 try:
     from .dataset_tf import Dataset, load_dataset
 except ImportError:
-    from workflow.dataset import Dataset, load_dataset
+    from dataset_tf import Dataset, load_dataset
 
 try:
     from ..tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0
@@ -90,7 +90,7 @@ def reset_keras():
     
 
 class Workflow:
-    def __init__(self, run_file, working_dir):
+    def __init__(self, run_file):
         '''
         run_file : a dictionary outputed by the function load_runfile
         '''
@@ -141,8 +141,6 @@ class Workflow:
         self.false_celltype = self.run_file.false_celltype
         self.pct_false = self.run_file.pct_false
         
-        self.working_dir = working_dir
-        self.data_dir = working_dir + '/data'
         
         self.start_time = time.time()
         self.stop_time = time.time()
@@ -256,10 +254,10 @@ class Workflow:
                             }
         self.metrics = []
 
-        self.mean_loss_fn = keras.metrics.Mean(name='total loss') # This is a running average : it keeps the previous values in memory when it's called ie computes the previous and current values
-        self.mean_clas_loss_fn = keras.metrics.Mean(name='classification loss')
-        self.mean_dann_loss_fn = keras.metrics.Mean(name='dann loss')
-        self.mean_rec_loss_fn = keras.metrics.Mean(name='reconstruction loss')
+        self.mean_loss_fn = keras.metrics.Mean(name='total_loss') # This is a running average : it keeps the previous values in memory when it's called ie computes the previous and current values
+        self.mean_clas_loss_fn = keras.metrics.Mean(name='classification_loss')
+        self.mean_dann_loss_fn = keras.metrics.Mean(name='dann_loss')
+        self.mean_rec_loss_fn = keras.metrics.Mean(name='reconstruction_loss')
 
         self.training_scheme = self.run_file.training_scheme
 
@@ -299,10 +297,10 @@ class Workflow:
                              class_key = self.class_key,
                              unlabeled_category = self.unlabeled_category)
         
-        if not 'X_pca' in self.dataset.adata.obsm:
+        if not 'X_pca' in adata.obsm:
             print('Did not find existing PCA, computing it')
-            sc.tl.pca(self.dataset.adata)
-            self.dataset.adata.obsm['X_pca'] = np.asarray(self.dataset.adata.obsm['X_pca'])
+            sc.tl.pca(adata)
+            adata.obsm['X_pca'] = np.asarray(adata.obsm['X_pca'])
         # Processing dataset. Splitting train/test. 
 
         self.dataset = Dataset(adata = adata,

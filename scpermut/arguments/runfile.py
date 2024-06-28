@@ -7,6 +7,11 @@ PROCESS_TYPE = ['transfer', 'optim']
 
 
 def get_runfile():
+    parser = create_argparser()
+    return parser.parse_args()
+
+
+def create_argparser():
     """Parses command-line arguments and returns a namespace containing parsed arguments.
 
     Returns:
@@ -27,9 +32,33 @@ def get_runfile():
         default="",
     )
 
+    parser.add_argument(
+        "ref_path",
+        type=str,
+        help="Path of the referent adata file (example : data/ajrccm.h5ad",
+        default="",
+    )
+
+    parser.add_argument(
+        "--class_key",
+        type=str,
+        help="Key of the celltype to classify",
+        default="celltype",
+    )
+
+
+    parser.add_argument(
+        "--batch_key",
+        type=str,
+        help="Key of the batches",
+        default="manip",
+    )
+
+
     # Working dir arguments
     workflow_group = parser.add_argument_group('Worklow parameters')
-    workflow_group.add_argument('--working_dir', type=str, nargs='?', default='', help ='The working directory')
+    workflow_group.add_argument('--query_path', type=str, nargs='?', default=None, help ='Optional query dataset')
+    workflow_group.add_argument('--out_dir', type=str, nargs='?', default='.', help ='The output directory')
     workflow_group.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
     workflow_group.add_argument('--log_neptune', type=str2bool.str2bool, nargs='?',const=True, default=True , help ='')
     workflow_group.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
@@ -39,8 +68,6 @@ def get_runfile():
     # Dataset arguments
     dataset_group = parser.add_argument_group('Dataset Parameters')
     dataset_group.add_argument('--dataset_name', type = str, default = 'htap_final_by_batch', help ='Name of the dataset to use, should indicate a raw h5ad AnnData file')
-    dataset_group.add_argument('--class_key', type = str, default = 'celltype', help ='Key of the class to classify')
-    dataset_group.add_argument('--batch_key', type = str, default = 'donor', help ='Key of the batches')
     dataset_group.add_argument('--filter_min_counts', type=str2bool.str2bool, nargs='?',const=True, default=True, help ='Filters genes with <1 counts')# TODO :remove, we always want to do that
     dataset_group.add_argument('--normalize_size_factors', type=str2bool.str2bool, nargs='?',const=True, default=True, help ='Weither to normalize dataset or not')
     dataset_group.add_argument('--size_factor', type=str, nargs='?',const='default', default='default', help ='Which size factor to use. "default" computes size factor on the chosen level of preprocessing. "raw" uses size factor computed on raw data as n_counts/median(n_counts). "constant" uses a size factor of 1 for every cells')
@@ -80,6 +107,7 @@ def get_runfile():
 
     # Loss function Arguments
     loss_group = parser.add_argument_group('Loss function Parameters')
+    loss_group.add_argument('--balance_classes', type = str2bool.str2bool, nargs='?', default = False, help ='Add balance to weight to the loss')
     loss_group.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['MSE','categorical_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
     loss_group.add_argument('--dann_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
     loss_group.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
@@ -122,7 +150,7 @@ def get_runfile():
     dann_group.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
     dann_group.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
     
-    return parser.parse_args()
+    return parser
 
 
 def set_hyperparameters(workflow, params):

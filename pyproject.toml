@@ -44,6 +44,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-scpermut = 'scpermut:__main__'
-scpermut-optimize = 'scpermut.scpermut_optimize:run'
-
+scpermut = 'scpermut:__main__.run_scpermut'

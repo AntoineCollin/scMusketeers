@@ -1,10 +1,10 @@
 import neptune
 import pandas as pd
 
-from scpermut.workflow.runfile import set_hyperparameters
-from workflow.optimize_hp import Workflow
-from scpermut.workflow.neptune_log import start_neptune_log, stop_neptune_log, add_custom_log
-from scpermut.workflow.dataset import process_dataset, split_train_test, split_train_val
+from ..arguments.runfile import set_hyperparameters
+from .optimize_hp import Workflow
+from ..arguments.neptune_log import start_neptune_log, stop_neptune_log, add_custom_log
+from ..workflow import dataset
 
 
 class MakeExperiment:
@@ -60,9 +60,9 @@ class MakeExperiment:
             self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
             set_hyperparameters(self.workflow, params)
             start_neptune_log(self.workflow)
-            process_dataset(self.workflow)
-            split_train_test(self.workflow)
-            split_train_val(self.workflow)
+            dataset.process_dataset(self.workflow)
+            dataset.split_train_test(self.workflow)
+            dataset.split_train_val(self.workflow)
             opt_metric = self.workflow.make_workflow() # This starts the logging
             add_custom_log(self.workflow, 'task', 'hp_optim')
             add_custom_log(self.workflow, 'total_trial', self.total_trial)

@@ -45,17 +45,17 @@ from sklearn.metrics import (
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 try:
-    from .dataset import Dataset, load_dataset
-    from .ae_param import AE_PARAM
-    from .class_param import CLASS_PARAM
-    from .dann_param import DANN_PARAM
+    from dataset import Dataset, load_dataset
+    from ae_param import AE_PARAM
+    from class_param import CLASS_PARAM
+    from dann_param import DANN_PARAM
     from . import freeze
 except ImportError:
-    from workflow.dataset import Dataset, load_dataset
-    from workflow.ae_param import AE_PARAM
-    from workflow.class_param import CLASS_PARAM
-    from workflow.dann_param import DANN_PARAM
-    from workflow import freeze
+    from ..workflow.dataset import Dataset, load_dataset
+    from ..arguments.ae_param import AE_PARAM
+    from ..arguments.class_param import CLASS_PARAM
+    from ..arguments.dann_param import DANN_PARAM
+    from . import freeze
 
 try:
     from ..tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0
