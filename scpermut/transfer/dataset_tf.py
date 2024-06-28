@@ -91,7 +91,8 @@ class Dataset:
                 scale_input,
                 logtrans_input,
                 use_hvg,
-                unlabeled_category):
+                unlabeled_category,
+                train_test_random_seed):
         self.adata = adata
         self.class_key = class_key
         self.adata.obs[f'true_{self.class_key}'] = self.adata.obs[self.class_key] # Duplicate original annotation in true_class_key
@@ -110,6 +111,7 @@ class Dataset:
         self.adata_train = anndata.AnnData()
         self.adata_val = anndata.AnnData()
         self.adta_test = anndata.AnnData()
+        self.train_test_random_seed = train_test_random_seed
         # self.markers_path = self.dataset_dir + '/' + f'markers/markers_{dataset_name}.csv'
 
     def normalize(self):

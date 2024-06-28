@@ -312,8 +312,8 @@ class Workflow:
                                scale_input = self.scale_input,
                                logtrans_input = self.logtrans_input,
                                use_hvg = self.use_hvg,
-                               test_split_key= self.test_split_key,
-                               unlabeled_category = self.unlabeled_category)
+                               unlabeled_category = self.unlabeled_category, 
+                               train_test_random_seed = self.train_test_random_seed)
         
         self.dataset.normalize()
         
@@ -1008,11 +1008,15 @@ class Workflow:
             training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
                                   ("full_model", 100, False)]
         
-        if self.training_scheme == 'training_scheme_8':
+        """ if self.training_scheme == 'training_scheme_8':
             training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
                                 ("full_model", 100, False),
-                                ("classifier_branch", 50, False)] # This will end with a callback]
-        
+                                ("classifier_branch", 50, False)] # This will end with a callback] """
+        if self.training_scheme == 'training_scheme_8':
+            training_scheme = [("warmup_dann", 1, True), # Permutating with pseudo labels during warmup 
+                                ("full_model", 1, False),
+                                ("classifier_branch", 1, False)] # This will end with a callback]
+            
         if self.training_scheme == 'training_scheme_9':
             training_scheme = [("warmup_dann", self.warmup_epoch, False), 
                                 ("full_model", 100, True),

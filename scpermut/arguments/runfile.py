@@ -59,7 +59,7 @@ def create_argparser():
     workflow_group = parser.add_argument_group('Worklow parameters')
     workflow_group.add_argument('--query_path', type=str, nargs='?', default=None, help ='Optional query dataset')
     workflow_group.add_argument('--out_dir', type=str, nargs='?', default='.', help ='The output directory')
-    workflow_group.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
+    workflow_group.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_8', help ='')
     workflow_group.add_argument('--log_neptune', type=str2bool.str2bool, nargs='?',const=True, default=True , help ='')
     workflow_group.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
     workflow_group.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_mcc', help ='The metric top optimize in hp search as it appears in neptune (split-metricname)')
