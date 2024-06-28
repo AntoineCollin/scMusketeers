@@ -160,6 +160,7 @@ def split_adata(adata, cats):
     adata.obs['TRAIN_TEST_split'] = spl.values
     adata_train = adata[adata.obs['TRAIN_TEST_split'] == 'train'].copy()
     adata_test = adata[adata.obs['TRAIN_TEST_split'] == 'test'].copy()
+    del adata.obs['TRAIN_TEST_split']
     return adata_train, adata_test
 
 
