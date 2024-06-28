@@ -25,7 +25,7 @@ def run_scpermut():
     run_file = get_runfile()
     if run_file.process == PROCESS_TYPE[0]:
         # Transfer data
-        print(run_file.dataset_name, run_file.class_key, run_file.batch_key)
+        print(run_file.ref_path, run_file.class_key, run_file.batch_key)
         workflow = Workflow(run_file=run_file)
         #start_neptune_log(workflow)
         workflow.process_dataset()

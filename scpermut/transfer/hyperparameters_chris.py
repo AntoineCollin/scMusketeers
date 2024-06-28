@@ -99,7 +99,6 @@ class Workflow:
         self.sess = tf.compat.v1.Session()
         self.run_file = run_file
         # dataset identifiers
-        self.dataset_name = self.run_file.dataset_name
         self.ref_path = self.run_file.ref_path # If providing only one dataset, the unlabeled_category argument is mandatory du distinguish ref from query 
         self.query_path = self.run_file.query_path
         self.class_key = self.run_file.class_key
@@ -118,7 +117,6 @@ class Workflow:
         self.learning_rate = self.run_file.learning_rate
         self.n_perm = 1
         self.semi_sup = False # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
-        self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
       
 
         # train test split # TODO : Simplify this, or at first only use the case where data is split according to batch

@@ -180,8 +180,10 @@ class Dataset:
         spl = pd.Series(['train'] * self.adata_train_extended.n_obs, index = self.adata_train_extended.obs.index)
         spl.iloc[val_idx] = 'val'
         self.adata_train_extended.obs['train_split'] = spl.values
-
+        print(self.unlabeled_category)
         test_idx = self.adata.obs[self.class_key] == self.unlabeled_category # boolean
+        print(self.adata.obs[self.class_key].unique())
+        print(test_idx.sum())
         split = pd.Series(['train'] * self.adata.n_obs, index = self.adata.obs.index)
         split[test_idx] = 'test'
 
