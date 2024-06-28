@@ -3,7 +3,7 @@ import str2bool
 
 """Parses command-line arguments for a workflow involving model training and hyperparameter optimization."""
 
-PROCESS_TYPE = ['training', 'hyperparameter']
+PROCESS_TYPE = ['transfer', 'optim']
 
 
 def get_runfile():
