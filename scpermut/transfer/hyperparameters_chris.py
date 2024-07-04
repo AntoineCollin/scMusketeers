@@ -433,7 +433,7 @@ class Workflow:
         
         X_scCER = enc
         adata_pred.obsm[f'{self.class_key}_pred_proba'] = y_pred_proba
-        adata_pred.obs[f'{self.class_key}_pred'] = adata_pred
+        adata_pred.obs[f'{self.class_key}_pred'] = y_pred
         adata_pred.obsm['X_scCER'] = X_scCER
 
         query_pred = adata_pred.obs[f'{self.class_key}_pred'][adata_pred.obs['train_split'] == 'test']
@@ -653,6 +653,8 @@ class Workflow:
                     monitored = metric
                     es_best = -np.inf
             memory = {}
+
+            # Pseudolabels
             if strategy in ['warmup_dann_pseudolabels', 'full_model_pseudolabels']: # We use the pseudolabels computed with the model
                 input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(loop_params['adata_list']['full'],['size_factors']).items()}
                 enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values() # Model predict
@@ -849,7 +851,7 @@ class Workflow:
 
             with tf.GradientTape() as tape:
                 input_batch = {k:tf.convert_to_tensor(v) for k,v in input_batch.items()}
-                enc, clas, dann, rec = ae(input_batch, training=True).values()
+                enc, clas, dann, rec = ae(input_batch, training=True).values() # Forward pass
                 clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
                 dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
                 rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
@@ -871,8 +873,9 @@ class Workflow:
                     loss = tf.add_n([self.dann_w * dann_loss] + [self.clas_w * clas_loss] + ae.losses)
                 
             n_samples += enc.shape[0]
+
+            # Backpropagation
             gradients = tape.gradient(loss, ae.trainable_variables)
-            
             optimizer.apply_gradients(zip(gradients, ae.trainable_variables))
 
             self.mean_loss_fn(loss.__float__())
