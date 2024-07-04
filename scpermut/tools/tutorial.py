@@ -6,22 +6,24 @@ from utils import split_adata
 
 def create_tuto_data(sampling_percentage, path_adata, name, class_key, batch_key, unlabeled_category):
     adata = sc.read_h5ad(path_adata)
-
+    adata_train, adata_test = split_adata(adata, batch_key, 1 - sampling_percentage)
+    
     # add unlabeled_category to celltype
-    celltype = adata.obs[class_key]
+    celltype = adata_test.obs[class_key]
     celltype = celltype.cat.add_categories(unlabeled_category)
     #print(celltype.cat.categories)
     
     #### Celltype annotation
 
     # unassigned X% of cells, randomly
-    """ list_index = range(len(celltype))
+    list_index = range(len(celltype))
     list_index_select = np.random.choice(list_index, size=int(len(list_index)*sampling_percentage), replace=False)
     celltype.iloc[list_index_select] = unlabeled_category
     print(celltype)
-    adata.obs[class_key] = celltype
+    adata_test.obs[class_key] = celltype
     path_new_adata = os.path.join("data",f"{name}-unknown-{sampling_percentage}.h5ad")
-    adata.write_h5ad(path_new_adata) """
+    adata_test.write_h5ad(path_new_adata)
+
 
     # unassigned X% of cells, keeping cell type distribution (Useful ???)
 
@@ -30,15 +32,14 @@ def create_tuto_data(sampling_percentage, path_adata, name, class_key, batch_key
     # separate cells from 2X% of batches
     print(np.arange(adata.n_obs))
     # sample adata to reduce its size
-    adata_train, adata_test = split_adata(adata, batch_key, 1 - sampling_percentage)
     all_batches= adata_test.obs[batch_key].unique()
     print(len(all_batches))
     test_batches = np.random.choice(all_batches, int(len(all_batches)*sampling_percentage), replace=False)
     print(test_batches)
     print(len(test_batches))
     train_batches = list(set(all_batches).difference(test_batches))
-    adata_ref = adata[adata.obs[batch_key].isin(train_batches)]
-    adata_query = adata[adata.obs[batch_key].isin(test_batches)]
+    adata_ref = adata_test[adata_test.obs[batch_key].isin(train_batches)]
+    adata_query = adata_test[adata_test.obs[batch_key].isin(test_batches)]
     print(adata_ref.obs[batch_key])
     print(adata_query.obs[batch_key])
 
