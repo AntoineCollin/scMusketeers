@@ -21,7 +21,7 @@ def load_json(json_path):
     return dico
     
 
-def run_scpermut():
+def run_sc_cerberus():
     run_file = get_runfile()
     if run_file.process == PROCESS_TYPE[0]:
         # Transfer data
@@ -77,4 +77,4 @@ def run_scpermut():
         
 
 if __name__ == '__main__':
-    run_scpermut()
+    run_sc_cerberus()

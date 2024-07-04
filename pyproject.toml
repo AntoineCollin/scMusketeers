@@ -1,14 +1,14 @@
 [tool.poetry]
-name = "scPermut"
+name = "scCerberus"
 version = "0.1.1"
 description = "Deep learning annotation of cell-types with permutation inforced autoencoder"
 license = "MIT"
-authors = ["AntoineCollin"]
+authors = ["AntoineCollin","Christophe Becavin"]
 readme = "README.md"
 packages = [{include = "scpermut"}]
 exclude = ["tests/", ".github"]
-homepage = "https://sc_permut.readthedocs.io/"
-repository = "https://github.com/AntoineCollin/scPermut/"
+homepage = "https://sc_Cerberus.readthedocs.io/"
+repository = "https://github.com/AntoineCollin/scCerberus/"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -44,4 +44,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-scpermut = 'scpermut:__main__.run_scpermut'
+sc-cerberus = 'scpermut:__main__.run_sc_cerberus'
