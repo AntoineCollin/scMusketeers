@@ -17,24 +17,24 @@ show:             ## Show the current environment.
 
 .PHONY: install
 install:          ## Install the project in dev mode.
-	@echo "Run sc_permut install - create poetry virtual env"
+	@echo "Run scCerberus install - create poetry virtual env"
 	$(ENV_PREFIX)poetry install
 
 .PHONY: install-dev
 install-dev:          ## Install the project in dev mode.
-	@echo "Run sc_permut install - create poetry virtual env for dev"
+	@echo "Run scCerberus install - create poetry virtual env for dev"
 	$(ENV_PREFIX)poetry install --with dev
 
 .PHONY: fmt
 fmt:              ## Format code using black & isort.
-	@echo "Run project file formatting"
+	@echo "Run scCerberus file formatting"
 	$(ENV_PREFIX)poetry run isort scpermut/ tests/
 	$(ENV_PREFIX)poetry run black -l 79 scpermut/ tests/
 	$(ENV_PREFIX)no_implicit_optional scpermut/
 
 .PHONY: lint
 lint:             ## Run pep8, black, mypy linters.
-	@echo "Run project linting"
+	@echo "Run scCerberus linting"
 #	$(ENV_PREFIX)poetry run flake8 scpermut/
 	$(ENV_PREFIX)poetry run black -l 79 --check scpermut/ tests/
 	$(ENV_PREFIX)poetry run black -l 79 --check scpermut/ tests/
