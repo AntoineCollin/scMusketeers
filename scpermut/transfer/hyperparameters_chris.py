@@ -318,7 +318,7 @@ class Workflow:
     def train_val_split(self):
         self.dataset.train_val_split()
         self.dataset.create_inputs()
-        
+
 
     def make_experiment(self):
         if self.layer1 :
