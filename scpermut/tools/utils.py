@@ -142,9 +142,10 @@ def create_meta_stratify(adata, cats):
     adata.obs[meta_cats] = meta_col
     
     
-def split_adata(adata, cats):
+def split_adata(adata, cats, train_size = 0.8):
     '''
     Split adata in train and test in a stratified manner according to cats
+    cats - List of celltype, batch for sampling
     '''
     if type(cats) == str:
         meta_cats = cats
@@ -152,9 +153,9 @@ def split_adata(adata, cats):
         create_meta_stratify(adata, cats)
         meta_cats = '_'.join(cats)
     train_idx, test_idx = train_test_split(np.arange(adata.n_obs),
-                                       train_size=0.8,
-                                       stratify =adata.obs[meta_cats],
-                                       random_state=50)
+                                train_size=train_size,
+                                stratify =adata.obs[meta_cats],
+                                random_state=50)
     spl = pd.Series(['train'] * adata.n_obs, index = adata.obs.index)
     spl.iloc[test_idx] = 'test'
     adata.obs['TRAIN_TEST_split'] = spl.values
