@@ -7,7 +7,13 @@ from utils import split_adata
 def create_tuto_data(sampling_percentage, path_adata, name, class_key, batch_key, unlabeled_category):
     adata = sc.read_h5ad(path_adata)
     adata_train, adata_test = split_adata(adata, batch_key, 1 - sampling_percentage)
-    
+
+    # Compute UMAP
+    sc.tl.pca(adata_test, svd_solver="arpack")
+    sc.pp.neighbors(adata_test, n_neighbors=10, n_pcs=40) # UMAP is based on the neighbor graph; we'll compute this first
+    sc.tl.umap(adata_test)
+    sc.pl.umap(adata_test, color = "celltype")
+
     # add unlabeled_category to celltype
     celltype = adata_test.obs[class_key]
     celltype = celltype.cat.add_categories(unlabeled_category)

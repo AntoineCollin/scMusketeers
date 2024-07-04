@@ -1,4 +1,4 @@
-dataset=data/ajrccm_by_batch.h5ad
+dataset=data/Deprez-2020-unknown-0.2.h5ad
 outdir=/data/analysis/data_becavin/scpermut_test/tutorial
 
 ##### Sampling_percentage 20%
