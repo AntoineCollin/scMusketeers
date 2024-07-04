@@ -49,6 +49,15 @@ def create_tuto_data(sampling_percentage, path_adata, name, class_key, batch_key
     print(adata_ref.obs[batch_key])
     print(adata_query.obs[batch_key])
 
+    # Compute PCA and UMAP
+    sc.tl.pca(adata_ref, svd_solver="arpack")
+    sc.pp.neighbors(adata_ref, n_neighbors=10, n_pcs=40) # UMAP is based on the neighbor graph; we'll compute this first
+    sc.tl.umap(adata_ref)
+
+    sc.tl.pca(adata_query, svd_solver="arpack")
+    sc.pp.neighbors(adata_query, n_neighbors=10, n_pcs=40) # UMAP is based on the neighbor graph; we'll compute this first
+    sc.tl.umap(adata_query)
+
     # remove celltype from query
     celltype = adata_query.obs[class_key]
     celltype = celltype.cat.set_categories([unlabeled_category])

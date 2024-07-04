@@ -293,7 +293,7 @@ class Workflow:
         adata = load_dataset(ref_path = self.ref_path, 
                              query_path = self.query_path, 
                              class_key = self.class_key,
-                             unlabeled_category = self.unlabeled_category)
+                             unlabeled_category = self.run_file.unlabeled_category)
         
         if not 'X_pca' in adata.obsm:
             print('Did not find existing PCA, computing it')
@@ -310,7 +310,7 @@ class Workflow:
                                scale_input = self.scale_input,
                                logtrans_input = self.logtrans_input,
                                use_hvg = self.use_hvg,
-                               unlabeled_category = self.unlabeled_category, 
+                               unlabeled_category = self.run_file.unlabeled_category, 
                                train_test_random_seed = self.train_test_random_seed)
         
         self.dataset.normalize()
@@ -828,7 +828,7 @@ class Workflow:
                                                             ret_input_only=False,
                                                             batch_size=self.batch_size,
                                                             n_perm=1, 
-                                                            unlabeled_category = self.unlabeled_category, # Those cells are matched with themselves during AE training
+                                                            unlabeled_category = self.run_file.unlabeled_category, # Those cells are matched with themselves during AE training
                                                             use_perm=use_perm)
         n_obs = adata_list[group].n_obs
         steps = n_obs // self.batch_size + 1
@@ -843,7 +843,7 @@ class Workflow:
 
         # Batch steps
         for step in range(1, n_steps + 1):
-            self.run['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
+            # self.run['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
             # self.tr.print_diff()
             input_batch, output_batch = next(batch_generator)
             # X_batch, sf_batch = input_batch.values()
@@ -855,6 +855,7 @@ class Workflow:
                 clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
                 dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
                 rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
+                
                 if training_strategy in ["full_model", 'full_model_pseudolabels']:
                     loss = tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses)
                 elif training_strategy in ["warmup_dann", 'warmup_dann_pseudolabels', 'warmup_dann_train', 'warmup_dann_semisup']:
@@ -1105,7 +1106,7 @@ class Workflow:
 
     def get_losses(self, y_list):
         if self.rec_loss_name == 'MSE':
-            self.rec_loss_fn = tf.keras.losses.mean_squared_error
+            self.rec_loss_fn = tf.keras.losses.MeanSquaredError
         else:
             print(self.rec_loss_name + ' loss not supported for rec')
 
