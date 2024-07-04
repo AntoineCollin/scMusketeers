@@ -3,6 +3,7 @@ import numpy as np
 import os
 from utils import split_adata
 
+
 def create_tuto_data(sampling_percentage, path_adata, name, class_key, batch_key, unlabeled_category):
     adata = sc.read_h5ad(path_adata)
 
@@ -40,13 +41,20 @@ def create_tuto_data(sampling_percentage, path_adata, name, class_key, batch_key
     adata_query = adata[adata.obs[batch_key].isin(test_batches)]
     print(adata_ref.obs[batch_key])
     print(adata_query.obs[batch_key])
-    ### Ref and query on same dataset
+
+    # remove celltype from query
+    celltype = adata_query.obs[class_key]
+    celltype = celltype.cat.set_categories([unlabeled_category])
+    celltype.loc[celltype.index] = unlabeled_category
+    adata_query.obs[class_key] = celltype
 
     ### Ref and query are separated
     path_new_adata = os.path.join("data",f"{name}-ref-batch-{sampling_percentage}.h5ad")
     adata_ref.write_h5ad(path_new_adata) 
     path_new_adata = os.path.join("data",f"{name}-query-batch-{sampling_percentage}.h5ad")
     adata_query.write_h5ad(path_new_adata) 
+
+    ### Ref and query on same dataset (Useful ????)
     
 
 
