@@ -100,7 +100,7 @@ def create_argparser():
     
     # epoch groups
     epoch_group = parser.add_argument_group('Epoch Parameters')
-    epoch_group.add_argument('--warmup_epoch', type = int,nargs='?', default = 50, help ='Number of epoch to warmup DANN')
+    epoch_group.add_argument('--warmup_epoch', type = int,nargs='?', default = 3, help ='Number of epoch to warmup DANN')
     epoch_group.add_argument('--fullmodel_epoch', type = int,nargs='?', default = 100, help ='Number of epoch to train full model')
     epoch_group.add_argument('--permonly_epoch', type = int,nargs='?', default = 100, help ='Number of epoch to train in permutation only mode')
     epoch_group.add_argument('--classifier_epoch', type = int,nargs='?', default = 50, help ='Number of epoch to train te classifier only')

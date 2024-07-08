@@ -1,10 +1,7 @@
+from unittest import TestResult
 import keras
 import sys
 import os
-from pympler import asizeof
-from pympler.classtracker import ClassTracker
-from pympler import tracker
-
 #try :
 #     from .dataset import Dataset, load_dataset
 #     from ..tools.utils import scanpy_to_input, default_value, str2bool
@@ -29,7 +26,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 try:
     from .dataset_tf import Dataset, load_dataset
 except ImportError:
-    from dataset_tf import Dataset, load_dataset
+    from transfer.dataset_tf import Dataset, load_dataset
 
 try:
     from ..tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0
@@ -80,23 +77,20 @@ def reset_keras():
     except:
         pass
 
-    # print(gc.collect())
+    print(gc.collect())
 
     # use the same config as you used to create the session
     config = tf.compat.v1.ConfigProto()
     config.gpu_options.per_process_gpu_memory_fraction = 1
     config.gpu_options.visible_device_list = "0"
     tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-    
+
 
 class Workflow:
     def __init__(self, run_file):
         '''
         run_file : a dictionary outputed by the function load_runfile
         '''
-        print("NOOOOO EAGERRRRR")
-        ## tf.compat.v1.disable_eager_execution()
-        #self.sess = tf.compat.v1.Session()
         self.run_file = run_file
         # dataset identifiers
         self.ref_path = self.run_file.ref_path # If providing only one dataset, the unlabeled_category argument is mandatory du distinguish ref from query 
@@ -117,6 +111,7 @@ class Workflow:
         self.learning_rate = self.run_file.learning_rate
         self.n_perm = 1
         self.semi_sup = False # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
+        self.unlabeled_category = 'UNK' # TODO : Not yet handled by DANN_AE, the case wwhere unlabeled cells are reconstructed as themselves
       
 
         # train test split # TODO : Simplify this, or at first only use the case where data is split according to batch
@@ -252,10 +247,10 @@ class Workflow:
                             }
         self.metrics = []
 
-        self.mean_loss_fn = keras.metrics.Mean(name='total_loss') # This is a running average : it keeps the previous values in memory when it's called ie computes the previous and current values
-        self.mean_clas_loss_fn = keras.metrics.Mean(name='classification_loss')
-        self.mean_dann_loss_fn = keras.metrics.Mean(name='dann_loss')
-        self.mean_rec_loss_fn = keras.metrics.Mean(name='reconstruction_loss')
+        self.mean_loss_fn = keras.metrics.Mean(name='total loss') # This is a running average : it keeps the previous values in memory when it's called ie computes the previous and current values
+        self.mean_clas_loss_fn = keras.metrics.Mean(name='classification loss')
+        self.mean_dann_loss_fn = keras.metrics.Mean(name='dann loss')
+        self.mean_rec_loss_fn = keras.metrics.Mean(name='reconstruction loss')
 
         self.training_scheme = self.run_file.training_scheme
 
@@ -288,19 +283,32 @@ class Workflow:
         self.training_scheme = params['training_scheme']
         self.hp_params = params
             
+    def start_neptune_log(self):
+        if self.log_neptune :
+            self.run = neptune.init_run(
+                    project="becavin-lab/benchmark",
+                    api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
+)
+            self.run[f"parameters/model"] = "scPermut"
+            for par,val in self.run_file.__dict__.items():
+                self.run[f"parameters/{par}"] = stringify_unsupported(getattr(self, par))
+            if self.hp_params: # Overwrites the defaults arguments contained in the runfile
+                for par,val in self.hp_params.items():
+                    self.run[f"parameters/{par}"] = stringify_unsupported(val)
+
+    def add_custom_log(self, name, value):
+        self.run[f"parameters/{name}"] = stringify_unsupported(value)
+
+    def stop_neptune_log(self):
+        self.run.stop()
+
     def process_dataset(self):
         # Loading dataset
-        adata = load_dataset(ref_path = self.ref_path, 
-                             query_path = self.query_path, 
+        adata = load_dataset(ref_path = self.ref_path,
+                             query_path = self.query_path,
                              class_key = self.class_key,
                              unlabeled_category = self.run_file.unlabeled_category)
         
-        if not 'X_pca' in adata.obsm:
-            print('Did not find existing PCA, computing it')
-            sc.tl.pca(adata)
-            adata.obsm['X_pca'] = np.asarray(adata.obsm['X_pca'])
-        # Processing dataset. Splitting train/test. 
-
         self.dataset = Dataset(adata = adata,
                                class_key = self.class_key,
                                batch_key= self.batch_key,
@@ -313,13 +321,17 @@ class Workflow:
                                unlabeled_category = self.run_file.unlabeled_category, 
                                train_test_random_seed = self.train_test_random_seed)
         
+        if not 'X_pca' in self.dataset.adata.obsm:
+            print('Did not find existing PCA, computing it')
+            sc.tl.pca(self.dataset.adata)
+            self.dataset.adata.obsm['X_pca'] = np.asarray(self.dataset.adata.obsm['X_pca'])
+        # Processing dataset. Splitting train/test. 
         self.dataset.normalize()
         
     def train_val_split(self):
         self.dataset.train_val_split()
         self.dataset.create_inputs()
-
-
+        
     def make_experiment(self):
         if self.layer1 :
             self.ae_hidden_size = [self.layer1, self.layer2, self.bottleneck, self.layer2, self.layer1]
@@ -440,13 +452,12 @@ class Workflow:
         
         return adata_pred, self.dann_ae, history, X_scCER, query_pred
 
-
     def train_scheme(self,
                     training_scheme,
                     verbose = True ,
                     **loop_params):
         """
-        training scheme : dictionnary explaining the succession of strategies to use as keys with the corresponding number of epochs and use_perm as values.
+        training scheme : dictionary explaining the succession of strategies to use as keys with the corresponding number of epochs and use_perm as values.
                         ex :  training_scheme_3 = {"warmup_dann" : (10, False), "full_model":(10, False)}
         """
         history = {'train': {}, 'val': {}} # initialize history
@@ -489,8 +500,6 @@ class Workflow:
                     monitored = metric
                     es_best = -np.inf
             memory = {}
-
-            # Pseudolabels
             if strategy in ['warmup_dann_pseudolabels', 'full_model_pseudolabels']: # We use the pseudolabels computed with the model
                 input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(loop_params['adata_list']['full'],['size_factors']).items()}
                 enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values() # Model predict
@@ -514,9 +523,6 @@ class Workflow:
                     memory = {}
 
             for epoch in range(1, n_epochs+1):
-                # self.tr.print_diff() 
-                # tracker_class.create_snapshot()
-                # tracker_class.stats.print_summary()
                 running_epoch +=1
                 print(f"Epoch {running_epoch}/{total_epochs}, Current strat Epoch {epoch}/{n_epochs}")
                 history, _, _, _ ,_ = self.training_loop(history=history,
@@ -524,52 +530,14 @@ class Workflow:
                                                              use_perm=use_perm,
                                                              optimizer=optimizer,
                                                                **loop_params)
-                # tracker_class.create_snapshot()
-                # tracker_class.stats.print_summary()
-                # print(f"size {asizeof.asizeof(self.dann_ae)}")
-                # print(f"size {asizeof.asizeof(self.dataset)}")
-                # print(f"size {asizeof.asizeof(self.history)}")
-                # Look at workflow size
-                # attribute_dict = self.__dict__
-                # type_attributes = {}
-                # for key, value in attribute_dict.items():
-                #     type_attr = type(value)
-                #     if type_attr in type_attributes:
-                #         list_attr = type_attributes[type_attr]
-                #         list_attr.append(key)
-                #         type_attributes[type_attr] = list_attr
-                #     else:
-                #         type_attributes[type_attr] = [key]
-                # print(type_attributes.keys())
-                # import sys
-                # from pympler import asizeof
-                # size_attributes = {}
-                # for key, value in type_attributes.items():
-                #     size_of = 0
-                #     for variable in value:
-                #         size_of += asizeof.asizeof(variable)
-                #     size_attributes[key] = size_of
-                # print(size_attributes)
-                # if self.log_neptune:
-                #     for key, value in size_attributes.items():
-                #         self.run['memory/'+str(key)].append(value)
-                #         print(value)
-                # all objects
-                # all_objects = muppy.get_objects()
-                # print("allobjects "+str(len(all_objects))) 
-                # my_types = muppy.filter(all_objects, Type=type)
-                # print(len(my_types))                                    
-                # for t in my_types:
-                #     print(t)
 
-                """ if self.log_neptune:
+                if self.log_neptune:
                     for group in history:
-                        for par,value in history[group].items():
-                            self.run[f"training/{group}/{par}"].append(value[-1])
+                        for par, value in history[group].items():
+                            if len(value) > 0:
+                                self.run_neptune[f"training/{group}/{par}"].append(value[-1])
                             if physical_devices :
-                                # print(f"memory {tf.config.experimental.get_memory_info('GPU:0')['current']}")
-                                self.run['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
-                                """
+                                self.run_neptune['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
                 if strategy in ['full_model', 'classifier_branch', 'permutation_only']:
                     # Early stopping
                     wait += 1
@@ -597,7 +565,7 @@ class Workflow:
                 time_out = time.time()
                 print(f"Strategy duration : {time_out - time_in} s")
         if self.log_neptune:
-            self.run[f"training/{group}/total_epochs"] = running_epoch
+            self.run_neptune[f"training/{group}/total_epochs"] = running_epoch
         return history
 
     def training_loop(self, history,
@@ -611,7 +579,7 @@ class Workflow:
                             clas_loss_fn,
                             dann_loss_fn,
                             rec_loss_fn,
-                            use_perm=None,
+                            use_perm=True,
                             training_strategy="full_model",
                             verbose = False):
         '''
@@ -665,7 +633,7 @@ class Workflow:
                                                             ret_input_only=False,
                                                             batch_size=self.batch_size,
                                                             n_perm=1, 
-                                                            unlabeled_category = self.run_file.unlabeled_category, # Those cells are matched with themselves during AE training
+                                                            unlabeled_category = self.unlabeled_category, # Those cells are matched with themselves during AE training
                                                             use_perm=use_perm)
         n_obs = adata_list[group].n_obs
         steps = n_obs // self.batch_size + 1
@@ -677,22 +645,17 @@ class Workflow:
         self.mean_dann_loss_fn.reset_state()
         self.mean_rec_loss_fn.reset_state()
 
-
-        # Batch steps
         for step in range(1, n_steps + 1):
-            # self.run['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
-            # self.tr.print_diff()
             input_batch, output_batch = next(batch_generator)
             # X_batch, sf_batch = input_batch.values()
             clas_batch, dann_batch, rec_batch = output_batch.values()
 
             with tf.GradientTape() as tape:
                 input_batch = {k:tf.convert_to_tensor(v) for k,v in input_batch.items()}
-                enc, clas, dann, rec = ae(input_batch, training=True).values() # Forward pass
+                enc, clas, dann, rec = ae(input_batch, training=True).values()
                 clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
                 dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
                 rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
-                
                 if training_strategy in ["full_model", 'full_model_pseudolabels']:
                     loss = tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses)
                 elif training_strategy in ["warmup_dann", 'warmup_dann_pseudolabels', 'warmup_dann_train', 'warmup_dann_semisup']:
@@ -711,20 +674,18 @@ class Workflow:
                     loss = tf.add_n([self.dann_w * dann_loss] + [self.clas_w * clas_loss] + ae.losses)
                 
             n_samples += enc.shape[0]
-
-            # Backpropagation
             gradients = tape.gradient(loss, ae.trainable_variables)
+            
             optimizer.apply_gradients(zip(gradients, ae.trainable_variables))
 
-
-            self.mean_loss_fn(loss)
-            self.mean_clas_loss_fn(clas_loss)
-            self.mean_dann_loss_fn(dann_loss)
-            self.mean_rec_loss_fn(rec_loss)
+            self.mean_loss_fn(loss.__float__())
+            self.mean_clas_loss_fn(clas_loss.__float__())
+            self.mean_dann_loss_fn(dann_loss.__float__())
+            self.mean_rec_loss_fn(rec_loss.__float__())
 
             if verbose :
                 self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
-        # self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
+        self.print_status_bar(n_samples, n_obs, [self.mean_loss_fn, self.mean_clas_loss_fn, self.mean_dann_loss_fn, self.mean_rec_loss_fn], self.metrics)
         history, _, clas, dann, rec = self.evaluation_pass(history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn)
         del input_batch
         return history, _, clas, dann, rec
@@ -742,38 +703,65 @@ class Workflow:
                 _, clas, dann, rec = ae(inp, training=False).values()
 
         #         return _, clas, dann, rec
-                clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas))
+                clas_loss = tf.reduce_mean(clas_loss_fn(y_list[group], clas)).numpy()
                 history[group]['clas_loss'] += [clas_loss]
-                dann_loss = tf.reduce_mean(dann_loss_fn(batch_list[group], dann))
+                dann_loss = tf.reduce_mean(dann_loss_fn(batch_list[group], dann)).numpy()
                 history[group]['dann_loss'] += [dann_loss]
-                rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group], rec))
+                rec_loss = tf.reduce_mean(rec_loss_fn(X_list[group], rec)).numpy()
                 history[group]['rec_loss'] += [rec_loss]
-                history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + tf.reduce_sum(ae.losses)] # using numpy to prevent memory leaks
+                history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
                 # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
 
-                # Perform ArgMax operation
-                # argmax_op = tf.math.argmax(clas, axis=1)
-                # print(argmax_op)
-                # print(clas.shape)
-                # Create the fetch operation to retrieve the ArgMax result
-                # fetch_op = argmax_op
-                """ if self.sess is not None:
-                    input_data = np.random.randint(0, 100, size=(clas.shape[0],clas.shape[1]))  # Sample input data
-                    numpy_argmax = self.sess.run(fetch_op, feed_dict={clas: input_data})
-                 """
-                
-                #tensor_list = numpy_tensor(tensor_arg)
-                # print(f"numpy argmax : {numpy_argmax}")
-                # clas_tf = np.eye(clas.shape[1])[numpy_argmax]
-                clas_tf = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-                
-                # clas = tf.eye(clas.shape[1])[tf.math.argmax(clas, axis=0)]
+                clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
                 for metric in self.pred_metrics_list: # only classification metrics ATM
-                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas_tf.argmax(axis=1))] # y_list are onehot encoded
+                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas.argmax(axis=1))] # y_list are onehot encoded
                 for metric in self.pred_metrics_list_balanced: # only classification metrics ATM
-                    history[group][metric] += [self.pred_metrics_list_balanced[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas_tf.argmax(axis=1))] # y_list are onehot encoded
+                    history[group][metric] += [self.pred_metrics_list_balanced[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas.argmax(axis=1))] # y_list are onehot encoded
         del inp
         return history, _, clas, dann, rec
+
+    # def evaluation_pass_gpu(self,history, ae, adata_list, X_list, y_list, batch_list, clas_loss_fn, dann_loss_fn, rec_loss_fn):
+    #     '''
+    #     evaluate model and logs metrics. Depending on "on parameter, computes it on train and val or train,val and test.
+
+    #     on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
+    #     '''
+    #     for group in ['train', 'val']: # evaluation round
+    #         # inp = scanpy_to_input(adata_list[group],['size_factors'])
+    #         batch_generator = batch_generator_training_permuted(X = X_list[group],
+    #                                                 y = y_list[group],
+    #                                                 batch_ID = batch_list[group],
+    #                                                 sf = adata_list[group].obs['size_factors'],                    
+    #                                                 ret_input_only=False,
+    #                                                 batch_size=self.batch_size,
+    #                                                 n_perm=1, 
+    #                                                 use_perm=use_perm)
+    #         n_obs = adata_list[group].n_obs
+    #         steps = n_obs // self.batch_size + 1
+    #         n_steps = steps
+    #         n_samples = 0
+
+    #         clas_batch, dann_batch, rec_batch = output_batch.values()
+
+    #         with tf.GradientTape() as tape:
+    #             input_batch = {k:tf.convert_to_tensor(v) for k,v in input_batch.items()}
+    #             enc, clas, dann, rec = ae(input_batch, training=True).values()
+    #             clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas)).numpy()
+    #             dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann)).numpy()
+    #             rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec)).numpy()
+    #     #         return _, clas, dann, rec
+    #             history[group]['clas_loss'] += [clas_loss]
+    #             history[group]['dann_loss'] += [dann_loss]
+    #             history[group]['rec_loss'] += [rec_loss]
+    #             history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
+    #             # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
+
+    #             clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+    #             for metric in self.pred_metrics_list: # only classification metrics ATM
+    #                 history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)), clas.argmax(axis=1))] # y_list are onehot encoded
+    #     del inp
+    #     return history, _, clas, dann, rec
+
 
     def freeze_layers(self, ae, layers_to_freeze):
         '''
@@ -817,6 +805,7 @@ class Workflow:
 
 
     def get_scheme(self):
+        print(f"Training scheme : {self.training_scheme}, warmup {self.warmup_epoch}")
         if self.training_scheme == 'training_scheme_1':
             training_scheme = [("warmup_dann", self.warmup_epoch, False),
                                   ("full_model", 100, True)] # This will end with a callback
@@ -842,15 +831,11 @@ class Workflow:
             training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
                                   ("full_model", 100, False)]
         
-        """ if self.training_scheme == 'training_scheme_8':
-            training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
-                                ("full_model", 100, False),
-                                ("classifier_branch", 50, False)] # This will end with a callback] """
         if self.training_scheme == 'training_scheme_8':
-            training_scheme = [("warmup_dann", 1, True), # Permutating with pseudo labels during warmup 
-                                ("full_model", 1, False),
-                                ("classifier_branch", 1, False)] # This will end with a callback]
-            
+            training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
+                                ("full_model", 3, False),
+                                ("classifier_branch", 2, False)] # This will end with a callback]
+        
         if self.training_scheme == 'training_scheme_9':
             training_scheme = [("warmup_dann", self.warmup_epoch, False), 
                                 ("full_model", 100, True),
@@ -1006,4 +991,154 @@ class Workflow:
                                             momentum=momentum
                                             )
         return optimizer
+
+
+
+
+
+# if __name__ == '__main__':
+#     parser = argparse.ArgumentParser()
+
+#     # parser.add_argument('--run_file', type = , default = , help ='')
+#     # parser.add_argument('--workflow_ID', type = , default = , help ='')
+#     parser.add_argument('--dataset_name', type = str, default = 'disco_ajrccm_downsampled', help ='Name of the dataset to use, should indicate a raw h5ad AnnData file')
+#     parser.add_argument('--class_key', type = str, default = 'celltype_lv2_V3', help ='Key of the class to classify')
+#     parser.add_argument('--batch_key', type = str, default = 'manip', help ='Key of the batches')
+#     parser.add_argument('--filter_min_counts', type=str2bool, nargs='?',const=True, default=True, help ='Filters genes with <1 counts')# TODO :remove, we always want to do that
+#     parser.add_argument('--normalize_size_factors', type=str2bool, nargs='?',const=True, default=True, help ='Weither to normalize dataset or not')
+#     parser.add_argument('--scale_input', type=str2bool, nargs='?',const=False, default=False, help ='Weither to scale input the count values')
+#     parser.add_argument('--logtrans_input', type=str2bool, nargs='?',const=True, default=True, help ='Weither to log transform count values')
+#     parser.add_argument('--use_hvg', type=int, nargs='?', const=10000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
+#     # parser.add_argument('--reduce_lr', type = , default = , help ='')
+#     # parser.add_argument('--early_stop', type = , default = , help ='')
+#     parser.add_argument('--batch_size', type = int, nargs='?', default = 256, help = 'Training batch size')
+#     # parser.add_argument('--verbose', type = , default = , help ='')
+#     # parser.add_argument('--threads', type = , default = , help ='')
+#     parser.add_argument('--mode', type = str, default = 'percentage', help ='Train test split mode to be used by Dataset.train_split')
+#     parser.add_argument('--pct_split', type = float,nargs='?', default = 0.9, help ='')
+#     parser.add_argument('--obs_key', type = str,nargs='?', default = 'manip', help ='')
+#     parser.add_argument('--n_keep', type = int,nargs='?', default = 0, help ='')
+#     parser.add_argument('--split_strategy', type = str,nargs='?', default = None, help ='')
+#     parser.add_argument('--keep_obs', type = str,nargs='+',default = None, help ='')
+#     parser.add_argument('--train_test_random_seed', type = float,nargs='?', default = 0, help ='')
+#     parser.add_argument('--obs_subsample', type = str,nargs='?', default = None, help ='')
+#     parser.add_argument('--make_fake', type=str2bool, nargs='?',const=False, default=False, help ='')
+#     parser.add_argument('--true_celltype', type = str,nargs='?', default = None, help ='')
+#     parser.add_argument('--false_celltype', type = str,nargs='?', default = None, help ='')
+#     parser.add_argument('--pct_false', type = float,nargs='?', default = 0, help ='')
+#     parser.add_argument('--clas_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default = 'categorical_crossentropy' , help ='Loss of the classification branch')
+#     parser.add_argument('--dann_loss_name', type = str,nargs='?', choices = ['categorical_crossentropy'], default ='categorical_crossentropy', help ='Loss of the DANN branch')
+#     parser.add_argument('--rec_loss_name', type = str,nargs='?', choices = ['MSE'], default ='MSE', help ='Reconstruction loss of the autoencoder')
+#     parser.add_argument('--weight_decay', type = float,nargs='?', default = 1e-4, help ='Weight decay applied by th optimizer')
+#     parser.add_argument('--learning_rate', type = float,nargs='?', default = 0.001, help ='Starting learning rate for training')
+#     parser.add_argument('--optimizer_type', type = str, nargs='?',choices = ['adam','adamw','rmsprop'], default = 'adam' , help ='Name of the optimizer to use')
+#     parser.add_argument('--clas_w', type = float,nargs='?', default = 0.1, help ='Wight of the classification loss')
+#     parser.add_argument('--dann_w', type = float,nargs='?', default = 0.1, help ='Wight of the DANN loss')
+#     parser.add_argument('--rec_w', type = float,nargs='?', default = 0.8, help ='Wight of the reconstruction loss')
+#     parser.add_argument('--warmup_epoch', type = float,nargs='?', default = 50, help ='Number of epoch to warmup DANN')
+#     parser.add_argument('--ae_hidden_size', type = int,nargs='+', default = [128,64,128], help ='Hidden sizes of the successive ae layers')
+#     parser.add_argument('--ae_hidden_dropout', type =float, nargs='?', default = 0, help ='')
+#     parser.add_argument('--ae_activation', type = str ,nargs='?', default = 'relu' , help ='')
+#     parser.add_argument('--ae_output_activation', type = str,nargs='?', default = 'linear', help ='')
+#     parser.add_argument('--ae_init', type = str,nargs='?', default = 'glorot_uniform', help ='')
+#     parser.add_argument('--ae_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
+#     parser.add_argument('--ae_l1_enc_coef', type = float,nargs='?', default = 0, help ='')
+#     parser.add_argument('--ae_l2_enc_coef', type = float,nargs='?', default = 0, help ='')
+#     parser.add_argument('--class_hidden_size', type = int,nargs='+', default = [64], help ='Hidden sizes of the successive classification layers')
+#     parser.add_argument('--class_hidden_dropout', type =float, nargs='?', default = 0, help ='')
+#     parser.add_argument('--class_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
+#     parser.add_argument('--class_activation', type = str ,nargs='?', default = 'relu' , help ='')
+#     parser.add_argument('--class_output_activation', type = str,nargs='?', default = 'softmax', help ='')
+#     parser.add_argument('--dann_hidden_size', type = int,nargs='?', default = [64], help ='')
+#     parser.add_argument('--dann_hidden_dropout', type =float, nargs='?', default = 0, help ='')
+#     parser.add_argument('--dann_batchnorm', type=str2bool, nargs='?',const=True, default=True , help ='')
+#     parser.add_argument('--dann_activation', type = str ,nargs='?', default = 'relu' , help ='')
+#     parser.add_argument('--dann_output_activation', type = str,nargs='?', default = 'softmax', help ='')
+#     parser.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_1', help ='')
+#     parser.add_argument('--log_neptune', type=str2bool, nargs='?',const=True, default=True , help ='')
+#     parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
+#     # parser.add_argument('--epochs', type=int, nargs='?', default=100, help ='')
+
+#     run_file = parser.parse_args()
+#     # experiment = MakeExperiment(run_file=run_file, working_dir=working_dir)
+#     # workflow = Workflow(run_file=run_file, working_dir=working_dir)
+#     print("Workflow loaded")
+#     if run_file.hparam_path:
+#         with open(run_file.hparam_path, 'r') as hparam_json:
+#             hparams = json.load(hparam_json)
+        
+#     else:
+#         hparams = [ # round 1
+#             #{"name": "use_hvg", "type": "range", "bounds": [5000, 10000], "log_scale": False},
+#             {"name": "clas_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+#             {"name": "dann_w", "type": "range", "bounds": [1e-4, 1e2], "log_scale": False},
+#             {"name": "learning_rate", "type": "range", "bounds": [1e-4, 1e-2], "log_scale": True},
+#             {"name": "weight_decay", "type": "range", "bounds": [1e-8, 1e-4], "log_scale": True},
+#             {"name": "warmup_epoch", "type": "range", "bounds": [1, 50]},
+#             {"name": "dropout", "type": "range", "bounds": [0.0, 0.5]},
+#             {"name": "bottleneck", "type": "range", "bounds": [32, 64]},
+#             {"name": "layer2", "type": "range", "bounds": [64, 512]},
+#             {"name": "layer1", "type": "range", "bounds": [512, 2048]},
+
+#         ]
+
+
+#     def train_cmd(params):
+#         print(params)
+#         run_file.clas_w =  params['clas_w']
+#         run_file.dann_w = params['dann_w']
+#         run_file.rec_w =  1
+#         run_file.learning_rate = params['learning_rate']
+#         run_file.weight_decay =  params['weight_decay']
+#         run_file.warmup_epoch =  params['warmup_epoch']
+#         dropout =  params['dropout']
+#         layer1 = params['layer1']
+#         layer2 =  params['layer2']
+#         bottleneck = params['bottleneck']
+
+#         run_file.ae_hidden_size = [layer1, layer2, bottleneck, layer2, layer1]
+
+#         run_file.dann_hidden_dropout, run_file.class_hidden_dropout, run_file.ae_hidden_dropout = dropout, dropout, dropout
+        
+#         cmd = ['sbatch', '--wait', '/home/simonp/dca_permuted_workflow/workflow/run_workflow_cmd.sh']
+#         for k, v in run_file.__dict__.items():
+#             cmd += ([f'--{k}'])
+#             if type(v) == list:
+#                 cmd += ([str(i) for i in v])
+#             else :
+#                 cmd += ([str(v)])
+#         print(cmd)
+#         subprocess.Popen(cmd).wait()
+#         with open(working_dir + 'mcc_res.txt', 'r') as my_file:
+#             mcc = float(my_file.read())
+#         os.remove(working_dir + 'mcc_res.txt')
+#         return mcc
+
+#     best_parameters, values, experiment, model = optimize(
+#         parameters=hparams,
+#         evaluation_function=train_cmd,
+#         objective_name='mcc',
+#         minimize=False,
+#         total_trials=50,
+#         random_seed=40,
+#     )
+
+    # best_parameters, values, experiment, model = optimize(
+    #     parameters=hparams,
+    #     evaluation_function=workflow.make_experiment,
+    #     objective_name='mcc',
+    #     minimize=False,
+    #     total_trials=30,
+    #     random_seed=40,
+    # )
+
+# print(best_parameters)
+
+
+
+# run_workflow_cmd.py --run_file --wd --args --params
+
+# self.workflow = Workflow(run_file=self.run_file, working_dir=self.working_dir)
+# mcc = self.workflow.make_experiment(params)
+# mcc.write('somewhere')
 

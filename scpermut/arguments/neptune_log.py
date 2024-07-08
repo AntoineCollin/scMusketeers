@@ -20,8 +20,8 @@ def start_neptune_log(workflow : Workflow):
             for par,val in workflow.run_file.__dict__.items():
                 if par in dir(workflow) : 
                     workflow.run_neptune[f"parameters/{par}"] = stringify_unsupported(getattr(workflow, par))
-                elif par in dir(workflow.ae_param):
-                    workflow.run_neptune[f"parameters/{par}"] = stringify_unsupported(getattr(workflow.ae_param, par))
+                #elif par in dir(workflow.ae_param):
+                #    workflow.run_neptune[f"parameters/{par}"] = stringify_unsupported(getattr(workflow.ae_param, par))
             if workflow.hp_params: # Overwrites the defaults arguments contained in the runfile
                 for par,val in workflow.hp_params.items():
                     workflow.run_neptune[f"parameters/{par}"] = stringify_unsupported(val)

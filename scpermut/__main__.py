@@ -1,10 +1,10 @@
 import json
 from scpermut.arguments.runfile import get_runfile, create_argparser
 from scpermut.arguments.runfile import PROCESS_TYPE
-from scpermut.transfer.hyperparameters_chris import Workflow
+from scpermut.transfer.optimize_model import Workflow
 from scpermut.transfer.experiment import MakeExperiment
 from scpermut.arguments.neptune_log import start_neptune_log, stop_neptune_log
-from scpermut.workflow import dataset
+import pickle
 
 
 from ax.service.ax_client import AxClient, ObjectiveProperties
@@ -21,17 +21,17 @@ def load_json(json_path):
     return dico
     
 
-def run_sc_cerberus():
-    run_file = get_runfile()
+def run_sc_cerberus(run_file):
+    
     if run_file.process == PROCESS_TYPE[0]:
         # Transfer data
         print(run_file.ref_path, run_file.class_key, run_file.batch_key)
         workflow = Workflow(run_file=run_file)
-        #start_neptune_log(workflow)
+        start_neptune_log(workflow)
         workflow.process_dataset()
         workflow.train_val_split()
         adata_pred, model, history, X_scCER, query_pred  = workflow.make_experiment()
-        #stop_neptune_log(workflow)
+        stop_neptune_log(workflow)
         print(query_pred)
     
     elif run_file.process == PROCESS_TYPE[1]:
@@ -77,4 +77,15 @@ def run_sc_cerberus():
         
 
 if __name__ == '__main__':
-    run_sc_cerberus()
+
+    # Get all arguments
+    run_file = get_runfile()
+
+    # Save runfile for running in python mode
+    with open('tutorial/runfile_tuto.pkl', 'wb') as outp:
+        pickle.dump(run_file, outp, pickle.HIGHEST_PROTOCOL)
+
+    # Load run_file for python mode
+    with open('tutorial/runfile_tuto.pkl', 'rb') as inp:
+        run_file = pickle.load(inp)
+    run_sc_cerberus(run_file)
