@@ -78,15 +78,15 @@ def run_sc_cerberus(run_file):
 
 if __name__ == '__main__':
 
-    """     # Get all arguments
+    # Get all arguments
     run_file = get_runfile()
 
     # Save runfile for running in python mode
-    with open('tutorial/runfile_tuto.pkl', 'wb') as outp:
+    with open('tutorial/runfile_tuto_2.pkl', 'wb') as outp:
         pickle.dump(run_file, outp, pickle.HIGHEST_PROTOCOL)
-    """
+    
     # Load run_file for python mode
-    with open('tutorial/runfile_tuto.pkl', 'rb') as inp:
+    with open('tutorial/runfile_tuto_2.pkl', 'rb') as inp:
         run_file = pickle.load(inp)
     run_file.train_scheme = "training_scheme_13"
     # run_file.warmup_epoch = 1

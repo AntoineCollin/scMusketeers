@@ -451,7 +451,7 @@ class Workflow:
 
         # query_pred = adata_pred.obs[f'{self.class_key}_pred'][adata_pred.obs['train_split'] == 'test']
         
-        return adata_pred, self.dann_ae, history, X_scCER,  
+        return adata_pred, self.dann_ae, history, X_scCER, y_pred
     
 
     def train_scheme(self,
