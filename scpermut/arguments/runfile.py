@@ -59,7 +59,7 @@ def create_argparser():
     workflow_group = parser.add_argument_group('Worklow parameters')
     workflow_group.add_argument('--query_path', type=str, nargs='?', default=None, help ='Optional query dataset')
     workflow_group.add_argument('--out_dir', type=str, nargs='?', default='.', help ='The output directory')
-    workflow_group.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_8', help ='')
+    workflow_group.add_argument('--training_scheme', type = str,nargs='?', default = 'training_scheme_13', help ='')
     workflow_group.add_argument('--log_neptune', type=str2bool.str2bool, nargs='?',const=True, default=True , help ='')
     workflow_group.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
     workflow_group.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_mcc', help ='The metric top optimize in hp search as it appears in neptune (split-metricname)')
@@ -100,7 +100,7 @@ def create_argparser():
     
     # epoch groups
     epoch_group = parser.add_argument_group('Epoch Parameters')
-    epoch_group.add_argument('--warmup_epoch', type = int,nargs='?', default = 3, help ='Number of epoch to warmup DANN')
+    epoch_group.add_argument('--warmup_epoch', type = int,nargs='?', default = 100, help ='Number of epoch to warmup DANN')
     epoch_group.add_argument('--fullmodel_epoch', type = int,nargs='?', default = 100, help ='Number of epoch to train full model')
     epoch_group.add_argument('--permonly_epoch', type = int,nargs='?', default = 100, help ='Number of epoch to train in permutation only mode')
     epoch_group.add_argument('--classifier_epoch', type = int,nargs='?', default = 50, help ='Number of epoch to train te classifier only')

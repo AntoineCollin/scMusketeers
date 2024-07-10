@@ -439,18 +439,20 @@ class Workflow:
         input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(adata_list['full'],['size_factors']).items()}
         enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values()
         y_pred_proba = pd.DataFrame(np.asarray(clas), index = adata_list['full'].obs_names, columns = self.dataset.ohe_celltype.categories_[0])
-        y_pred = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
-        
+        clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+        y_pred = self.dataset.ohe_celltype.inverse_transform(clas).reshape(-1,)
+    
         adata_pred = adata_list['full'].copy()
-        
+
         X_scCER = enc
         adata_pred.obsm[f'{self.class_key}_pred_proba'] = y_pred_proba
         adata_pred.obs[f'{self.class_key}_pred'] = y_pred
         adata_pred.obsm['X_scCER'] = X_scCER
 
-        query_pred = adata_pred.obs[f'{self.class_key}_pred'][adata_pred.obs['train_split'] == 'test']
+        # query_pred = adata_pred.obs[f'{self.class_key}_pred'][adata_pred.obs['train_split'] == 'test']
         
-        return adata_pred, self.dann_ae, history, X_scCER, query_pred
+        return adata_pred, self.dann_ae, history, X_scCER,  
+    
 
     def train_scheme(self,
                     training_scheme,
@@ -483,7 +485,7 @@ class Workflow:
         for (strategy, n_epochs, use_perm) in training_scheme:
             optimizer = self.get_optimizer(self.learning_rate, self.weight_decay, self.optimizer_type) # resetting optimizer state when switching strategy
             if verbose :
-                print(f"Step number {i}, running {strategy} strategy with permuation = {use_perm} for {n_epochs} epochs")
+                print(f"Step number {i}, running {strategy} strategy with permutation = {use_perm} for {n_epochs} epochs")
                 time_in = time.time()
 
                 # Early stopping for those strategies only
@@ -832,9 +834,9 @@ class Workflow:
                                   ("full_model", 100, False)]
         
         if self.training_scheme == 'training_scheme_8':
-            training_scheme = [("warmup_dann", self.warmup_epoch, True), # Permutating with pseudo labels during warmup 
-                                ("full_model", 3, False),
-                                ("classifier_branch", 2, False)] # This will end with a callback]
+            training_scheme = [("warmup_dann", self.warmup_epoch, False), # Permutating with pseudo labels during warmup 
+                                ("full_model", 1, False),
+                                ("classifier_branch", 1, False)] # This will end with a callback]
         
         if self.training_scheme == 'training_scheme_9':
             training_scheme = [("warmup_dann", self.warmup_epoch, False), 
@@ -862,8 +864,8 @@ class Workflow:
                                 ("classifier_branch", 50, False)]
         
         if self.training_scheme == 'training_scheme_13':
-            training_scheme = [("full_model", 100, True),
-                               ("classifier_branch", 50, False)]
+            training_scheme = [("full_model", 10, True),
+                               ("classifier_branch", 10, False)]
         
         if self.training_scheme == 'training_scheme_14':
             training_scheme = [("full_model", 100, False),

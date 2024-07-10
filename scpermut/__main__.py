@@ -30,7 +30,7 @@ def run_sc_cerberus(run_file):
         start_neptune_log(workflow)
         workflow.process_dataset()
         workflow.train_val_split()
-        adata_pred, model, history, X_scCER, query_pred  = workflow.make_experiment()
+        clas, adata_pred, model, history, X_scCER, query_pred  = workflow.make_experiment()
         stop_neptune_log(workflow)
         print(query_pred)
     
@@ -78,14 +78,16 @@ def run_sc_cerberus(run_file):
 
 if __name__ == '__main__':
 
-    # Get all arguments
+    """     # Get all arguments
     run_file = get_runfile()
 
     # Save runfile for running in python mode
     with open('tutorial/runfile_tuto.pkl', 'wb') as outp:
         pickle.dump(run_file, outp, pickle.HIGHEST_PROTOCOL)
-
+    """
     # Load run_file for python mode
     with open('tutorial/runfile_tuto.pkl', 'rb') as inp:
         run_file = pickle.load(inp)
+    run_file.train_scheme = "training_scheme_13"
+    # run_file.warmup_epoch = 1
     run_sc_cerberus(run_file)
