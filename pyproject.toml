@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "scCerberus"
+name = "scCerbero"
 version = "0.1.1"
 description = "Deep learning annotation of cell-types with permutation inforced autoencoder"
 license = "MIT"
@@ -44,4 +44,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-sc-cerberus = 'scpermut:__main__.run_sc_cerberus'
+sc-cerbero = 'scpermut:__main__.run_sc_cerbero'

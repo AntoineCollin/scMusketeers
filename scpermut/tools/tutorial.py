@@ -35,6 +35,7 @@ def create_tuto_data(sampling_percentage, path_adata, name, class_key, batch_key
 
 
     #### Batch correction
+    adata_train, adata_test = split_adata(adata, batch_key, 1 - sampling_percentage)
     # separate cells from 2X% of batches
     print(np.arange(adata.n_obs))
     # sample adata to reduce its size

@@ -1,4 +1,5 @@
 import json
+import os
 from scpermut.arguments.runfile import get_runfile, create_argparser
 from scpermut.arguments.runfile import PROCESS_TYPE
 from scpermut.transfer.optimize_model import Workflow
@@ -21,7 +22,20 @@ def load_json(json_path):
     return dico
     
 
-def run_sc_cerberus(run_file):
+def run_sc_cerbero():
+    
+    # Get all arguments
+    run_file = get_runfile()
+
+    """ # Save runfile for running in python mode
+    with open('tutorial/runfile_tuto_2.pkl', 'wb') as outp:
+        pickle.dump(run_file, outp, pickle.HIGHEST_PROTOCOL)
+    
+    # Load run_file for python mode
+    with open('tutorial/runfile_tuto_2.pkl', 'rb') as inp:
+        run_file = pickle.load(inp)
+    run_file.train_scheme = "training_scheme_13" """
+
     
     if run_file.process == PROCESS_TYPE[0]:
         # Transfer data
@@ -30,10 +44,13 @@ def run_sc_cerberus(run_file):
         start_neptune_log(workflow)
         workflow.process_dataset()
         workflow.train_val_split()
-        clas, adata_pred, model, history, X_scCER, query_pred  = workflow.make_experiment()
+        adata_pred, model, history, X_scCER, query_pred  = workflow.make_experiment()
         stop_neptune_log(workflow)
         print(query_pred)
-    
+        adata_pred_path = os.path.join(run_file.out_dir,f"{run_file.out_name}.h5ad")
+        print((f"Save adata_pred to {adata_pred_path}"))
+        adata_pred.write_h5ad(adata_pred_path)
+
     elif run_file.process == PROCESS_TYPE[1]:
         # Hyperparameter optimization
         experiment = MakeExperiment(run_file=run_file, working_dir=run_file.working_dir,
@@ -78,16 +95,4 @@ def run_sc_cerberus(run_file):
 
 if __name__ == '__main__':
 
-    # Get all arguments
-    run_file = get_runfile()
-
-    # Save runfile for running in python mode
-    with open('tutorial/runfile_tuto_2.pkl', 'wb') as outp:
-        pickle.dump(run_file, outp, pickle.HIGHEST_PROTOCOL)
-    
-    # Load run_file for python mode
-    with open('tutorial/runfile_tuto_2.pkl', 'rb') as inp:
-        run_file = pickle.load(inp)
-    run_file.train_scheme = "training_scheme_13"
-    # run_file.warmup_epoch = 1
-    run_sc_cerberus(run_file)
+    run_sc_cerbero()

@@ -447,7 +447,7 @@ class Workflow:
         X_scCER = enc
         adata_pred.obsm[f'{self.class_key}_pred_proba'] = y_pred_proba
         adata_pred.obs[f'{self.class_key}_pred'] = y_pred
-        adata_pred.obsm['X_scCER'] = X_scCER
+        # adata_pred.obsm['X_scCER'] = X_scCER
 
         # query_pred = adata_pred.obs[f'{self.class_key}_pred'][adata_pred.obs['train_split'] == 'test']
         
@@ -864,8 +864,8 @@ class Workflow:
                                 ("classifier_branch", 50, False)]
         
         if self.training_scheme == 'training_scheme_13':
-            training_scheme = [("full_model", 10, True),
-                               ("classifier_branch", 10, False)]
+            training_scheme = [("full_model", 25, True),
+                               ("classifier_branch", 25, False)]
         
         if self.training_scheme == 'training_scheme_14':
             training_scheme = [("full_model", 100, False),

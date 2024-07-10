@@ -75,7 +75,7 @@ def load_dataset(ref_path, query_path, class_key, unlabeled_category):
         ref = sc.read_h5ad(ref_path)
         query = sc.read_h5ad(query_path)
         query.obs[class_key] = unlabeled_category
-        adata = ref.concat(query, join = "inner")
+        adata = ref.concatenate(query, join = "inner")
     if not adata.raw:
         adata.raw = adata
     return adata
