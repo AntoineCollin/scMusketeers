@@ -1,5 +1,4 @@
-# sc_permut
-
+# scMusketeers
 Deep learning annotation of cell-types with permutation inforced autoencoder
 
 
