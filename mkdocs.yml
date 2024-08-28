@@ -1,7 +1,7 @@
-site_name: scCerberus
+site_name: scMusketeers
 theme: readthedocs
-repo_url: https://github.com/AntoineCollin/scCerberus/
-site_url: https://scCerberus.readthedocs.io/
+repo_url: git@github.com:AntoineCollin/scMusketeers.git
+site_url: https://scMusketeers.readthedocs.io/
 
 nav:
   - Home: "index.md"
