@@ -22,7 +22,7 @@ def load_json(json_path):
     return dico
     
 
-def run_sc_cerbero():
+def run_sc_musketeers():
     
     # Get all arguments
     run_file = get_runfile()
@@ -95,4 +95,4 @@ def run_sc_cerbero():
 
 if __name__ == '__main__':
 
-    run_sc_cerbero()
+    run_sc_musketeers()

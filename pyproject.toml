@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "scCerbero"
+name = "scMusketeers"
 version = "0.1.1"
 description = "Deep learning annotation of cell-types with permutation inforced autoencoder"
 license = "MIT"
@@ -7,8 +7,8 @@ authors = ["AntoineCollin","Christophe Becavin"]
 readme = "README.md"
 packages = [{include = "scpermut"}]
 exclude = ["tests/", ".github"]
-homepage = "https://scCerberus.readthedocs.io/"
-repository = "https://github.com/AntoineCollin/scCerberus/"
+homepage = "https://scMusketeers.readthedocs.io/"
+repository = "https://github.com/AntoineCollin/scMusketeers/"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -44,4 +44,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-sc-cerbero = 'scpermut:__main__.run_sc_cerbero'
+sc-musketeers = 'scpermut:__main__.run_sc_musketeers'
