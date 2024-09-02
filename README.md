@@ -14,6 +14,7 @@ We extensively optimized scPermut hyperparameters, by conducting a precise ablat
 We anticipate that the generic modular framework that we provide can be easily adaptable to other fields of large-scale biology.
 
 
+
 ## Install
 
 You can install sc_permut with Pypi:
@@ -44,24 +45,15 @@ $ scpermut label my_atlas --class_key celltype --batch_key donor
 
 - Label transfer for completing atlas annotation
 
-```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
-```
-
-- Label transfer for completing atlas annotation
 
 ```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
+$ conda -c bioconda scpermut
 ```
 
-- Label transfer from scRNA-Seq to Spatial transcriptomic dataset
+with docker
 
-```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
-```
 
 TO DO : Add example atlas in the github or Zenodo
 
-## Development
 
 Read the [CONTRIBUTING.md](docs/contributing.md) file.

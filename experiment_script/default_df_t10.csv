@@ -1,0 +1,2 @@
+,dataset_name,use_hvg,batch_size,clas_w,dann_w,rec_w,ae_bottleneck_activation,clas_loss_name,size_factor,weight_decay,learning_rate,warmup_epoch,dropout,layer1,layer2,bottleneck,training_scheme
+0,default,3000,430,0.3066763716843436,0.01865515471175812,0.013070252184855429,linear,categorical_focal_crossentropy,default,9.447375593939065e-07,0.0009913638603687327,36,0.27058450953709307,1151,235,84,training_scheme_8
