@@ -16,11 +16,16 @@ JSON_PATH_DEFAULT = '/home/becavin/scPermut/experiment_script/hp_ranges/'
 TOTAL_TRIAL = 10
 RANDOM_SEED = 40
 
+import argparse
+from workflow.hyperparameters import *
+from tools.utils import str2bool
+
+
 def load_json(json_path):
-    with open(json_path, 'r') as fichier_json:
+    with open(json_path, "r") as fichier_json:
         dico = json.load(fichier_json)
     return dico
-    
+
 
 def run_sc_musketeers():
     
@@ -96,3 +101,4 @@ def run_sc_musketeers():
 if __name__ == '__main__':
 
     run_sc_musketeers()
+

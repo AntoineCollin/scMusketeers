@@ -1,5 +1,4 @@
-# sc_permut
-
+# scMusketeers
 Deep learning annotation of cell-types with permutation inforced autoencoder
 
 
@@ -13,6 +12,7 @@ We developed scPermut to learn an optimal dimension-reduced representation, whil
 We extensively optimized scPermut hyperparameters, by conducting a precise ablation study to assess model's performance. We show that our model is at least on par with State-Of-The-Art models, and even outperforms them on most challenges. This was more thoroughly documented by comparing the different approaches in 12 datasets that differ in size, number of cell types, number or distinct experimental modes.
 
 We anticipate that the generic modular framework that we provide can be easily adaptable to other fields of large-scale biology.
+
 
 
 ## Install
@@ -45,20 +45,15 @@ $ scpermut label my_atlas --class_key celltype --batch_key donor
 
 - Label transfer for completing atlas annotation
 
-```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
-```
-
-- Label transfer for completing atlas annotation
 
 ```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
+$ conda -c bioconda scpermut
 ```
 
-- Label transfer from scRNA-Seq to Spatial transcriptomic dataset
+with docker
 
-```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
-```
 
 TO DO : Add example atlas in the github or Zenodo
+
+
+Read the [CONTRIBUTING.md](docs/contributing.md) file.

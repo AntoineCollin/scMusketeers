@@ -3,18 +3,21 @@
 ############################
 
 
-# from keras.engine.topology import Layer
-from keras.layers import Lambda, Dense
 # from keras.engine.base_layer import InputSpec
 import keras.backend as K
 import tensorflow as tf
 
+# from keras.engine.topology import Layer
+from keras.layers import Dense, Lambda
+
 nan2zeroLayer = Lambda(lambda x: tf.where(tf.is_nan(x), tf.zeros_like(x), x))
-ColwiseMultLayer = Lambda(lambda l: l[0]*tf.reshape(l[1], (-1,1)), name='reconstruction')
+ColwiseMultLayer = Lambda(
+    lambda l: l[0] * tf.reshape(l[1], (-1, 1)), name="reconstruction"
+)
 
 
 def reverse_gradient(X, hp_lambda):
-    '''Flips the sign of the incoming gradient during training.'''
+    """Flips the sign of the incoming gradient during training."""
     try:
         reverse_gradient.num_calls += 1
     except AttributeError:
@@ -27,7 +30,7 @@ def reverse_gradient(X, hp_lambda):
         return [tf.negative(grad) * hp_lambda]
 
     g = K.get_session().graph
-    with g.gradient_override_map({'Identity': grad_name}):
+    with g.gradient_override_map({"Identity": grad_name}):
         y = tf.identity(X)
 
     return y
@@ -36,9 +39,12 @@ def reverse_gradient(X, hp_lambda):
 @tf.custom_gradient
 def grad_reverse(x):
     y = tf.identity(x)
+
     def custom_grad(dy):
         return -dy
+
     return y, custom_grad
+
 
 class GradReverse(tf.keras.layers.Layer):
     def __init__(self):
