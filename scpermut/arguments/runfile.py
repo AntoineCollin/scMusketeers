@@ -18,10 +18,10 @@ def create_argparser():
         argparse.Namespace: A namespace object containing parsed arguments.
     """
     parser = argparse.ArgumentParser(
-        prog="scPermut",
-        usage="scPermut [OPTIONS] process atlas_name your_search_folder/",
-        description="scPermut....",
-        epilog="Enjoy the scPermut functionality!",
+        prog="sc-musketeers",
+        usage="sc-musketeers [OPTIONS] process atlas_name your_search_folder/",
+        description="musketeers....",
+        epilog="Enjoy scMusketeers!",
     )
 
     parser.add_argument(
