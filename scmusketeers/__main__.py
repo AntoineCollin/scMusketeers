@@ -1,17 +1,17 @@
 import json
 import os
-from scpermut.arguments.runfile import get_runfile, create_argparser
-from scpermut.arguments.runfile import PROCESS_TYPE
-from scpermut.transfer.optimize_model import Workflow
-from scpermut.transfer.experiment import MakeExperiment
-from scpermut.arguments.neptune_log import start_neptune_log, stop_neptune_log
+from scmusketeers.arguments.runfile import get_runfile, create_argparser
+from scmusketeers.arguments.runfile import PROCESS_TYPE
+from scmusketeers.transfer.optimize_model import Workflow
+from scmusketeers.transfer.experiment import MakeExperiment
+from scmusketeers.arguments.neptune_log import start_neptune_log, stop_neptune_log
 import pickle
 
 
 from ax.service.ax_client import AxClient, ObjectiveProperties
 
-# JSON_PATH_DEFAULT = '/home/acollin/scPermut/experiment_script/hp_ranges/'
-JSON_PATH_DEFAULT = '/home/becavin/scPermut/experiment_script/hp_ranges/'
+# JSON_PATH_DEFAULT = '/home/acollin/scMusketeers/experiment_script/hp_ranges/'
+JSON_PATH_DEFAULT = '/home/becavin/scMusketeers/experiment_script/hp_ranges/'
 
 TOTAL_TRIAL = 10
 RANDOM_SEED = 40

@@ -19,7 +19,7 @@ except :
 try :
     from ..tools.utils import densify
 except ImportError:
-    from scpermut.tools.utils import densify
+    from scmusketeers.tools.utils import densify
 import scBalance as sb
 import scBalance.scbalance_IO as ss
 # from tools.utils import densify

@@ -5,7 +5,7 @@ description = "Deep learning annotation of cell-types with permutation inforced 
 license = "MIT"
 authors = ["AntoineCollin","Christophe Becavin"]
 readme = "README.md"
-packages = [{include = "scpermut"}]
+packages = [{include = "scmusketeers"}]
 exclude = ["tests/", ".github"]
 homepage = "https://scMusketeers.readthedocs.io/"
 repository = "https://github.com/AntoineCollin/scMusketeers/"
@@ -44,4 +44,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-sc-musketeers = 'scpermut:__main__.run_sc_musketeers'
+sc-musketeers = 'scmusketeers:__main__.run_sc_musketeers'

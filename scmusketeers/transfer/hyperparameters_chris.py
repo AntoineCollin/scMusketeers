@@ -877,7 +877,7 @@ class Workflow:
                                 ("classifier_branch", 50, False)]
         
         if self.training_scheme == 'training_scheme_13':
-            training_scheme = [("full_model", 100, True),
+            training_scheme = [("full_model", 50, True),
                                ("classifier_branch", 50, False)]
         
         if self.training_scheme == 'training_scheme_14':
