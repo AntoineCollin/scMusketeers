@@ -108,4 +108,4 @@ jobs:
       - name: Install project
         run: make install-dev
       - name: run tests
-        run: poetry run pytest -s -vvvv -l --tb=long tests
+        run: poetry run pytest -s -v -l --tb=long tests

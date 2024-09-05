@@ -311,7 +311,7 @@ def batch_generator_training_permuted(
             if use_perm:
                 ind_out = [ind[1] for ind in perm_indices]
             else:
-                ind_out = ind_in # Here, we're not using permutations
+                ind_out = ind_in  # Here, we're not using permutations
             if same_class_pct:
                 sim = y[ind_in].values == y[ind_out].values
             debug = pd.DataFrame({"in": ind_in, "out": ind_out})

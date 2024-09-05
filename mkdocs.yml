@@ -1,6 +1,6 @@
 site_name: scMusketeers
 theme: readthedocs
-repo_url: git@github.com:AntoineCollin/scMusketeers.git
+repo_url: https://github.com/AntoineCollin/scMusketeers
 site_url: https://scMusketeers.readthedocs.io/
 
 nav:

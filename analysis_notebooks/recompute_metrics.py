@@ -13,13 +13,13 @@ working_dir = '/home/acollin/scPermut/'
 
 sys.path.append(working_dir)
 
-from scpermut.tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg, balanced_matthews_corrcoef, balanced_f1_score, balanced_cohen_kappa_score
+from scmusketeers.tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg, balanced_matthews_corrcoef, balanced_f1_score, balanced_cohen_kappa_score
 
 from sklearn.metrics import accuracy_score,balanced_accuracy_score,matthews_corrcoef, f1_score,cohen_kappa_score, adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score,davies_bouldin_score,adjusted_rand_score,confusion_matrix
 f1_score = functools.partial(f1_score, average = 'macro')
 
-from scpermut.workflow.dataset import load_dataset
-from scpermut.tools.utils import ann_subset, check_raw,save_json, load_json, rgb2hex,hex2rgb
+from scmusketeers.workflow.dataset import load_dataset
+from scmusketeers.tools.utils import ann_subset, check_raw,save_json, load_json, rgb2hex,hex2rgb
 from tqdm import trange, tqdm
 import warnings
 

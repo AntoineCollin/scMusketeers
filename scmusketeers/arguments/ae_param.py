@@ -9,4 +9,3 @@ class AE_PARAM:
         self.ae_l2_enc_coef = run_file.ae_l2_enc_coef
         self.ae_hidden_size = run_file.ae_hidden_size
         self.ae_hidden_dropout = run_file.ae_hidden_dropout
-        

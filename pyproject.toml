@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scMusketeers"
-version = "0.1.1"
+version = "0.1.2"
 description = "Deep learning annotation of cell-types with permutation inforced autoencoder"
 license = "MIT"
 authors = ["AntoineCollin","Christophe Becavin"]
@@ -38,6 +38,7 @@ isort = "^5.13.2"
 mypy = "^1.8.0"
 no-implicit-optional = "^1.4"
 types-pyyaml = "^6.0.12.12"
+mkdocs = "^1.6.1"
 
 [build-system]
 requires = ["poetry-core"]
