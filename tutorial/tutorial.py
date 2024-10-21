@@ -2,7 +2,43 @@ import os
 
 import numpy as np
 import scanpy as sc
-from utils import split_adata
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+
+def create_meta_stratify(adata, cats):
+    obs = adata.obs
+    meta_cats = "_".join(cats)
+    meta_col = pd.Series(obs[cats[0]].astype(str), index=obs.index)
+    for h in cats[1:]:
+        meta_col = meta_col + "_" + obs[h].astype(str)
+    obs[meta_cats] = meta_col
+    adata.obs[meta_cats] = meta_col
+
+
+def split_adata(adata, cats, train_size=0.8):
+    """
+    Split adata in train and test in a stratified manner according to cats
+    cats - List of celltype, batch for sampling
+    """
+    if type(cats) == str:
+        meta_cats = cats
+    else:
+        create_meta_stratify(adata, cats)
+        meta_cats = "_".join(cats)
+    train_idx, test_idx = train_test_split(
+        np.arange(adata.n_obs),
+        train_size=train_size,
+        stratify=adata.obs[meta_cats],
+        random_state=50,
+    )
+    spl = pd.Series(["train"] * adata.n_obs, index=adata.obs.index)
+    spl.iloc[test_idx] = "test"
+    adata.obs["TRAIN_TEST_split"] = spl.values
+    adata_train = adata[adata.obs["TRAIN_TEST_split"] == "train"].copy()
+    adata_test = adata[adata.obs["TRAIN_TEST_split"] == "test"].copy()
+    del adata.obs["TRAIN_TEST_split"]
+    return adata_train, adata_test
 
 
 def create_tuto_data(
