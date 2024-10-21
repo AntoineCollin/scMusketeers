@@ -2,9 +2,9 @@ import keras
 import sys
 import os
 try :
-    from ...scpermut.workflow.dataset import Dataset, load_dataset
-    from ...scpermut.tools.utils import scanpy_to_input, default_value, str2bool,densify
-    from ...scpermut.tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg
+    from ...scmusketeers.workflow.dataset import Dataset, load_dataset
+    from ...scmusketeers.tools.utils import scanpy_to_input, default_value, str2bool,densify
+    from ...scmusketeers.tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg
 
 except ImportError:
     from dataset import Dataset, load_dataset

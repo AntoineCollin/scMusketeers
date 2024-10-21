@@ -14,18 +14,22 @@ We extensively optimized scPermut hyperparameters, by conducting a precise ablat
 We anticipate that the generic modular framework that we provide can be easily adaptable to other fields of large-scale biology.
 
 
+## Tutorial
+
+[Transfer cell annotation to unlabeled cells](https://colab.research.google.com/github/AntoineCollin/scMusketeers/blob/renaming/tutorial/scMusketeers-tutorial.ipynb)
+
 
 ## Install
 
 You can install sc_permut with Pypi:
 
 ```bash
-$ pip install scpermut
+$ pip install sc-musketeers
 ```
 with conda
 
 ```bash
-$ conda -c bioconda scpermut
+$ conda -c bioconda sc-musketeers
 ```
 
 with docker
@@ -33,24 +37,16 @@ with docker
 
 ## Examples
 
-sc_permut can be used for different task in integration and annotation of single-cell atlas. 
+sc-musketeers can be used for different task in integration and annotation of single-cell atlas. 
 
 Here are 4 different examples:
 
 - Label transfer between batch
 
 ```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
+$ sc-musketeers transfer my_atlas --class_key celltype --batch_key donor
 ```
 
-- Label transfer for completing atlas annotation
-
-
-```bash
-$ conda -c bioconda scpermut
-```
-
-with docker
 
 
 TO DO : Add example atlas in the github or Zenodo

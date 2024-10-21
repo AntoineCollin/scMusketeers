@@ -8,9 +8,9 @@ import neptune
 WD_PATH = '/home/acollin/scPermut/'
 sys.path.append(WD_PATH)
 
-from scpermut.tools.utils import str2bool, load_json
+from scmusketeers.tools.utils import str2bool, load_json
 print(str2bool('True'))
-from scpermut.workflow.hyperparameters import Workflow
+from scmusketeers.workflow.hyperparameters import Workflow
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

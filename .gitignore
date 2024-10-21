@@ -19,7 +19,6 @@ data/
 results/
 logs
 task*
-*.ipynb
 .ipynb_checkpoints
 models
 workflow_jobs/log
