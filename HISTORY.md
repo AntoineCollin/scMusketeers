@@ -4,6 +4,7 @@ Changelog
 
 (unreleased)
 ------------
+- Release: version 0.1.6 🚀 [Christophe Bécavin]
 - Release: version 0.1.5 🚀 [Christophe Bécavin]
 - Continuous integration 🔄 tests-0.1.5. [Christophe Bécavin]
 - Merge branch 'main' of github.com:AntoineCollin/scMusketeers merged.
