@@ -16,8 +16,11 @@ We anticipate that the generic modular framework that we provide can be easily a
 
 ## Tutorial
 
-[Transfer cell annotation to unlabeled cells](https://colab.research.google.com/github/AntoineCollin/scMusketeers/blob/renaming/tutorial/scMusketeers-tutorial.ipynb)
+[Access to the tutorial on Google collab](https://colab.research.google.com/github/AntoineCollin/scMusketeers/blob/main/tutorial/scMusketeers-tutorial.ipynb)
 
+We will see in this tutorial two use-cases:
+- Transfer cell annotation to unlabeled cells
+- Transfer cell annotation and reduce batch from a query atlas to a reference atlas 
 
 ## Install
 
