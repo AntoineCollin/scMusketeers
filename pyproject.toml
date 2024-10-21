@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sc-musketeers"
-version = "0.1.5"
+version = "0.1.6"
 description = "Deep learning annotation of cell-types with permutation inforced autoencoder"
 license = "MIT"
 authors = ["AntoineCollin","Christophe Becavin"]
