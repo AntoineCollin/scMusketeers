@@ -16,7 +16,7 @@ We anticipate that the generic modular framework that we provide can be easily a
 
 ## Tutorial
 
-[Transfer cell annotation to unlabeled cells](https://colab.research.google.com/github/AntoineCollin/scMusketeers/tutorial/scMusketeers-tutorial.ipynb)
+[Transfer cell annotation to unlabeled cells](https://colab.research.google.com/github/AntoineCollin/scMusketeers/blob/renaming/tutorial/scMusketeers-tutorial.ipynb)
 
 
 ## Install
