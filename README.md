@@ -14,6 +14,10 @@ We extensively optimized scPermut hyperparameters, by conducting a precise ablat
 We anticipate that the generic modular framework that we provide can be easily adaptable to other fields of large-scale biology.
 
 
+## Tutorial
+
+[Transfer cell annotation to unlabeled cells](https://colab.research.google.com/github/AntoineCollin/scMusketeers/blob/renaming/tutorial/scMusketeers-tutorial.ipynb)
+
 
 ## Install
 
