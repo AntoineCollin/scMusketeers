@@ -819,55 +819,12 @@ class Workflow:
         optimizer,
         n_samples,
         n_obs,
-    ):
-        # tracker_class.create_snapshot()
-        # tracker_class.stats.print_summary()
-        # print(f"size {asizeof.asizeof(self.dann_ae)}")
-        # print(f"size {asizeof.asizeof(self.dataset)}")
-        # print(f"size {asizeof.asizeof(self.history)}")
-        # Look at workflow size
-        # attribute_dict = self.__dict__
-        # type_attributes = {}
-        # for key, value in attribute_dict.items():
-        #     type_attr = type(value)
-        #     if type_attr in type_attributes:
-        #         list_attr = type_attributes[type_attr]
-        #         list_attr.append(key)
-        #         type_attributes[type_attr] = list_attr
-        #     else:
-        #         type_attributes[type_attr] = [key]
-        # print(type_attributes.keys())
-        # import sys
-        # from pympler import asizeof
-        # size_attributes = {}
-        # for key, value in type_attributes.items():
-        #     size_of = 0
-        #     for variable in value:
-        #         size_of += asizeof.asizeof(variable)
-        #     size_attributes[key] = size_of
-        # print(size_attributes)
-        # if self.log_neptune:
-        #     for key, value in size_attributes.items():
-        #         self.run_neptune['memory/'+str(key)].append(value)
-        #         print(value)
-        # all objects
-        # all_objects = muppy.get_objects()
-        # print("allobjects "+str(len(all_objects)))
-        # my_types = muppy.filter(all_objects, Type=type)
-        # print(len(my_types))
-        # for t in my_types:
-        #     print(t)
-        # tracker_class = ClassTracker()
-        # tracker_class.track_class(Workflow, resolution_level=3, trace=2)
-        # tracker_class.create_snapshot()
-        # tracker_class.stats.print_summary()
-        # print(f"New step : {step}")
-        # gpu_mem = []
-        # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
-        self.run_neptune["training/train/tf_GPU_memory_step"].append(
-            tf.config.experimental.get_memory_info("GPU:0")["current"] / 1e6
-        )
-        self.run_neptune["training/train/step"].append(step)
+        ):
+        if self.run_file.log_neptune:
+            self.run_neptune["training/train/tf_GPU_memory_step"].append(
+                tf.config.experimental.get_memory_info("GPU:0")["current"] / 1e6
+            )
+            self.run_neptune["training/train/step"].append(step)
         # self.tr.print_diff()
         input_batch, output_batch = next(batch_generator)
         # print(f"input {type(input_batch)}")
@@ -913,6 +870,18 @@ class Workflow:
                 loss = tf.add_n([self.run_file.clas_w * clas_loss] + ae.losses)
             elif training_strategy == "permutation_only":
                 loss = tf.add_n([self.run_file.rec_w * rec_loss] + ae.losses)
+            elif training_strategy == "no_dann":
+                loss = tf.add_n(
+                    [self.rec_w * rec_loss]
+                    + [self.clas_w * clas_loss]
+                    + ae.losses
+                )
+            elif training_strategy == "no_decoder":
+                loss = tf.add_n(
+                    [self.dann_w * dann_loss]
+                    + [self.clas_w * clas_loss]
+                    + ae.losses
+                )        
         # print(f"loss {asizeof.asizeof(loss)}")
         # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
         n_samples += enc.shape[0]
@@ -930,7 +899,7 @@ class Workflow:
         self.mean_rec_loss_fn(rec_loss.__float__()) """
 
         if self.run_file.verbose:
-            """print_status_bar(
+            print_status_bar(
                 n_samples,
                 n_obs,
                 [
@@ -940,16 +909,8 @@ class Workflow:
                     self.mean_rec_loss_fn,
                 ],
                 self.metrics,
-            )"""
+            )
 
-        # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
-
-        # gpu_mem_diff = []
-        # for i in range(len(gpu_mem)-1):
-        #     gpu_mem_diff.append(gpu_mem[i+1] - gpu_mem[i])
-        # print(gpu_mem_diff)
-        # print(np.sum(gpu_mem_diff))
-        # self.tr.print_diff()
 
     def evaluation_pass(
         self,

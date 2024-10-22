@@ -2,24 +2,27 @@ import neptune
 from neptune.utils import stringify_unsupported
 
 try:
-    from transfer.optimize_hp import Workflow
+    from transfer.optimize_model import Workflow
 except ImportError:
-    from ..transfer.hyperparameters_chris import Workflow
+    from ..transfer.optimize_model import Workflow
 
 
 def start_neptune_log(workflow: Workflow):
     print(f"Use Neptune.ai log : {workflow.run_file.log_neptune}")
     if workflow.run_file.log_neptune:
         print(f"Use Neptune project name = {workflow.run_file.neptune_name}")
-        # self.run = neptune.init_run(
-        #         project="becavin-lab/benchmark",
-        #         api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
-        # )
-        if workflow.run_file.neptune_name == "sc-permut-packaging":
+        if workflow.run_file.neptune_name == "benchmark":
+            workflow.run = neptune.init_run(project="becavin-lab/benchmark",
+                                        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
+            )
+        elif workflow.run_file.neptune_name == "sc-musketeers":
             workflow.run_neptune = neptune.init_run(
-                project="sc-permut-packaging",
+                project="becavin-lab/sc-musketeers",
                 api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI1Zjg5NGJkNC00ZmRkLTQ2NjctODhmYy0zZDAzYzM5ZTgxOTAifQ==",
             )
+        else:
+            print("No neptune_name was provided !!!")
+
         
         workflow.run_neptune["parameters/model"] = "scMusketeers"
         for par, val in workflow.run_file.__dict__.items():

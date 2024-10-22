@@ -8,7 +8,7 @@ from ..arguments.neptune_log import (
 )
 from ..arguments.runfile import set_hyperparameters
 from ..workflow import dataset
-from .optimize_hp import Workflow
+from .optimize_model import Workflow
 
 
 class MakeExperiment:
