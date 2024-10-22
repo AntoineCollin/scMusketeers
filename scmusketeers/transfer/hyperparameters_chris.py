@@ -525,6 +525,8 @@ class Workflow:
         )  # redundant
         training_scheme = self.get_scheme()
         start_time = time.time()
+        print("Training scheme here !!! ")
+        print(training_scheme)
 
         # Training
         history = self.train_scheme(
@@ -1112,7 +1114,7 @@ class Workflow:
     def get_scheme(self):
         if self.training_scheme == "training_scheme_1":
             training_scheme = [
-                ("warmup_dann", self.warmup_epoch, False),
+                ("warmup_dann", self.runfile.warmup_epoch, False),
                 ("full_model", 100, True),
             ]  # This will end with a callback
         if self.training_scheme == "training_scheme_2":
@@ -1230,10 +1232,11 @@ class Workflow:
 
         if self.training_scheme == "training_scheme_13":
             training_scheme = [
-                ("full_model", 50, True),
-                ("classifier_branch", 50, False),
+                ("full_model", self.runfile.fullmodel_epoch, True),
+                ("classifier_branch", self.runfile.classifier_epoch, False),
             ]
-
+            print("Traininnnnnnnngggggg scheme")
+            print(training_scheme)
         if self.training_scheme == "training_scheme_14":
             training_scheme = [
                 ("full_model", 100, False),

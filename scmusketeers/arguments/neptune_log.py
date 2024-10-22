@@ -2,7 +2,7 @@ import neptune
 from neptune.utils import stringify_unsupported
 
 try:
-    from .optimize_hp import Workflow
+    from transfer.optimize_hp import Workflow
 except ImportError:
     from ..transfer.hyperparameters_chris import Workflow
 

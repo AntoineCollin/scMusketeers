@@ -42,10 +42,8 @@ def run_sc_musketeers():
     with open('tutorial/runfile_tuto_2.pkl', 'rb') as inp:
         run_file = pickle.load(inp)
     run_file.train_scheme = "training_scheme_13" """
-
     if run_file.process == PROCESS_TYPE[0]:
         # Transfer data
-        print(run_file.ref_path, run_file.class_key, run_file.batch_key)
         workflow = Workflow(run_file=run_file)
         start_neptune_log(workflow)
         workflow.process_dataset()
@@ -90,7 +88,7 @@ def run_sc_musketeers():
         ### Service API
         ax_client = AxClient()
         ax_client.create_experiment(
-            name="scpermut",
+            name="scmusketeers",
             parameters=hparams,
             objectives={"opt_metric": ObjectiveProperties(minimize=False)},
         )
