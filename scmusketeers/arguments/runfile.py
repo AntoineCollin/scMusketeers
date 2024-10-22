@@ -89,8 +89,14 @@ def create_argparser():
         type=str2bool.str2bool,
         nargs="?",
         const=True,
-        default=True,
+        default=False,
         help="",
+    )
+    workflow_group.add_argument(
+        "--neptune_name",
+        type=str,
+        nargs="?",
+        help="Name of the neptune project : Exemple sc-permut-packaging",
     )
     workflow_group.add_argument(
         "--hparam_path", type=str, nargs="?", default=None, help=""

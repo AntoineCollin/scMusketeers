@@ -8,16 +8,20 @@ except ImportError:
 
 
 def start_neptune_log(workflow: Workflow):
+    print(f"Use Neptune.ai log : {workflow.run_file.log_neptune}")
     if workflow.run_file.log_neptune:
+        print(f"Use Neptune project name = {workflow.run_file.neptune_name}")
         # self.run = neptune.init_run(
         #         project="becavin-lab/benchmark",
         #         api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
         # )
-        workflow.run_neptune = neptune.init_run(
-            project="sc-permut-packaging",
-            api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI1Zjg5NGJkNC00ZmRkLTQ2NjctODhmYy0zZDAzYzM5ZTgxOTAifQ==",
-        )
-        workflow.run_neptune["parameters/model"] = "scPermut"
+        if workflow.run_file.neptune_name == "sc-permut-packaging":
+            workflow.run_neptune = neptune.init_run(
+                project="sc-permut-packaging",
+                api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI1Zjg5NGJkNC00ZmRkLTQ2NjctODhmYy0zZDAzYzM5ZTgxOTAifQ==",
+            )
+        
+        workflow.run_neptune["parameters/model"] = "scMusketeers"
         for par, val in workflow.run_file.__dict__.items():
             if par in dir(workflow):
                 workflow.run_neptune[f"parameters/{par}"] = (
@@ -39,4 +43,5 @@ def add_custom_log(workflow: Workflow, name, value):
 
 
 def stop_neptune_log(workflow: Workflow):
-    workflow.run_neptune.stop()
+    if workflow.run_file.log_neptune:
+        workflow.run_neptune.stop()
