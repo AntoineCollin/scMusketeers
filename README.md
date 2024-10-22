@@ -24,7 +24,7 @@ We will see in this tutorial two use-cases:
 
 ## Install
 
-You can install sc_permut with Pypi:
+You can install sc_musketeers with Pypi:
 
 ```bash
 $ pip install sc-musketeers

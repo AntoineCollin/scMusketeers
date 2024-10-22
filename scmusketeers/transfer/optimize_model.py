@@ -759,7 +759,7 @@ class Workflow:
                 n_obs,
             )
             
-        self.print_status_bar(
+        print_status_bar(
             n_samples,
             n_obs,
             [
@@ -1199,19 +1199,7 @@ class Workflow:
             print(self.dann_loss_name + " loss not supported for dann")
         return self.rec_loss_fn, self.clas_loss_fn, self.dann_loss_fn
 
-    def print_status_bar(self, iteration, total, loss, metrics=None):
-        metrics = " - ".join(
-            [
-                "{}: {:.4f}".format(m.name, m.result())
-                for m in loss + (metrics or [])
-            ]
-        )
-
-        end = "" if int(iteration) < int(total) else "\n"
-        #     print(f"{iteration}/{total} - "+metrics ,end="\r")
-        #     print(f"\r{iteration}/{total} - " + metrics, end=end)
-        print("\r{}/{} - ".format(iteration, total) + metrics, end=end)
-
+    
     def get_optimizer(
         self, learning_rate, weight_decay, optimizer_type, momentum=0.9
     ):
@@ -1256,13 +1244,15 @@ class Workflow:
         return optimizer
 
 
-def print_status_bar(iteration, total, loss, metrics=None):
-    """metrics = ' - '.join(['{}: {:.4f}'.format(m.name, m.result())
-    for m in loss + (metrics or [])])"""
+def print_status_bar(self, iteration, total, loss, metrics=None):
+        metrics = " - ".join(
+            [
+                "{}: {:.4f}".format(m.name, m.result())
+                for m in loss + (metrics or [])
+            ]
+        )
 
-    end = "" if int(iteration) < int(total) else "\n"
-    #     print(f"{iteration}/{total} - "+metrics ,end="\r")
-    #     print(f"\r{iteration}/{total} - " + metrics, end=end)
-    print("\r{}/{} - ".format(iteration, total) + str(metrics), end=end)
-
-
+        end = "" if int(iteration) < int(total) else "\n"
+        #     print(f"{iteration}/{total} - "+metrics ,end="\r")
+        #     print(f"\r{iteration}/{total} - " + metrics, end=end)
+        print("\r{}/{} - ".format(iteration, total) + metrics, end=end)
