@@ -1244,7 +1244,7 @@ class Workflow:
         return optimizer
 
 
-def print_status_bar(self, iteration, total, loss, metrics=None):
+def print_status_bar(iteration, total, loss, metrics=None):
         metrics = " - ".join(
             [
                 "{}: {:.4f}".format(m.name, m.result())
