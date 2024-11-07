@@ -21,6 +21,7 @@ from sklearn.utils import compute_class_weight
 
 import argparse
 import functools
+
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 try:
@@ -29,13 +30,13 @@ except ImportError:
     from workflow.dataset import Dataset, load_dataset
 
 try:
-    from ..tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0
+    from ..tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0, check_dir
     from ..tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg, balanced_matthews_corrcoef, balanced_f1_score, balanced_cohen_kappa_score
     from ..tools.models import DANN_AE
     from ..tools.permutation import batch_generator_training_permuted
 
 except ImportError:
-    from tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0
+    from tools.utils import scanpy_to_input, default_value, str2bool, nan_to_0, check_dir
     from tools.clust_compute import nn_overlap, batch_entropy_mixing_score,lisi_avg, balanced_matthews_corrcoef, balanced_f1_score, balanced_cohen_kappa_score
     from tools.models import DANN_AE
     from tools.permutation import batch_generator_training_permuted
@@ -262,6 +263,8 @@ class Workflow:
         self.hp_params = None
         self.opt_metric = default_value(self.run_file.opt_metric, None)
 
+
+        self.debug_count = 0 #Debug
         
     def set_hyperparameters(self, params):
         
@@ -331,6 +334,8 @@ class Workflow:
         self.dataset.test_split(test_obs = self.test_obs, test_index_name = self.test_index_name)
     
     def split_train_val(self):
+        print(self.mode)
+        print(self.pct_split)
         self.dataset.train_split(mode = self.mode,
                             pct_split = self.pct_split,
                             obs_key = self.obs_key,
@@ -369,6 +374,9 @@ class Workflow:
                       'val': self.dataset.y_val_one_hot,
                       'test': self.dataset.y_test_one_hot}
 
+        print('########## ONE HOT LABELS ##########')
+        print(np.unique([''.join([str(int(j)) for j in i]) for i in np.array(y_list['full']).astype(int)])) # debug
+
         batch_list = {'full': self.dataset.batch_one_hot,
                       'train': self.dataset.batch_train_one_hot,
                       'val': self.dataset.batch_val_one_hot,
@@ -379,6 +387,7 @@ class Workflow:
                       'val': self.dataset.adata_val.obsm['X_pca'],
                       'test': self.dataset.adata_test.obsm['X_pca']}
 
+        # Predicting pseudolabels with a KNN
         knn_cl = KNeighborsClassifier(n_neighbors = 5)
         knn_cl.fit(X_pca_list['train'], y_nooh_list['train'])
 
@@ -475,6 +484,10 @@ class Workflow:
                         y_pred_proba = pd.DataFrame(np.asarray(clas), index = adata_list['full'].obs_names, columns = self.dataset.ohe_celltype.categories_[0])
                         y_pred_proba.to_csv(save_dir + f'y_pred_proba_full.csv')
                         self.run[f'evaluation/{group}/y_pred_proba_full'].track_files(save_dir + f'y_pred_proba_full.csv')
+
+                        dann_proba = pd.DataFrame(np.asarray(dann), index = adata_list['full'].obs_names, columns = self.dataset.ohe_batches.categories_[0])
+                        dann_proba.to_csv(save_dir + f'batch_proba_full.csv')
+                        self.run[f'evaluation/{group}/batch_proba_full'].track_files(save_dir + f'batch_proba_full.csv')
 
                     clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
 
@@ -636,8 +649,8 @@ class Workflow:
                 print(f"Step number {i}, running {strategy} strategy with permuation = {use_perm} for {n_epochs} epochs")
                 time_in = time.time()
 
-                # Early stopping for those strategies only
-            if strategy in  ['full_model', 'classifier_branch', 'permutation_only']:
+            # Early stopping for those strategies only
+            if strategy in ['full_model', 'classifier_branch', 'encoder_classifier', 'permutation_only']:
                 wait = 0
                 best_epoch = 0
                 patience = 20
@@ -671,23 +684,38 @@ class Workflow:
                     for group in ['val', 'test', 'full']:
                         loop_params['pseudo_y_list'][group] = memory[group]
                     memory = {}
+                                
+            # Debug
+            input_tensor = {k:tf.convert_to_tensor(v) for k,v in scanpy_to_input(loop_params['adata_list']['train'],['size_factors']).items()}
+            enc, clas, dann, rec = self.dann_ae(input_tensor, training=False).values() # Model predict
+            neptune_run_id = self.run['sys/id'].fetch()
+            save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
+            check_dir(save_dir)
+            y_pred_proba = pd.DataFrame(np.asarray(clas), index = loop_params['adata_list']['train'].obs_names, columns = self.dataset.ohe_celltype.categories_[0])
+            y_pred_proba.to_csv(save_dir + f'y_pred_proba_debug_step_init.csv')
 
             for epoch in range(1, n_epochs+1):
                 running_epoch +=1
                 print(f"Epoch {running_epoch}/{total_epochs}, Current strat Epoch {epoch}/{n_epochs}")
-                history, _, _, _ ,_ = self.training_loop(history=history,
+                history, _, clas, _ ,_ = self.training_loop(history=history,
                                                              training_strategy=strategy,
                                                              use_perm=use_perm,
                                                              optimizer=optimizer,
                                                                **loop_params)
-
+                # Debug
+                if (epoch == n_epochs) or (epoch < 10):
+                    neptune_run_id = self.run['sys/id'].fetch()
+                    save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
+                    check_dir(save_dir)
+                    y_pred_proba = pd.DataFrame(np.asarray(clas), index = loop_params['adata_list']['train'].obs_names, columns = self.dataset.ohe_celltype.categories_[0])
+                    y_pred_proba.to_csv(save_dir + f'y_pred_proba_debug_step_{str(running_epoch)}.csv')
                 if self.log_neptune:
                     for group in history:
                         for par,value in history[group].items():
                             self.run[f"training/{group}/{par}"].append(value[-1])
                             if physical_devices :
                                 self.run['training/train/tf_GPU_memory'].append(tf.config.experimental.get_memory_info('GPU:0')['current']/1e6)
-                if strategy in ['full_model', 'classifier_branch', 'permutation_only']:
+                if strategy in ['full_model', 'classifier_branch','encoder_classifier', 'permutation_only']:
                     # Early stopping
                     wait += 1
                     monitored_value = history['val'][monitored][-1]
@@ -707,6 +735,13 @@ class Workflow:
                     if wait >= patience:
                         print(f'Early stopping at epoch {best_epoch}, restoring model parameters from this epoch')
                         self.dann_ae.set_weights(best_model)
+
+                        # Debug
+                        neptune_run_id = self.run['sys/id'].fetch()
+                        save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
+                        check_dir(save_dir)
+                        y_pred_proba = pd.DataFrame(np.asarray(clas), index = loop_params['adata_list']['train'].obs_names, columns = self.dataset.ohe_celltype.categories_[0])
+                        y_pred_proba.to_csv(save_dir + f'y_pred_proba_debug_step_{str(running_epoch)}.csv')
                         break
             del optimizer
 
@@ -764,6 +799,9 @@ class Workflow:
         elif training_strategy == "classifier_branch":
             group = 'train'
             self.freeze_block(ae, 'all_but_classifier_branch') # training only classifier branch
+        elif training_strategy == "encoder_classifier":
+            group = 'train'
+            self.freeze_block(ae, 'all_but_classifier') # training only
         elif training_strategy == "permutation_only":
             group = 'train'
             self.freeze_block(ae, 'all_but_autoencoder')
@@ -799,9 +837,33 @@ class Workflow:
             # X_batch, sf_batch = input_batch.values()
             clas_batch, dann_batch, rec_batch = output_batch.values()
 
+            # Debug
+            if self.debug_count < 10 : 
+                neptune_run_id = self.run['sys/id'].fetch()
+                save_dir = self.working_dir + 'experiment_script/results/' + str(neptune_run_id) + '/'
+                check_dir(save_dir)
+                print('printing generated batches')
+                print('input')
+                print(input_batch)
+                ind = input_batch['size_factors'].index
+                print('classif')
+                print(clas_batch)
+                pd.DataFrame(clas_batch, index = ind).to_csv(save_dir + f'clas_batch_{self.debug_count}.csv')
+                print('dann')
+                print(dann_batch)
+                pd.DataFrame(dann_batch, index = ind).to_csv(save_dir + f'dann_batch_{self.debug_count}.csv')
+                print('rec')
+                print(rec_batch)
+                pd.DataFrame(rec_batch, index = ind).to_csv(save_dir + f'rec_batch_{self.debug_count}.csv')
+
+                self.debug_count += 1
+
             with tf.GradientTape() as tape:
+                # Forward pass
                 input_batch = {k:tf.convert_to_tensor(v) for k,v in input_batch.items()}
                 enc, clas, dann, rec = ae(input_batch, training=True).values()
+
+                # Computing losses
                 clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
                 dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
                 rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
@@ -815,14 +877,17 @@ class Workflow:
                     loss = tf.add_n([self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses)
                 elif training_strategy == "classifier_branch":
                     loss = tf.add_n([self.clas_w * clas_loss] + ae.losses)
+                elif training_strategy == 'encoder_classifier':
+                    loss = tf.add_n([self.clas_w * clas_loss] + ae.losses)
                 elif training_strategy == "permutation_only":
                     loss = tf.add_n([self.rec_w * rec_loss] + ae.losses)
                 elif training_strategy == "no_dann":
                     loss = tf.add_n([self.rec_w * rec_loss] + [self.clas_w * clas_loss] + ae.losses)
                 elif training_strategy == "no_decoder":
                     loss = tf.add_n([self.dann_w * dann_loss] + [self.clas_w * clas_loss] + ae.losses)
-                
-            n_samples += enc.shape[0]
+            
+            # Backpropagation
+            n_samples += enc.shape[0]   
             gradients = tape.gradient(loss, ae.trainable_variables)
             
             optimizer.apply_gradients(zip(gradients, ae.trainable_variables))
@@ -845,7 +910,7 @@ class Workflow:
 
         on : "epoch_end" to evaluate on train and val, "training_end" to evaluate on train, val and "test".
         '''
-        for group in ['train', 'val']: # evaluation round
+        for group in ['val', 'train']: # evaluation round
             inp = scanpy_to_input(adata_list[group],['size_factors'])
             with tf.device('CPU'):
                 inp = {k:tf.convert_to_tensor(v) for k,v in inp.items()}
@@ -860,12 +925,12 @@ class Workflow:
                 history[group]['rec_loss'] += [rec_loss]
                 history[group]['total_loss'] += [self.clas_w * clas_loss + self.dann_w * dann_loss + self.rec_w * rec_loss + np.sum(ae.losses)] # using numpy to prevent memory leaks
                 # history[group]['total_loss'] += [tf.add_n([self.clas_w * clas_loss] + [self.dann_w * dann_loss] + [self.rec_w * rec_loss] + ae.losses).numpy()]
-
-                clas = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
+                
+                clas_bool = np.eye(clas.shape[1])[np.argmax(clas, axis=1)]
                 for metric in self.pred_metrics_list: # only classification metrics ATM
-                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas.argmax(axis=1))] # y_list are onehot encoded
+                    history[group][metric] += [self.pred_metrics_list[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas_bool.argmax(axis=1))] # y_list are onehot encoded
                 for metric in self.pred_metrics_list_balanced: # only classification metrics ATM
-                    history[group][metric] += [self.pred_metrics_list_balanced[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas.argmax(axis=1))] # y_list are onehot encoded
+                    history[group][metric] += [self.pred_metrics_list_balanced[metric](np.asarray(y_list[group].argmax(axis=1)).reshape(-1,), clas_bool.argmax(axis=1))] # y_list are onehot encoded
         del inp
         return history, _, clas, dann, rec
 
@@ -1065,6 +1130,20 @@ class Workflow:
         if self.training_scheme == 'training_scheme_25':
             training_scheme = [("no_decoder", 100, False),]
         
+        if self.training_scheme == 'training_scheme_26':
+            training_scheme = [("warmup_dann", self.warmup_epoch, False), # Permutating with pseudo labels during warmup 
+                                ("full_model", 100, False),
+                                ("classifier_branch", 50, False),
+                                ("full_model_pseudolabels", 100, False), # using permutations on plabels for full training
+                                ("classifier_branch", 50, False)]
+
+        if self.training_scheme == 'training_scheme_debug_1':
+            training_scheme = [("classifier_branch", 50, False),]
+
+        if self.training_scheme == 'training_scheme_debug_2':
+            training_scheme = [("encoder_classifier", 50, False),]
+                                
+
         return training_scheme
 
 
@@ -1078,11 +1157,11 @@ class Workflow:
         if self.balance_classes:
             y_integers = np.argmax(np.asarray(y_list['train']), axis=1)
             class_weights = compute_class_weight(class_weight = 'balanced', classes = np.unique(y_integers), y= y_integers)
+      
 
         if self.clas_loss_name == 'categorical_crossentropy':
             self.clas_loss_fn = tf.keras.losses.categorical_crossentropy
         elif self.clas_loss_name == 'categorical_focal_crossentropy':
-            
             self.clas_loss_fn = tf.keras.losses.CategoricalFocalCrossentropy(alpha = class_weights, gamma = 3)
         else:
             print(self.clas_loss_name + ' loss not supported for classif')

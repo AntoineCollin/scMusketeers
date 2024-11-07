@@ -12,9 +12,6 @@ from scpermut.tools.utils import str2bool, load_json
 print(str2bool('True'))
 from scpermut.workflow.hyperparameters import Workflow
 
-test_fold_fixed_list = load_json(WD_PATH + 'experiment_script/benchmark/hp_test_folds.json')
-test_obs_fixed_list = load_json(WD_PATH + 'experiment_script/benchmark/hp_test_obs.json')
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -44,7 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--pct_split', type = float, nargs='?', default = 0.9, help ='')
     parser.add_argument('--obs_key', type = str, nargs='?', default = 'manip', help ='')
     parser.add_argument('--n_keep', type = int, nargs='?', default = None, help ='batches from obs_key to use as train')
-    parser.add_argument('--split_strategy', type = str,nargs='?', default = 'random', help ='')
+    parser.add_argument('--split_strategy', type = str,nargs='?', default = None, help ='')
     parser.add_argument('--keep_obs', type = str,nargs='+',default = None, help ='')
     parser.add_argument('--train_test_random_seed', type = float,nargs='?', default = 0, help ='')
     parser.add_argument('--obs_subsample', type = str,nargs='?', default = None, help ='')
@@ -93,83 +90,52 @@ if __name__ == '__main__':
     parser.add_argument('--hparam_path', type=str, nargs='?', default=None, help ='')
     parser.add_argument('--opt_metric', type=str, nargs='?', default='val-balanced_acc', help ='The metric used for early stopping as well as optimizes in hp search. Should be formatted as it appears in neptune (split-metricname)')
 
-
     run_file = parser.parse_args()
     print(run_file.class_key, run_file.batch_key)
     working_dir = run_file.working_dir
     print(f'working directory : {working_dir}')
 
-    project = neptune.init_project(
-            project="becavin-lab/benchmark",
-        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
-        mode="read-only",
-            )# For checkpoint
+    # project = neptune.init_project(
+    #         project="becavin-lab/benchmark",
+    #     api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
+    #     mode="read-only",
+    #         )# For checkpoint
 
-    runs_table_df = project.fetch_runs_table().to_pandas()
-    project.stop()
+    # runs_table_df = project.fetch_runs_table().to_pandas()
+    # project.stop()
 
     experiment = Workflow(run_file=run_file, working_dir=working_dir)
 
     experiment.process_dataset()
 
-    experiment.mode = "fixed_number"
-
-    test_random_seed = 2
+    
+    random_seed = 2
     model = 'scPermut'
-
-    n_batches = len(experiment.dataset.adata.obs[experiment.batch_key].unique())
-    nfold_test = max(1,round(n_batches/5)) # if less than 8 batches, this comes to 1 batch per fold, otherwise, 20% of the number of batches for test
-    kf_test = GroupShuffleSplit(n_splits=3, test_size=nfold_test, random_state=test_random_seed)
-    test_split_key = experiment.dataset.test_split_key
-
-    test_fold_fixed = test_fold_fixed_list[run_file.dataset_name]
-    test_obs_fixed = test_obs_fixed_list[run_file.dataset_name]
     
     X = experiment.dataset.adata.X
     classes = experiment.dataset.adata.obs[experiment.class_key]
     groups = experiment.dataset.adata.obs[experiment.batch_key]
 
-    for i, (train_index, test_index) in enumerate(kf_test.split(X, classes, groups)):
-        test_obs = list(groups[test_index].unique()) # the batches that go in the test set
 
-        if set(test_obs) == set(test_obs_fixed):
-            # experiment.split_train_test()
-            experiment.dataset.test_split(test_obs = test_obs) # splits the train and test dataset
-            for n_keep in [5,10,50,100,500]:
-                for random_seed in [30,31,32,33,34,35]:
-                    experiment.n_keep = n_keep
-                    experiment.train_test_random_seed = random_seed
+    test_obs_json = load_json(working_dir + 'experiment_script/benchmark/hp_test_obs.json')
+    fixed_test_obs = test_obs_json['yoshida_2021_debug']
 
-                    experiment.split_train_val() # splitting val and train
-                    split = experiment.dataset.adata.obs[experiment.test_split_key]
-                    
-                    train_idx = split[split == 'train']
-                    val_idx = split[split == 'val']
-                    test_idx = split[split == 'test']
-                    print(f"Fold {i},n_keep {n_keep},random_seed {random_seed}:")
-                    print(f"train len = {len(train_idx)}")
-                    print(f"val len = {len(val_idx)}")
-                    print(f"test len = {len(test_idx)}")
+    experiment.test_obs = fixed_test_obs
+    experiment.split_train_test()
 
-                    print(f'{len(train_idx) + len(val_idx) +len(test_idx)}/{experiment.dataset.adata.n_obs} cells total')
+    
+    experiment.mode = "percentage"
+    experiment.pct_split = 0.5
+    experiment.split_train_val()
 
-                    print(f'idx intersection : {set(train_idx) & set(val_idx) & set(test_idx)}')
+    print(f'Running {model}')
+    experiment.start_neptune_log()
+    experiment.make_experiment()
+    experiment.add_custom_log('task','debug')
+    experiment.add_custom_log('deprecated_status', False)
+    experiment.stop_neptune_log()
 
-                    checkpoint={'parameters/dataset_name': experiment.dataset_name,
-                                'parameters/task': 'task_3',
-                                'parameters/model': model, 
-                                'parameters/test_fold_nb':i,
-                                'parameters/n_keep':n_keep,
-                                'parameters/split_random_seed': random_seed,
-                                'parameters/training_scheme': experiment.training_scheme}
-                    result = runs_table_df[runs_table_df[list(checkpoint.keys())].eq(list(checkpoint.values())).all(axis=1)]
-                    if result.empty:
-                        print(f'Running {model}')
-                        experiment.start_neptune_log()
-                        experiment.make_experiment()
-                        experiment.add_custom_log('test_fold_nb',i)
-                        experiment.add_custom_log('test_obs',test_obs)
-                        experiment.add_custom_log('n_keep',n_keep)
-                        experiment.add_custom_log('split_random_seed',random_seed)
-                        experiment.add_custom_log('task','task_3')
-                        experiment.stop_neptune_log()
+
+
+
+

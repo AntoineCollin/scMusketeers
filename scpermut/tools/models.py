@@ -339,16 +339,16 @@ class DANN_AE(Classif_Autoencoder):
         out = ColwiseMultLayer([mean, sf_layer])
         return {'bottleneck':enc_layer,'classifier': clas_out,'batch_discriminator':dann_out,'reconstruction': out}
     
-    def build_graph(ae, input_shape): # TODO : Make sure that this doesn't block the model
-        '''
-        ex : build_graph(dann_ae, {'counts': (32,dataset.n_vars, ), "size_factors":(32,1,)})
-        '''
-        input_shape_nobatch = input_shape['counts'][1:]
-        input_shape_nobatch_sf = input_shape['size_factors'][1:]
-        ae.build(input_shape)
-        inputs = {"counts" : tf.keras.Input(input_shape_nobatch),  "size_factors":tf.keras.Input(input_shape_nobatch_sf)}
+    # def build_graph(ae, input_shape): # TODO : Make sure that this doesn't block the model
+    #     '''
+    #     ex : build_graph(dann_ae, {'counts': (32,dataset.n_vars, ), "size_factors":(32,1,)})
+    #     '''
+    #     input_shape_nobatch = input_shape['counts'][1:]
+    #     input_shape_nobatch_sf = input_shape['size_factors'][1:]
+    #     ae.build(input_shape)
+    #     inputs = {"counts" : tf.keras.Input(input_shape_nobatch),  "size_factors":tf.keras.Input(input_shape_nobatch_sf)}
 
-        if not hasattr(ae, 'call'):
-            raise AttributeError("User should define 'call' method in sub-class model!")
+    #     if not hasattr(ae, 'call'):
+    #         raise AttributeError("User should define 'call' method in sub-class model!")
 
-        _ = ae.call(inputs)
+    #     _ = ae.call(inputs)

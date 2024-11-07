@@ -163,7 +163,8 @@ if __name__ == '__main__':
                             'parameters/model': model, 
                             'parameters/test_fold_nb':i,
                             'parameters/val_fold_nb':j,
-                            'parameters/deprecated_status': False}
+                            'parameters/deprecated_status': False, 
+                            'parameters/debug_status': 'fixed_1'}
                 # for k, v in vars(run_file).items():
                 #     checkpoint['parameters/' + k] = v
                 print(f'checkpoint : {checkpoint}')
@@ -179,4 +180,5 @@ if __name__ == '__main__':
                     experiment.add_custom_log('train_obs',experiment.keep_obs)
                     experiment.add_custom_log('task','task_1')
                     experiment.add_custom_log('deprecated_status', False)
+                    experiment.add_custom_log('debug_status', "fixed_1")
                     experiment.stop_neptune_log()

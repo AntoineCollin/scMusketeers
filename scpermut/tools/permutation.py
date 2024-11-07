@@ -67,7 +67,8 @@ def make_training_set(y, n_perm,same_class_pct=None,unlabeled_category='UNK'):
 
     y_cl = np.asarray(y.argmax(axis = 1)).flatten() # convert one_hot to classes
     classes = np.unique(y_cl)
-    ind_c = list(np.where(y_cl)[0])
+    # ind_c = list(np.where(y_cl)[0]) # A l'origine du BIG BUG
+    ind_c = list(range(len(y_cl)))
     if same_class_pct :
         ind_c_same, ind_c_diff = train_test_split(ind_c, train_size = same_class_pct, random_state=make_random_seed()) # shuffling same_class_pct % in same class and the rest at random
         X1, Xperm = make_training_pairs(ind_c_diff, n_perm)
@@ -98,7 +99,8 @@ def make_training_set_tf(y, n_perm,same_class_pct=None,unlabeled_category='UNK')
     # y = np.array(y).astype(str) If passing labels as string
     y_cl = tf.math.argmax(y,axis = 1)
     classes = tf.unique(y_cl)
-    ind_c = tf.where(y_cl)
+    # ind_c = list(np.where(y_cl)[0])
+    ind_c = list(range(len(y_cl)))
 
     if same_class_pct :
         ind_c_same, ind_c_diff = train_test_split(ind_c, train_size = same_class_pct, random_state=make_random_seed()) # shuffling same_class_pct % in same class and the rest at random

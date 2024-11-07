@@ -20,14 +20,24 @@ def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduc
     '''
     Computes a list of hvg which are common to the most different batches.
     '''
+    print(f'Selecting {n_hvg} HVG')
+
+    if n_hvg >= adata_.n_vars :
+        print(f'Dataset has less than {n_hvg} genes, keeping every genes')
+        if reduce_adata:
+            return adata_
+        else :
+            return adata_.var_names
+
     adata = adata_.copy()
-    check_nnz = np.asarray(adata.X[adata.X != 0][0]) 
+    check_nnz = np.asarray(adata.X[adata.X != 0][0])
     while len(check_nnz.shape) >= 1: # Get first non zero element of X
         check_nnz = check_nnz[0]
     if int(check_nnz) == float(check_nnz):
         sc.pp.normalize_total(adata)
         sc.pp.log1p(adata)
     n_batches = len(adata.obs[batch_key].unique())
+    
     
     sc.pp.highly_variable_genes(adata=adata,
                                 n_top_genes=n_hvg,
@@ -47,7 +57,8 @@ def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduc
     remaining_genes = n_hvg
     enough = False
     
-    while not enough:
+
+    while (not enough) and (n_batches > 0):
         n_batches = n_batches - 1 # Looks for genes hvg for one fewer batch at each iteration
         print(f'Searching for highly variable genes in {n_batches} batches')
         remaining_genes = n_hvg - len(top_genes) # nb of genes left to find
@@ -61,7 +72,7 @@ def get_hvg_common(adata_, n_hvg=2000, flavor='seurat', batch_key='manip', reduc
         else :
             print(f'Found {len(dispersion_nbatches)} highly variable genes using {n_batches} batches')
             top_genes += list(dispersion_nbatches.index)
-            
+        
     if reduce_adata:
         return adata_[:,top_genes]
 
@@ -154,6 +165,7 @@ def load_dataset(dataset_name,dataset_dir):
                 'litvinukova_2020' : 'celltypist_dataset/litvinukova_2020/litvinukova_2020',
                  'lake_2021': 'celltypist_dataset/lake_2021/lake_2021',
                  'tenx_hlca' : 'tenx_hlca',
+                'tenx_hlca_par' : 'tenx_hlca_par',
                  'wmb_full' : 'whole_mouse_brain_class_modality',
                  'wmb_it_et' : 'it_et_brain_subclass_modality'
                 }
