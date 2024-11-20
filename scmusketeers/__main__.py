@@ -34,11 +34,11 @@ def run_sc_musketeers():
     # Get all arguments
     run_file = get_runfile()
 
-    # Save runfile for running in python mode
+    """# Save runfile for running in python mode
     with open('/home/becavin/scMusketeers/tutorial/runfile_tuto_2.pkl', 'wb') as outp:
         pickle.dump(run_file, outp, pickle.HIGHEST_PROTOCOL)
     
-    """# Load run_file for python mode
+    # Load run_file for python mode
     with open('tutorial/runfile_tuto_2.pkl', 'rb') as inp:
         run_file = pickle.load(inp)
     run_file.train_scheme = "training_scheme_13" """
