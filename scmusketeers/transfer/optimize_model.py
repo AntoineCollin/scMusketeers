@@ -466,8 +466,8 @@ class Workflow:
         adata_pred = adata_list["full"].copy()
 
         X_scCER = enc
-        adata_pred.obsm[f"{self.class_key}_pred_proba"] = y_pred_proba
-        adata_pred.obs[f"{self.class_key}_pred"] = y_pred
+        adata_pred.obsm[f"{self.run_file.class_key}_pred_proba"] = y_pred_proba
+        adata_pred.obs[f"{self.run_file.class_key}_pred"] = y_pred
         # adata_pred.obsm['X_scCER'] = X_scCER
 
         # query_pred = adata_pred.obs[f'{self.class_key}_pred'][adata_pred.obs['train_split'] == 'test']
