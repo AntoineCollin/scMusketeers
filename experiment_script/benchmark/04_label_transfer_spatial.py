@@ -116,6 +116,7 @@ if __name__ == '__main__':
                     experiment.add_custom_log('train_obs',experiment.keep_obs)
                     experiment.add_custom_log('task','task_4')
                     experiment.add_custom_log('deprecated_status',False)
+                    experiment.add_custom_log('debug_status', "fixed_1")
                     experiment.train_model(model)
                     experiment.compute_metrics()
                     experiment.stop_neptune_log()

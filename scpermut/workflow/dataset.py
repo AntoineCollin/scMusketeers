@@ -166,6 +166,8 @@ def load_dataset(dataset_name,dataset_dir):
                  'lake_2021': 'celltypist_dataset/lake_2021/lake_2021',
                  'tenx_hlca' : 'tenx_hlca',
                 'tenx_hlca_par' : 'tenx_hlca_par',
+                'tenx_hlca_par_cell' : 'tenx_hlca_par_cell',
+                'tenx_hlca_par_nuc' : 'tenx_hlca_par_nuc',
                  'wmb_full' : 'whole_mouse_brain_class_modality',
                  'wmb_it_et' : 'it_et_brain_subclass_modality'
                 }

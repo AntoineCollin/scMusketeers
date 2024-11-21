@@ -289,21 +289,22 @@ def scanvi(X_list, y_list, batch_list, assign, adata_list):
     # adata = adata[sorted_df.index]
     # adata.obs = adata.obs.reset_index(drop=True)
     # adata.layers['count'] = adata.X
-    
+    print(adata)
     # Run scvi
     scvi.model.SCVI.setup_anndata(adata, 
                                   # layer = "count", 
                                   batch_key = 'batch',
                                   labels_key = 'celltype')
     scvi_model = scvi.model.SCVI(adata, 
-                                 n_layers = 1, # default = 10  or 50 ?
-                                 n_latent = 50) # default = 1 
+                                 n_layers = 1,# default = 1 
+                                 n_latent = 50)  # default = 10  or 50 ?
     print("start train scvi")
-    scvi_model.train(train_size = 1,
-                     validation_size = None,
+    scvi_model.train(
+        # train_size = 1,
+        #              validation_size = None,
                      #shuffle_set_split = False,
-                     max_epochs = 200
-                     #early_stopping = True#,
+                    #  max_epochs = 200,
+                    #  early_stopping = True#,
                      # shuffle_set_split = False
                     )
     
@@ -315,8 +316,8 @@ def scanvi(X_list, y_list, batch_list, assign, adata_list):
     print("start train scanvi")
     scanvi_model.train(max_epochs = 20, 
                        n_samples_per_label = 100,
-                       train_size = 1,
-                       validation_size = None#,
+                    #    train_size = 1,
+                    #    validation_size = None#,
                        # shuffle_set_split = False
                       )
 
