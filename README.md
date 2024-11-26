@@ -5,13 +5,13 @@ Deep learning annotation of cell-types with permutation inforced autoencoder
 
 ## Summary
 
-Single cell gene expression atlases are now central to explore the cellular diversity arising at the scale of organisms or organs. The emergence of ever larger datasets are benefiting from the rapid development of deep learning technologies in the field. The constitution of large datasets raises several big challenges due to the presence of highly imbalanced cell types or the existence of large batch effects, which need to be adressed in order to annotate properly newer data derived from very small subsets, transfer a model from one dataset to another.
+We developed scMusketeer, a modular deep learning model producing an optimal dimension-reduced representation with a focus on imbalanced cell type annotation and batch effect reduction. The architecture of scMusketeers is made of three modules. The first module is an autoencoder which provides a reduced latent representation, while removing noise, thus resulting in a better data reconstruction. The second module, is a classifier with a focal loss providing higher prediction for smaller populations of cell types. The third module is an adversarial domain adaptation (DANN) module that corrects batch effect.
 
-We developed scPermut to learn an optimal dimension-reduced representation, while preserving the  information essential to meeting the above-mentioned challenges. The architecture of scPermut is made of three modules. The first module is an autoencoder which provides a reduced representation, while removing noise, and which allows a better data reconstruction. A classifier module with its focal loss can be combined to predict more accurately small cell types. This second module also supports transferring the learnt model to other datasets. The third module is an adversarial domain adaptation (DANN) module that corrects batch effect.
+scMusketeers performance was optimized after conducting a precise ablation study to assess model's hyperparameters. The model was compared to reference tools for single-cell integration and annotation. It was at least on par with state-of-the-art models, often outperforming most of them. It showed increased performance on the identification of rare cell types. Despite the rather simple structure of its deep learning model, it demonstrated equivalent performance to UCE foundation model. Finally, scMusketeers was able to transfer the cell label from single-cell RNA-Seq to spatial transcriptomics. 
 
-We extensively optimized scPermut hyperparameters, by conducting a precise ablation study to assess model's performance. We show that our model is at least on par with State-Of-The-Art models, and even outperforms them on most challenges. This was more thoroughly documented by comparing the different approaches in 12 datasets that differ in size, number of cell types, number or distinct experimental modes.
+Our tripartite modular autoencoder demonstrates versatile capabilities while addressing key challenges in single-cell atlas reconstruction. We noticed in particular that the generic modular framework of scMusketeers should be easily generalized to other large-scale biology projects that require deep learning models.
 
-We anticipate that the generic modular framework that we provide can be easily adaptable to other fields of large-scale biology.
+
 
 
 ## Tutorial
@@ -42,15 +42,19 @@ with docker
 
 sc-musketeers can be used for different task in integration and annotation of single-cell atlas. 
 
-Here are 4 different examples:
+Here are 2 different examples:
 
-- Label transfer between batch
+- Transfer cell annotation to unlabeled cells
 
 ```bash
-$ sc-musketeers transfer my_atlas --class_key celltype --batch_key donor
+$ sc-musketeers transfer my_atlas --class_key celltype --batch_key donor --unlabeled_category=Unknown
 ```
 
+- Transfer cell annotation and reduce batch from a query atlas to a reference atlas 
 
+```bash
+$ sc-musketeers transfer ref_dataset --query_path query_dataset --class_key=celltype --batch_key donor --unlabeled_category=Unknown
+```
 
 TO DO : Add example atlas in the github or Zenodo
 
