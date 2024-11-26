@@ -1,6 +1,4 @@
-# scMusketeers
-Deep learning annotation of cell-types with permutation inforced autoencoder
-
+# scMusketeers : A tri-partite modular autoencoder for addressing imbalanced cell type annotation and batch effect reduction
 
 
 ## Summary
