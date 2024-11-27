@@ -1,7 +1,7 @@
-site_name: sc_permut
+site_name: scMusketeers
 theme: readthedocs
-repo_url: https://github.com/becavin-lab/sc_permut
-site_url: https://scpermut.readthedocs.io/
+repo_url: https://github.com/AntoineCollin/scMusketeers
+site_url: https://scMusketeers.readthedocs.io/
 
 nav:
   - Home: "index.md"

@@ -13,7 +13,7 @@ sys.path.append(working_dir)
 
 from sklearn.metrics import silhouette_samples
 
-from scpermut.tools.utils import ann_subset, check_raw,save_json, load_json, rgb2hex,hex2rgb, check_dir
+from scmusketeers.tools.utils import ann_subset, check_raw,save_json, load_json, rgb2hex,hex2rgb, check_dir
 from tqdm import trange, tqdm
 import warnings
 

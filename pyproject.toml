@@ -1,14 +1,14 @@
 [tool.poetry]
-name = "scPermut"
-version = "0.1.1"
+name = "sc-musketeers"
+version = "0.1.8"
 description = "Deep learning annotation of cell-types with permutation inforced autoencoder"
 license = "MIT"
-authors = ["AntoineCollin"]
+authors = ["AntoineCollin","Christophe Becavin"]
 readme = "README.md"
-packages = [{include = "scpermut"}]
+packages = [{include = "scmusketeers"}]
 exclude = ["tests/", ".github"]
-homepage = "https://sc_permut.readthedocs.io/"
-repository = "https://github.com/AntoineCollin/scPermut/"
+homepage = "https://scMusketeers.readthedocs.io/"
+repository = "https://github.com/AntoineCollin/scMusketeers/"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -30,7 +30,7 @@ optional = true
 pytest = "^8.0.0"
 black = "^24.1.1"
 flake8 = "^7.0.0"
-setuptools = "^69.0.3"
+setuptools = "^70.0.0"
 gitchangelog = "^3.0.4"
 codecov = "^2.1.13"
 pytest-cov = "^4.1.0"
@@ -38,10 +38,12 @@ isort = "^5.13.2"
 mypy = "^1.8.0"
 no-implicit-optional = "^1.4"
 types-pyyaml = "^6.0.12.12"
+mkdocs = "^1.6.1"
+twine = "^5.1.1"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-scpermut = 'scpermut:__main__.run_scpermut'
+sc-musketeers = 'scmusketeers:__main__.run_sc_musketeers'

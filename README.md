@@ -1,5 +1,4 @@
-# sc_permut
-
+# scMusketeers
 Deep learning annotation of cell-types with permutation inforced autoencoder
 
 
@@ -15,17 +14,25 @@ We extensively optimized scPermut hyperparameters, by conducting a precise ablat
 We anticipate that the generic modular framework that we provide can be easily adaptable to other fields of large-scale biology.
 
 
+## Tutorial
+
+[Access to the tutorial on Google collab](https://colab.research.google.com/github/AntoineCollin/scMusketeers/blob/main/tutorial/scMusketeers-tutorial.ipynb)
+
+We will see in this tutorial two use-cases:
+- Transfer cell annotation to unlabeled cells
+- Transfer cell annotation and reduce batch from a query atlas to a reference atlas 
+
 ## Install
 
-You can install sc_permut with Pypi:
+You can install sc_musketeers with Pypi:
 
 ```bash
-$ pip install scpermut
+$ pip install sc-musketeers
 ```
 with conda
 
 ```bash
-$ conda -c bioconda scpermut
+$ conda -c bioconda sc-musketeers
 ```
 
 with docker
@@ -33,32 +40,19 @@ with docker
 
 ## Examples
 
-sc_permut can be used for different task in integration and annotation of single-cell atlas. 
+sc-musketeers can be used for different task in integration and annotation of single-cell atlas. 
 
 Here are 4 different examples:
 
 - Label transfer between batch
 
 ```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
+$ sc-musketeers transfer my_atlas --class_key celltype --batch_key donor
 ```
 
-- Label transfer for completing atlas annotation
 
-```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
-```
-
-- Label transfer for completing atlas annotation
-
-```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
-```
-
-- Label transfer from scRNA-Seq to Spatial transcriptomic dataset
-
-```bash
-$ scpermut label my_atlas --class_key celltype --batch_key donor
-```
 
 TO DO : Add example atlas in the github or Zenodo
+
+
+Read the [CONTRIBUTING.md](docs/contributing.md) file.

@@ -7,9 +7,9 @@ import neptune
 WD_PATH = '/home/acollin/scPermut/'
 sys.path.append(WD_PATH)
 
-from scpermut.tools.utils import str2bool
+from scmusketeers.tools.utils import str2bool
 print(str2bool('True'))
-from scpermut.workflow.benchmark import Workflow
+from scmusketeers.workflow.benchmark import Workflow
 
 model_list_cpu = ['uce','celltypist'] #'scmap_cells', 'scmap_cluster', 'pca_svm', 'pca_knn','harmony_svm','celltypist','uce']
 model_list_gpu = ['scanvi', ]

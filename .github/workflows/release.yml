@@ -1,5 +1,8 @@
 name: Release Python Package
 
+permissions:
+    id-token: write
+
 on:
   push:
     # Sequence of patterns matched against refs/tags
@@ -10,6 +13,7 @@ on:
   workflow_dispatch:
 
 jobs:
+  
   release:
     name: Create Release
     strategy:
@@ -60,4 +64,4 @@ jobs:
     - name: Publish a Python distribution to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        password: ${{ secrets.PYPI_SCPERM_API_TOKEN }}
+        password: ${{ secrets.PYPI_SCMSK_API_TOKEN }}

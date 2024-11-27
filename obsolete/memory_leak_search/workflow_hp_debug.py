@@ -3,11 +3,11 @@ import sys
 import os
 try :
     from ..old_workflow.load import load_runfile
-    from ...scpermut.workflow.dataset import Dataset, load_dataset
+    from ...scmusketeers.workflow.dataset import Dataset, load_dataset
     from ..old_workflow.predictor import MLP_Predictor
     from ..old_workflow.model import DCA_Permuted,Scanvi,DCA_into_Perm, ScarchesScanvi_LCA
-    from ...scpermut.tools.utils import get_optimizer, scanpy_to_input, default_value, str2bool
-    from ...scpermut.tools.clust_compute import nn_overlap, batch_entropy_mixing_score
+    from ...scmusketeers.tools.utils import get_optimizer, scanpy_to_input, default_value, str2bool
+    from ...scmusketeers.tools.clust_compute import nn_overlap, batch_entropy_mixing_score
 
 
 except ImportError:
