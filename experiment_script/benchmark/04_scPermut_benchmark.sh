@@ -19,7 +19,7 @@ echo test_obs=$test_obs
 
 ########## DEFAULT PARAMS ##############
 
-if [ $dataset_name -eq tenx_hlca ]
+if [ $dataset_name -eq tenx_hlca_par ]
 then
 best_hp=$working_dir"experiment_script/benchmark/default_df_t10_SPATIAL.csv"
 else
@@ -54,7 +54,7 @@ singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_
 
 
 
-for training_scheme in "training_scheme_9" "training_scheme_19" "training_scheme_20" 
-do
-    singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python $working_dir/experiment_script/benchmark/04_label_transfer_spatial_scPermut.py --dataset_name $dataset_name --class_key $class_key --batch_key $batch_key --test_obs $test_obs --mode entire_condition --obs_key $batch_key --working_dir $working_dir --use_hvg $use_hvg --batch_size $batch_size --clas_w $clas_w --dann_w $dann_w --rec_w $rec_w --ae_bottleneck_activation $ae_bottleneck_activation --size_factor $size_factor --weight_decay $weight_decay --learning_rate $learning_rate --warmup_epoch $warmup_epoch --dropout $dropout --layer1 $layer1 --layer2 $layer2 --bottleneck $bottleneck --training_scheme $training_scheme --clas_loss_name $clas_loss_name --balance_classes True &> $working_dir/experiment_script/benchmark/logs/scPermut_task4_focal_$dataset_name.log
+# for training_scheme in "training_scheme_9" "training_scheme_19" "training_scheme_20" 
+# do
+#     singularity exec --nv --bind $working_dir:$singularity_working_dir $singularity_path python $working_dir/experiment_script/benchmark/04_label_transfer_spatial_scPermut.py --dataset_name $dataset_name --class_key $class_key --batch_key $batch_key --test_obs $test_obs --mode entire_condition --obs_key $batch_key --working_dir $working_dir --use_hvg $use_hvg --batch_size $batch_size --clas_w $clas_w --dann_w $dann_w --rec_w $rec_w --ae_bottleneck_activation $ae_bottleneck_activation --size_factor $size_factor --weight_decay $weight_decay --learning_rate $learning_rate --warmup_epoch $warmup_epoch --dropout $dropout --layer1 $layer1 --layer2 $layer2 --bottleneck $bottleneck --training_scheme $training_scheme --clas_loss_name $clas_loss_name --balance_classes True &> $working_dir/experiment_script/benchmark/logs/scPermut_task4_focal_$dataset_name.log
 # done

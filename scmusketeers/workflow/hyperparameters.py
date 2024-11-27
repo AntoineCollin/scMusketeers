@@ -54,6 +54,7 @@ try:
         nan_to_0,
         scanpy_to_input,
         str2bool,
+        check_dir,
     )
 
 except ImportError:
@@ -67,7 +68,7 @@ except ImportError:
     )
     from tools.models import DANN_AE
     from tools.permutation import batch_generator_training_permuted
-    from tools.utils import default_value, nan_to_0, scanpy_to_input, str2bool
+    from tools.utils import default_value, nan_to_0, scanpy_to_input, str2bool, check_dir
 
 
 f1_score = functools.partial(f1_score, average="macro")
@@ -919,6 +920,7 @@ class Workflow:
                 "full_model",
                 "classifier_branch",
                 "permutation_only",
+                "encoder_classifier",
             ]:
                 wait = 0
                 best_epoch = 0
@@ -1018,6 +1020,7 @@ class Workflow:
                     "full_model",
                     "classifier_branch",
                     "permutation_only",
+                    "encoder_classifier",
                 ]:
                     # Early stopping
                     wait += 1
@@ -1085,6 +1088,9 @@ class Workflow:
             group = "train"
         elif training_strategy == "full_model_pseudolabels":
             group = "full"
+        elif training_strategy == "encoder_classifier":
+            group = 'train'
+            self.freeze_block(ae, 'all_but_classifier') # training only
         elif training_strategy in [
             "warmup_dann",
             "warmup_dann_pseudolabels",
@@ -1146,10 +1152,13 @@ class Workflow:
             clas_batch, dann_batch, rec_batch = output_batch.values()
 
             with tf.GradientTape() as tape:
+                # Forward pass
                 input_batch = {
                     k: tf.convert_to_tensor(v) for k, v in input_batch.items()
                 }
                 enc, clas, dann, rec = ae(input_batch, training=True).values()
+
+                # Computing loss
                 clas_loss = tf.reduce_mean(clas_loss_fn(clas_batch, clas))
                 dann_loss = tf.reduce_mean(dann_loss_fn(dann_batch, dann))
                 rec_loss = tf.reduce_mean(rec_loss_fn(rec_batch, rec))
@@ -1184,6 +1193,8 @@ class Workflow:
                     )
                 elif training_strategy == "classifier_branch":
                     loss = tf.add_n([self.clas_w * clas_loss] + ae.losses)
+                elif training_strategy == 'encoder_classifier':
+                    loss = tf.add_n([self.clas_w * clas_loss] + ae.losses)
                 elif training_strategy == "permutation_only":
                     loss = tf.add_n([self.rec_w * rec_loss] + ae.losses)
                 elif training_strategy == "no_dann":
@@ -1199,6 +1210,7 @@ class Workflow:
                         + ae.losses
                     )
 
+            # Backpropagation
             n_samples += enc.shape[0]
             gradients = tape.gradient(loss, ae.trainable_variables)
 
@@ -1615,6 +1627,19 @@ class Workflow:
                 ("no_decoder", 100, False),
             ]
 
+        if self.training_scheme == 'training_scheme_26':
+            training_scheme = [("warmup_dann", self.warmup_epoch, False), # Permutating with pseudo labels during warmup 
+                                ("full_model", 100, False),
+                                ("classifier_branch", 50, False),
+                                ("full_model_pseudolabels", 100, False), # using permutations on plabels for full training
+                                ("classifier_branch", 50, False)]
+
+        if self.training_scheme == 'training_scheme_debug_1':
+            training_scheme = [("classifier_branch", 50, False),]
+
+        if self.training_scheme == 'training_scheme_debug_2':
+            training_scheme = [("encoder_classifier", 50, False),]
+            
         return training_scheme
 
     def get_losses(self, y_list):

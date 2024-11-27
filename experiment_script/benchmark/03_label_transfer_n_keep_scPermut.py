@@ -105,7 +105,16 @@ if __name__ == '__main__':
         mode="read-only",
             )# For checkpoint
 
-    runs_table_df = project.fetch_runs_table().to_pandas()
+    runs_table_df = project.fetch_runs_table(query = '`parameters/task`:string = "task_3"' , columns = ['parameters/dataset_name',
+                            'parameters/training_scheme',
+                            'parameters/clas_loss_name',
+                            'parameters/use_hvg',
+                            'parameters/task',
+                            'parameters/model',
+                            'parameters/test_fold_nb',
+                            'parameters/val_fold_nb',
+                            'parameters/deprecated_status',
+                            'parameters/debug_status']).to_pandas()
     project.stop()
 
     experiment = Workflow(run_file=run_file, working_dir=working_dir)
@@ -133,8 +142,8 @@ if __name__ == '__main__':
         test_obs = list(groups[test_index].unique()) # the batches that go in the test set
 
         if set(test_obs) == set(test_obs_fixed):
-            experiment.split_train_test()
-            # experiment.dataset.test_split(test_obs = test_obs) # splits the train and test dataset
+            # experiment.split_train_test()
+            experiment.dataset.test_split(test_obs = test_obs) # splits the train and test dataset
             for n_keep in [5,10,50,100,500]:
                 for random_seed in [30,31,32,33,34,35]:
                     experiment.n_keep = n_keep
@@ -161,7 +170,8 @@ if __name__ == '__main__':
                                 'parameters/test_fold_nb':i,
                                 'parameters/n_keep':n_keep,
                                 'parameters/split_random_seed': random_seed,
-                                'parameters/training_scheme': experiment.training_scheme}
+                                'parameters/training_scheme': experiment.training_scheme,
+                                'parameters/debug_status': 'fixed_1'}
                     result = runs_table_df[runs_table_df[list(checkpoint.keys())].eq(list(checkpoint.values())).all(axis=1)]
                     if result.empty:
                         print(f'Running {model}')
@@ -172,4 +182,5 @@ if __name__ == '__main__':
                         experiment.add_custom_log('n_keep',n_keep)
                         experiment.add_custom_log('split_random_seed',random_seed)
                         experiment.add_custom_log('task','task_3')
+                        experiment.add_custom_log('debug_status', "fixed_1")
                         experiment.stop_neptune_log()

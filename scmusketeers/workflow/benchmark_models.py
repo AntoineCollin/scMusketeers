@@ -421,7 +421,7 @@ def scanvi(X_list, y_list, batch_list, assign, adata_list):
         validation_size=None,
         # shuffle_set_split = False,
         max_epochs=200,
-        # early_stopping = True#,
+        early_stopping = True,
         # shuffle_set_split = False
     )
 
@@ -436,8 +436,8 @@ def scanvi(X_list, y_list, batch_list, assign, adata_list):
     scanvi_model.train(
         max_epochs=20,
         n_samples_per_label=100,
-        train_size=1,
-        validation_size=None,  # ,
+        # train_size=1,
+        # validation_size=None,  # ,
         # shuffle_set_split = False
     )
 

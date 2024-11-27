@@ -100,8 +100,20 @@ if __name__ == '__main__':
         api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
         mode="read-only",
             )# For checkpoint
-
-    runs_table_df = project.fetch_runs_table().to_pandas()
+    
+    runs_table_df = project.fetch_runs_table(query = '`parameters/task`:string = "task_1"' , columns = ['parameters/dataset_name',
+                            'parameters/training_scheme',
+                            'parameters/clas_loss_name',
+                            'parameters/use_hvg',
+                            'parameters/task',
+                            'parameters/model',
+                            'parameters/test_fold_nb',
+                            'parameters/val_fold_nb',
+                            'parameters/deprecated_status',
+                            'parameters/debug_status']).to_pandas()
+    print('run table : ')
+    print(runs_table_df.shape)
+    print(runs_table_df['parameters/debug_status'].head())
     project.stop()
     
     experiment = Workflow(run_file=run_file, working_dir=working_dir)
@@ -163,7 +175,8 @@ if __name__ == '__main__':
                             'parameters/model': model, 
                             'parameters/test_fold_nb':i,
                             'parameters/val_fold_nb':j,
-                            'parameters/deprecated_status': False}
+                            'parameters/deprecated_status': False,
+                            'parameters/debug_status': 'fixed_1'}
                 # for k, v in vars(run_file).items():
                 #     checkpoint['parameters/' + k] = v
                 print(f'checkpoint : {checkpoint}')
@@ -179,4 +192,5 @@ if __name__ == '__main__':
                     experiment.add_custom_log('train_obs',experiment.keep_obs)
                     experiment.add_custom_log('task','task_1')
                     experiment.add_custom_log('deprecated_status', False)
+                    experiment.add_custom_log('debug_status', "fixed_1")
                     experiment.stop_neptune_log()

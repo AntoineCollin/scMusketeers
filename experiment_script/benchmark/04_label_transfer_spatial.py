@@ -29,10 +29,10 @@ if __name__ == '__main__':
     parser.add_argument('--logtrans_input', type=str2bool, nargs='?',const=True, default=True, help ='Weither to log transform count values')
     parser.add_argument('--use_hvg', type=int, nargs='?', const=3000, default=None, help = "Number of hvg to use. If no tag, don't use hvg.")
 
-    parser.add_argument('--test_index_name', type = str,nargs='+', default = None, help ='indexes to be used as test. Overwrites test_obs')
-    parser.add_argument('--test_obs', type = str,nargs='+', default = None, help ='')
-
     parser.add_argument('--test_split_key', type = str, default = 'TRAIN_TEST_split', help ='key of obs containing the test split')
+    parser.add_argument('--test_obs', type = str,nargs='+', default = None, help ='batches from batch_key to use as test')
+    parser.add_argument('--test_index_name', type = str,nargs='+', default = None, help ='indexes to be used as test. Overwrites test_obs')
+
     parser.add_argument('--mode', type = str, default = 'percentage', help ='Train test split mode to be used by Dataset.train_split')
     parser.add_argument('--pct_split', type = float,nargs='?', default = 0.9, help ='')
     parser.add_argument('--obs_key', type = str,nargs='?', default = 'manip', help ='')
@@ -116,6 +116,7 @@ if __name__ == '__main__':
                     experiment.add_custom_log('train_obs',experiment.keep_obs)
                     experiment.add_custom_log('task','task_4')
                     experiment.add_custom_log('deprecated_status',False)
+                    experiment.add_custom_log('debug_status', "fixed_1")
                     experiment.train_model(model)
                     experiment.compute_metrics()
                     experiment.stop_neptune_log()

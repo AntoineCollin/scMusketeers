@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 
-for dataset in "tran_2021" #"tabula_2022_spleen" "yoshida_2021"  "tosti_2021" "lake_2021" "dominguez_2022_spleen" "koenig_2022" "dominguez_2022_lymph" "litvinukova_2020" 
+for dataset in "litvinukova_2020" #"tran_2021" #"tabula_2022_spleen" "yoshida_2021"  "tosti_2021" "lake_2021" "dominguez_2022_spleen" "koenig_2022" "dominguez_2022_lymph" 
 do
     # sbatch --partition=gpu --gres=gpu:1 --time=35:00:00 --job-name t1_$dataset benchmark_task_1.sh $dataset Original_annotation batch True
     sbatch --partition=cpucourt --time=71:00:00 --job-name t1_$dataset benchmark_task_1.sh $dataset Original_annotation batch False

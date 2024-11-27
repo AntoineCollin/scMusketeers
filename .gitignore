@@ -19,6 +19,8 @@ data/
 results/
 logs
 task*
+*.ipynb
+*.csv
 .ipynb_checkpoints
 models
 workflow_jobs/log
@@ -38,6 +40,9 @@ ajrccm_celltypes.csv
 experiment_script/benchmark/compute_size_metrics.py
 experiment_script/benchmark/*csv
 experiment_script/benchmark/zzlaunch_size_metrics.sh
+
+analysis_notebooks/000-banovich23/
+analysis_notebooks/spatial_loc/
 
 compute_single_metrics.py
 metricsbatch_mixing_expe2_htap_C1.csv
