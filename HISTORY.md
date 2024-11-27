@@ -4,6 +4,7 @@ Changelog
 
 (unreleased)
 ------------
+- Release: version 0.1.9 🚀 [Christophe Bécavin]
 - Format code. [Christophe Bécavin]
 - Release: version 0.1.9 🚀 [Christophe Bécavin]
 - Format code. [Christophe Bécavin]
