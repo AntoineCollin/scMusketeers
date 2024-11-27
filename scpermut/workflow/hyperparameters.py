@@ -524,8 +524,9 @@ class Workflow:
                     # Computing batch mixing metrics
                     if len(np.unique(np.asarray(batch_list[group].argmax(axis=1)))) >= 2: # If there are more than 2 batches in this group
                         for metric in self.batch_metrics_list:
-                            self.run[f'evaluation/{group}/{metric}'] = self.batch_metrics_list[metric](enc, batches)
-                            print(type(self.batch_metrics_list[metric](enc, batches)))
+                            if self.dataset_name != "litvinukova_2020":
+                                self.run[f'evaluation/{group}/{metric}'] = self.batch_metrics_list[metric](enc, batches)
+                                print(type(self.batch_metrics_list[metric](enc, batches)))
                             
                     # Computing classification metrics
                     for metric in self.pred_metrics_list: 

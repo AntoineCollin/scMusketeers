@@ -101,16 +101,16 @@ if __name__ == '__main__':
         mode="read-only",
             )# For checkpoint
     
-    runs_table_df = project.fetch_runs_table(query = '`parameters/task`:string = "task_1"' , columns = ['parameters/dataset_name',
-                            'parameters/training_scheme',
-                            'parameters/clas_loss_name',
-                            'parameters/use_hvg',
-                            'parameters/task',
-                            'parameters/model',
-                            'parameters/test_fold_nb',
-                            'parameters/val_fold_nb',
-                            'parameters/deprecated_status',
-                            'parameters/debug_status']).to_pandas()
+    runs_table_df = project.fetch_runs_table(query = '`parameters/task`:string = "task_1"').to_pandas()# , columns = ['parameters/dataset_name',
+                            # 'parameters/training_scheme',
+                            # 'parameters/clas_loss_name',
+                            # 'parameters/use_hvg',
+                            # 'parameters/task',
+                            # 'parameters/model',
+                            # 'parameters/test_fold_nb',
+                            # 'parameters/val_fold_nb',
+                            # 'parameters/deprecated_status',
+                            # 'parameters/debug_status']).to_pandas()
     print('run table : ')
     print(runs_table_df.shape)
     print(runs_table_df['parameters/debug_status'].head())

@@ -22,6 +22,19 @@ def df_to_dict(df, key_column, value_column, singleton_to_str = False):
                 result_dict[k] = v[0]
     return result_dict
 
+def load_run_df(task):
+    project = neptune.init_project(
+            project="becavin-lab/benchmark",
+        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
+        mode="read-only",
+            )# For checkpoint
+
+    runs_table_df = project.fetch_runs_table(query = f'`parameters/task`:string = "{task}"').to_pandas()
+    project.stop()
+
+    f =  lambda x : x.replace('evaluation/', '').replace('parameters/', '').replace('/', '_')
+    runs_table_df.columns = np.array(list(map(f, runs_table_df.columns)))
+    return runs_table_df
 
 def dict_to_df(dico,  val_name ='values',key_name ='keys',):
     keys = [k for k, v in dico.items() for _ in v]
