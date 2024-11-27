@@ -4,6 +4,30 @@ Changelog
 
 (unreleased)
 ------------
+- Format code. [Christophe Bécavin]
+- Small modif tutorial. [Christophe Bécavin]
+- Merge pull request #14 from AntoineCollin/bug_update. [Christophe
+  Becavin]
+
+  Bug update
+- Merge from benchmark and bug_update. [Christophe Bécavin]
+- Createmain_temp branch. [Christophe Bécavin]
+- Fixed bug and task 4. [AntoineCollin]
+- Huge debug in permutation.py. [AntoineCollin]
+- Update README.md. [Christophe Becavin]
+- Update README.md. [Christophe Becavin]
+- Update README.md. [Christophe Becavin]
+- Update README.md. [Christophe Becavin]
+- Fix main. [Christophe Bécavin]
+- Update tutorail, add Deprez et al. Lung dataset. [Christophe Bécavin]
+- Change tutorial.sh. [Christophe Bécavin]
+- Create batch_step function (in last commit) [Christophe Bécavin]
+- Modify attributes of workflow, add ae dann and class_param, add
+  freeze.py, clean attributes list in workflow. [Christophe Bécavin]
+- Fix the use of neptune_log parameter to disable Neptune.AI.
+  [Christophe Bécavin]
+- Modify epoch parameters. [Christophe Bécavin]
+- Release: version 0.1.7 🚀 [Christophe Bécavin]
 - Release: version 0.1.6 🚀 [Christophe Bécavin]
 - Release: version 0.1.5 🚀 [Christophe Bécavin]
 - Continuous integration 🔄 tests-0.1.5. [Christophe Bécavin]
