@@ -819,10 +819,11 @@ class Workflow:
         optimizer,
         n_samples,
         n_obs,
-        ):
+    ):
         if self.run_file.log_neptune:
             self.run_neptune["training/train/tf_GPU_memory_step"].append(
-                tf.config.experimental.get_memory_info("GPU:0")["current"] / 1e6
+                tf.config.experimental.get_memory_info("GPU:0")["current"]
+                / 1e6
             )
             self.run_neptune["training/train/step"].append(step)
         # self.tr.print_diff()
@@ -881,7 +882,7 @@ class Workflow:
                     [self.dann_w * dann_loss]
                     + [self.clas_w * clas_loss]
                     + ae.losses
-                )        
+                )
         # print(f"loss {asizeof.asizeof(loss)}")
         # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
         n_samples += enc.shape[0]
@@ -910,7 +911,6 @@ class Workflow:
                 ],
                 self.metrics,
             )
-
 
     def evaluation_pass(
         self,

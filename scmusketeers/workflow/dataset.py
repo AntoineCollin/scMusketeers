@@ -23,15 +23,14 @@ def get_hvg_common(
     """
     Computes a list of hvg which are common to the most different batches.
     """
-    print(f'Selecting {n_hvg} HVG')
+    print(f"Selecting {n_hvg} HVG")
 
-    if n_hvg >= adata_.n_vars :
-        print(f'Dataset has less than {n_hvg} genes, keeping every genes')
+    if n_hvg >= adata_.n_vars:
+        print(f"Dataset has less than {n_hvg} genes, keeping every genes")
         if reduce_adata:
             return adata_
-        else :
+        else:
             return adata_.var_names
-
 
     adata = adata_.copy()
     check_nnz = np.asarray(adata.X[adata.X != 0][0])
@@ -212,10 +211,10 @@ def load_dataset(dataset_name, dataset_dir):
         "tabula_2022_spleen": "celltypist_dataset/tabula_2022/tabula_2022_spleen",
         "litvinukova_2020": "celltypist_dataset/litvinukova_2020/litvinukova_2020",
         "lake_2021": "celltypist_dataset/lake_2021/lake_2021",
-        'tenx_hlca' : 'tenx_hlca',
-        'tenx_hlca_par' : 'tenx_hlca_par',
-        'tenx_hlca_par_cell' : 'tenx_hlca_par_cell',
-        'tenx_hlca_par_nuc' : 'tenx_hlca_par_nuc',
+        "tenx_hlca": "tenx_hlca",
+        "tenx_hlca_par": "tenx_hlca_par",
+        "tenx_hlca_par_cell": "tenx_hlca_par_cell",
+        "tenx_hlca_par_nuc": "tenx_hlca_par_nuc",
         "wmb_full": "whole_mouse_brain_class_modality",
         "wmb_it_et": "it_et_brain_subclass_modality",
     }

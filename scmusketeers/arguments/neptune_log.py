@@ -12,8 +12,9 @@ def start_neptune_log(workflow: Workflow):
     if workflow.run_file.log_neptune:
         print(f"Use Neptune project name = {workflow.run_file.neptune_name}")
         if workflow.run_file.neptune_name == "benchmark":
-            workflow.run = neptune.init_run(project="becavin-lab/benchmark",
-                                        api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
+            workflow.run = neptune.init_run(
+                project="becavin-lab/benchmark",
+                api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
             )
         elif workflow.run_file.neptune_name == "sc-musketeers":
             workflow.run_neptune = neptune.init_run(
@@ -23,7 +24,6 @@ def start_neptune_log(workflow: Workflow):
         else:
             print("No neptune_name was provided !!!")
 
-        
         workflow.run_neptune["parameters/model"] = "scMusketeers"
         for par, val in workflow.run_file.__dict__.items():
             if par in dir(workflow):

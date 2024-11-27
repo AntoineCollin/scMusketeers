@@ -8,6 +8,7 @@ def freeze_layers(layers_to_freeze):
     for layer in layers_to_freeze:
         layer.trainable = False
 
+
 def freeze_block(ae, strategy):
     if strategy == "all_but_classifier_branch":
         layers_to_freeze = [
@@ -41,9 +42,11 @@ def freeze_block(ae, strategy):
         raise ValueError("Unknown freeze strategy: " + strategy)
     return layers_to_freeze
 
+
 def freeze_all(ae):
     for l in ae.layers:
         l.trainable = False
+
 
 def unfreeze_all(ae):
     for l in ae.layers:

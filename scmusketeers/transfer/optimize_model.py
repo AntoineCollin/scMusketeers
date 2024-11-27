@@ -133,6 +133,7 @@ CLUSTERING_METRICS_LIST = {
 
 BATCH_METRICS_LIST = {"batch_mixing_entropy": batch_entropy_mixing_score}
 
+
 class Workflow:
     def __init__(self, run_file):
         """
@@ -150,7 +151,7 @@ class Workflow:
         self.scale_input = self.run_file.scale_input
         self.logtrans_input = self.run_file.logtrans_input
         self.use_hvg = self.run_file.use_hvg
-        self.batch_size = self.run_file.batch_size        
+        self.batch_size = self.run_file.batch_size
         # self.optimizer = self.run_file.optimizer
         # self.verbose = self.run_file[model_training_spec][verbose] # TODO : not implemented yet for DANN_AE
         # self.threads = self.run_file[model_training_spec][threads] # TODO : not implemented yet for DANN_AE
@@ -214,13 +215,12 @@ class Workflow:
         self.num_batches = None
         self.metrics = []
 
-        # This is a running average : it keeps the previous values in memory when 
+        # This is a running average : it keeps the previous values in memory when
         # it's called (ie computes the previous and current values)
-        self.mean_loss_fn = keras.metrics.Mean(name="total loss")  
+        self.mean_loss_fn = keras.metrics.Mean(name="total loss")
         self.mean_clas_loss_fn = keras.metrics.Mean(name="classification loss")
         self.mean_dann_loss_fn = keras.metrics.Mean(name="dann loss")
         self.mean_rec_loss_fn = keras.metrics.Mean(name="reconstruction loss")
-
 
     def set_hyperparameters(self, params):
 
@@ -242,7 +242,6 @@ class Workflow:
         self.bottleneck = params["bottleneck"]
         self.training_scheme = params["training_scheme"]
         self.hp_params = params
-
 
     def process_dataset(self):
         # Loading dataset
@@ -381,16 +380,20 @@ class Workflow:
         self.num_classes = len(np.unique(self.dataset.y_train))
         self.num_batches = len(np.unique(self.dataset.batch))
 
-        # Correct size of layers depending on the number of classes and 
+        # Correct size of layers depending on the number of classes and
         # on the bottleneck size
         bottleneck_size = int(
-            self.ae_param.ae_hidden_size[int(len(self.run_file.ae_hidden_size) / 2)]
+            self.ae_param.ae_hidden_size[
+                int(len(self.run_file.ae_hidden_size) / 2)
+            ]
         )
         self.class_param.class_hidden_size = default_value(
-            self.class_param.class_hidden_size, (bottleneck_size + self.num_classes) / 2
+            self.class_param.class_hidden_size,
+            (bottleneck_size + self.num_classes) / 2,
         )  # default value [(bottleneck_size + num_classes)/2]
         self.dann_param.dann_hidden_size = default_value(
-            self.dann_param.dann_hidden_size, (bottleneck_size + self.num_batches) / 2
+            self.dann_param.dann_hidden_size,
+            (bottleneck_size + self.num_batches) / 2,
         )  # default value [(bottleneck_size + num_batches)/2]
 
         # Creation of model
@@ -758,7 +761,7 @@ class Workflow:
                 n_samples,
                 n_obs,
             )
-            
+
         print_status_bar(
             n_samples,
             n_obs,
@@ -795,10 +798,11 @@ class Workflow:
         optimizer,
         n_samples,
         n_obs,
-        ):
+    ):
         if self.run_file.log_neptune:
             self.run_neptune["training/train/tf_GPU_memory_step"].append(
-                tf.config.experimental.get_memory_info("GPU:0")["current"] / 1e6
+                tf.config.experimental.get_memory_info("GPU:0")["current"]
+                / 1e6
             )
             self.run_neptune["training/train/step"].append(step)
         # self.tr.print_diff()
@@ -857,7 +861,7 @@ class Workflow:
                     [self.dann_w * dann_loss]
                     + [self.clas_w * clas_loss]
                     + ae.losses
-                )        
+                )
         # print(f"loss {asizeof.asizeof(loss)}")
         # gpu_mem.append(tf.config.experimental.get_memory_info("GPU:0")["current"])
         n_samples += enc.shape[0]
@@ -886,7 +890,6 @@ class Workflow:
                 ],
                 self.metrics,
             )
-
 
     def evaluation_pass(
         self,
@@ -959,7 +962,6 @@ class Workflow:
                     ]  # y_list are onehot encoded
         del inp
         return history, _, clas, dann, rec
-
 
     def get_scheme(self):
         print(
@@ -1084,7 +1086,7 @@ class Workflow:
                 ("full_model", self.run_file.fullmodel_epoch, True),
                 ("classifier_branch", self.run_file.classifier_epoch, False),
             ]
-            
+
         if self.training_scheme == "training_scheme_14":
             training_scheme = [
                 ("full_model", self.run_file.fullmodel_epoch, False),
@@ -1199,7 +1201,6 @@ class Workflow:
             print(self.dann_loss_name + " loss not supported for dann")
         return self.rec_loss_fn, self.clas_loss_fn, self.dann_loss_fn
 
-    
     def get_optimizer(
         self, learning_rate, weight_decay, optimizer_type, momentum=0.9
     ):
@@ -1245,14 +1246,14 @@ class Workflow:
 
 
 def print_status_bar(iteration, total, loss, metrics=None):
-        metrics = " - ".join(
-            [
-                "{}: {:.4f}".format(m.name, m.result())
-                for m in loss + (metrics or [])
-            ]
-        )
+    metrics = " - ".join(
+        [
+            "{}: {:.4f}".format(m.name, m.result())
+            for m in loss + (metrics or [])
+        ]
+    )
 
-        end = "" if int(iteration) < int(total) else "\n"
-        #     print(f"{iteration}/{total} - "+metrics ,end="\r")
-        #     print(f"\r{iteration}/{total} - " + metrics, end=end)
-        print("\r{}/{} - ".format(iteration, total) + metrics, end=end)
+    end = "" if int(iteration) < int(total) else "\n"
+    #     print(f"{iteration}/{total} - "+metrics ,end="\r")
+    #     print(f"\r{iteration}/{total} - " + metrics, end=end)
+    print("\r{}/{} - ".format(iteration, total) + metrics, end=end)
