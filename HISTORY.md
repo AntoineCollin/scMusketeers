@@ -5,6 +5,8 @@ Changelog
 (unreleased)
 ------------
 - Format code. [Christophe Bécavin]
+- Release: version 0.1.9 🚀 [Christophe Bécavin]
+- Format code. [Christophe Bécavin]
 - Small modif tutorial. [Christophe Bécavin]
 - Merge pull request #14 from AntoineCollin/bug_update. [Christophe
   Becavin]
