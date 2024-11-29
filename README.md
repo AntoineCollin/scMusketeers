@@ -54,7 +54,6 @@ $ sc-musketeers transfer my_atlas --class_key celltype --batch_key donor --unlab
 $ sc-musketeers transfer ref_dataset --query_path query_dataset --class_key=celltype --batch_key donor --unlabeled_category=Unknown
 ```
 
-TO DO : Add example atlas in the github or Zenodo
 
 
 Read the [CONTRIBUTING.md](docs/contributing.md) file.

@@ -1,6 +1,6 @@
 # How to develop on this project
 
-CheckAtlas welcomes contributions from the community.
+scMusketeers welcomes contributions from the community.
 
 **You need PYTHON3!**
 
