@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "sc-musketeers"
-version = "0.1.24"
-description = "Deep learning annotation of cell-types with permutation inforced autoencoder"
+version = "0.2.00"
+description = "A tri-partite modular autoencoder for addressing imbalanced cell type annotation and batch effect reduction"
 license = "MIT"
 authors = ["AntoineCollin","Christophe Becavin"]
 readme = "README.md"
@@ -15,7 +15,6 @@ python = "^3.10"
 poetry = "^1.8.1"
 numpy = "^1.23"
 torch = "^2.3.1"
-torchvision = "^0.18.1"
 keras = "^3.3.3"
 scanpy = "^1.10.1"
 ax-platform = "^0.4.0"
