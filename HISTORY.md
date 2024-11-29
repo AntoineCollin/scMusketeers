@@ -4,6 +4,8 @@ Changelog
 
 (unreleased)
 ------------
+- Remove pytorch in dependecy. [Christophe Bécavin]
+- Release: version 0.1.24 🚀 [Christophe Bécavin]
 - Release: version 0.1.23 🚀 [Christophe Bécavin]
 - Release: version 0.1.22 🚀 [Christophe Bécavin]
 - Release: version 0.1.21 🚀 [Christophe Bécavin]
