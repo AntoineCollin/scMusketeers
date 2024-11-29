@@ -4,6 +4,8 @@ Changelog
 
 (unreleased)
 ------------
+- Modify mkdocs. [Christophe Bécavin]
+- Release: version 0.1.20 🚀 [Christophe Bécavin]
 - Release: version 0.1.13 🚀 [Christophe Bécavin]
 - Release: version 0.1.12 🚀 [Christophe Bécavin]
 - Release: version 0.1.12 🚀 [Christophe Bécavin]

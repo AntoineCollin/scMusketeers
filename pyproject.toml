@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "sc-musketeers"
-version = "0.1.20"
+version = "0.1.21"
 description = "Deep learning annotation of cell-types with permutation inforced autoencoder"
 license = "MIT"
 authors = ["AntoineCollin","Christophe Becavin"]
 readme = "README.md"
 packages = [{include = "scmusketeers"}]
 exclude = ["tests/", ".github"]
-homepage = "https://scMusketeers.readthedocs.io/"
+homepage = "https://sc-musketeers.readthedocs.io/"
 repository = "https://github.com/AntoineCollin/scMusketeers/"
 
 [tool.poetry.dependencies]
