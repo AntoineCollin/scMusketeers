@@ -20,7 +20,7 @@ except ImportError:
     from ..arguments.ae_param import AE_PARAM
     from ..arguments.class_param import CLASS_PARAM
     from ..arguments.dann_param import DANN_PARAM
-    from ..workflow.dataset import Dataset, load_dataset
+    from ..transfer.dataset_tf import Dataset, load_dataset
     from . import freeze
 
 import keras

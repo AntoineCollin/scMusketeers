@@ -7,7 +7,7 @@ from ..arguments.neptune_log import (
     stop_neptune_log,
 )
 from ..arguments.runfile import set_hyperparameters
-from ..workflow import dataset
+from . import dataset_tf
 from .optimize_model import Workflow
 
 
@@ -67,9 +67,9 @@ class MakeExperiment:
             )
             set_hyperparameters(self.workflow, params)
             start_neptune_log(self.workflow)
-            dataset.process_dataset(self.workflow)
-            dataset.split_train_test(self.workflow)
-            dataset.split_train_val(self.workflow)
+            dataset_tf.process_dataset(self.workflow)
+            dataset_tf.split_train_test(self.workflow)
+            dataset_tf.split_train_val(self.workflow)
             opt_metric = (
                 self.workflow.make_workflow()
             )  # This starts the logging
