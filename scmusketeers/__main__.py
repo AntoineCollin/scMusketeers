@@ -12,6 +12,7 @@ from scmusketeers.arguments.runfile import (
     PROCESS_TYPE,
     create_argparser,
     get_runfile,
+    get_default_param
 )
 from scmusketeers.transfer.experiment import MakeExperiment
 from scmusketeers.transfer.optimize_model import Workflow
@@ -32,8 +33,10 @@ def load_json(json_path):
 def run_sc_musketeers():
 
     # Get all arguments
-    run_file = get_runfile()
-
+    # run_file = get_runfile()
+    run_file = get_default_param()
+    
+    print( run_file)
     """# Save runfile for running in python mode
     with open('/home/becavin/scMusketeers/tutorial/runfile_tuto_2.pkl', 'wb') as outp:
         pickle.dump(run_file, outp, pickle.HIGHEST_PROTOCOL)
@@ -42,7 +45,7 @@ def run_sc_musketeers():
     with open('tutorial/runfile_tuto_2.pkl', 'rb') as inp:
         run_file = pickle.load(inp)
     run_file.train_scheme = "training_scheme_13" """
-    if run_file.process == PROCESS_TYPE[0]:
+    """ if run_file.process == PROCESS_TYPE[0]:
         # Transfer data
         workflow = Workflow(run_file=run_file)
         start_neptune_log(workflow)
@@ -104,7 +107,7 @@ def run_sc_musketeers():
         print(best_parameters)
     else:
         # No process
-        print("Process not recognized")
+        print("Process not recognized") """
 
 
 if __name__ == "__main__":

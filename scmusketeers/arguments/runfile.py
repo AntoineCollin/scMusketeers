@@ -12,6 +12,10 @@ def get_runfile():
     return parser.parse_args()
 
 
+def get_default_param():
+    parser = create_argparser()
+    return parser.parse_args(["transfer","/data"])
+
 def create_argparser():
     """Parses command-line arguments and returns a namespace containing parsed arguments.
 
@@ -81,7 +85,7 @@ def create_argparser():
         "--training_scheme",
         type=str,
         nargs="?",
-        default="training_scheme_8",
+        default="training_scheme_13",
         help="",
     )
     workflow_group.add_argument(
