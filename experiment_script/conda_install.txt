@@ -1,0 +1,10 @@
+conda create --name sc_musketeers tensorflow-gpu
+conda activate sc_musketeers
+
+pip install poetry
+cd sc_musketeers/
+poetry install
+
+poetry install --with dev
+
+
