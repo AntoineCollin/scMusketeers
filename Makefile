@@ -90,6 +90,7 @@ clean:            ## Clean unused files.
 	@find ./ -name '*~' -exec rm -f {} \;
 	@rm -rf build
 	@rm -rf dist
+	@rm -rf site
 	@rm -rf *.egg-info
 	@rm -rf .pytest_cache
 	@rm -rf .mypy_cache
