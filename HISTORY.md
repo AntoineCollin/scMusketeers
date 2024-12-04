@@ -4,6 +4,23 @@ Changelog
 
 (unreleased)
 ------------
+- Add default hyperparameters. [Christophe Bécavin]
+- Move run.py and run_hp.py to experiment_script.obsolete. [Christophe
+  Bécavin]
+- Clean again project. [Christophe Bécavin]
+- Move analysis_notebooks, bash_script, celltype -->> to
+  experiment_script/obsolete/ [Christophe Bécavin]
+- Merge branch 'AntoineCollin:main' into main. [Christophe Becavin]
+- Merge pull request #16 from becavin-lab/main. [Christophe Becavin]
+
+  release: version 0.1.20 🚀
+- Clean project. [Christophe Bécavin]
+- Remove workflow_jobs. [Christophe Bécavin]
+- Remove runfiles.yaml. [Christophe Bécavin]
+- Remove obsolete. [Christophe Bécavin]
+- Fix import errors for : import scmusketeers. [Christophe Bécavin]
+- Add init files. [Christophe Bécavin]
+- Release: version 0.2.1 🚀 [Christophe Bécavin]
 - Release: version 0.2.00 🚀 [Christophe Bécavin]
 - Remove pytorch in dependecy. [Christophe Bécavin]
 - Release: version 0.1.24 🚀 [Christophe Bécavin]
