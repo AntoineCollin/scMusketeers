@@ -21,6 +21,12 @@ ax-platform = "^0.4.0"
 neptune = "^1.10.4"
 pympler = "^1.0.1"
 tensorflow = "^2.10.0"
+pillow = "^11.0.0"
+matplotlib = "^3.9.3"
+pandas = "^2.2.3"
+scikit-learn = "^1.5.2"
+seaborn = "^0.13.2"
+
 
 [tool.poetry.group.dev]
 optional = true
@@ -41,6 +47,8 @@ mkdocs = "^1.6.1"
 twine = "^5.1.1"
 scbalance = "^1.2.0"
 celltypist = "^1.6.3"
+scmappy = "^0.2"
+scvi = "^0.6.8"
 
 [build-system]
 requires = ["poetry-core"]

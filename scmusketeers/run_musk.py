@@ -1,6 +1,5 @@
 import json
 import os
-import pickle
 
 from ax.service.ax_client import AxClient, ObjectiveProperties
 

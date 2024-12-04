@@ -1,7 +1,5 @@
 import argparse
 
-import str2bool
-
 """Parses command-line arguments for a workflow involving model training and hyperparameter optimization."""
 
 PROCESS_TYPE = ["transfer", "optim"]

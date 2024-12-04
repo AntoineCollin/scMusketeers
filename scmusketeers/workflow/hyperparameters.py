@@ -7,7 +7,6 @@ import argparse
 import functools
 import os
 import sys
-from unittest import TestResult
 
 import keras
 from sklearn.metrics import (
