@@ -4,6 +4,9 @@ Changelog
 
 (unreleased)
 ------------
+- Formatcode for linting. [Christophe Bécavin]
+- Fix many dependencies. [Christophe Bécavin]
+- Release: version 0.3.3 🚀 [Christophe Bécavin]
 - Fix str2bool import. [Christophe Bécavin]
 - Release: version 0.3.2 🚀 [Christophe Bécavin]
 - Release: version 0.3.1 🚀 [Christophe Bécavin]
