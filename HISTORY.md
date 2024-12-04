@@ -4,6 +4,8 @@ Changelog
 
 (unreleased)
 ------------
+- Put scheme_13. [Christophe Bécavin]
+- Release: version 0.3.6 🚀 [Christophe Bécavin]
 - Release: version 0.3.5 🚀 [Christophe Bécavin]
 - Release: version  🚀 [Christophe Bécavin]
 - Fix str2bool erros. [Christophe Bécavin]
