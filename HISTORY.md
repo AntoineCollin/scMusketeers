@@ -4,6 +4,7 @@ Changelog
 
 (unreleased)
 ------------
+- Release: version 0.3.5 🚀 [Christophe Bécavin]
 - Release: version  🚀 [Christophe Bécavin]
 - Fix str2bool erros. [Christophe Bécavin]
 - Release: version 0.3.4 🚀 [Christophe Bécavin]
