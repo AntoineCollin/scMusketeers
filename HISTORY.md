@@ -4,6 +4,7 @@ Changelog
 
 (unreleased)
 ------------
+- Release: version 0.3.1 🚀 [Christophe Bécavin]
 - Fix dependencies for bioconda. [Christophe Bécavin]
 - Release: version 0.3.0 🚀 [Christophe Bécavin]
 - Add default hyperparameters. [Christophe Bécavin]
