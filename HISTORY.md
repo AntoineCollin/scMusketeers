@@ -4,6 +4,8 @@ Changelog
 
 (unreleased)
 ------------
+- Fix dependencies for bioconda. [Christophe Bécavin]
+- Release: version 0.3.0 🚀 [Christophe Bécavin]
 - Add default hyperparameters. [Christophe Bécavin]
 - Move run.py and run_hp.py to experiment_script.obsolete. [Christophe
   Bécavin]
