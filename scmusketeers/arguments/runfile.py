@@ -103,7 +103,7 @@ def create_argparser():
         "--training_scheme",
         type=str,
         nargs="?",
-        default="training_scheme_8",
+        default="training_scheme_13",
         help="",
     )
     workflow_group.add_argument(
