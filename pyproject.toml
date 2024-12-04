@@ -44,4 +44,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-sc-musketeers = 'scmusketeers:__main__.run_sc_musketeers'
+sc-musketeers = 'scmusketeers:__main__.main_entry_point'

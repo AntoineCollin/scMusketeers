@@ -12,20 +12,38 @@ def get_runfile():
     return parser.parse_args()
 
 
-def get_default_param():
+def get_default_param(ref_path, process = "transfer"):
     parser = create_argparser()
-    return parser.parse_args(["transfer","/data"])
+    return parser.parse_args([process,ref_path])
+
 
 def create_argparser():
     """Parses command-line arguments and returns a namespace containing parsed arguments.
 
+    Default arguments were set using best hyperparameters : experiment_script/default_df_t10.csv
     Returns:
         argparse.Namespace: A namespace object containing parsed arguments.
     """
     parser = argparse.ArgumentParser(
         prog="sc-musketeers",
-        usage="sc-musketeers [OPTIONS] process atlas_name your_search_folder/",
-        description="musketeers....",
+        usage="sc-musketeers transfer ref_path [OPTIONS]",
+        description="Single-cell gene expression atlases are now central in biology. "
+                    "Their integration and annotation currently face two challenges : "
+                    "unbalanced proportions of cell types and large batch effects. scMusketeers, "
+                    "a deep learning model, optimizes the latent data representation and solves all "
+                    "at once these challenges. scMusketeers features three neural modules: " 
+                    "(1) an autoencoder for noise and dimensionality reductions;"
+                    "(2) a focal loss classifier to enhance rare cell type predictions;"
+                    " and (3) an adversarial domain adaptation (DANN) module for batch "
+                    "effect correc- tion. Benchmarking against state-of-the-art tools, "
+                    "including the UCE foundation model, showed that scMusketeers performs "
+                    "on par or better, particularly in iden- tifying rare cell types. "
+                    "It also allows to transfer cell labels from single-cell RNA sequencing"
+                    " to spatial transcriptomics. With its modular and adaptable design, "
+                    "scMusketeers offers a versatile framework that can be generalized to "
+                    "other large- scale biological projects requiring deep learning approaches, "
+                    "establishing itself as a valuable tool for single-cell data "
+                    "integration and analysis.",
         epilog="Enjoy scMusketeers!",
     )
 
@@ -169,7 +187,7 @@ def create_argparser():
         "--use_hvg",
         type=int,
         nargs="?",
-        const=5000,
+        const=3000,
         default=None,
         help="Number of hvg to use. If no tag, don't use hvg.",
     )
@@ -180,7 +198,7 @@ def create_argparser():
         "--batch_size",
         type=int,
         nargs="?",
-        default=128,
+        default=430,
         help="Training batch size",
     )  # Default identified with hp optimization
     training_group.add_argument(
@@ -255,14 +273,14 @@ def create_argparser():
         "--weight_decay",
         type=float,
         nargs="?",
-        default=2e-6,
+        default=9.447375593939065e-07,
         help="Weight decay applied by th optimizer",
     )  # Default identified with hp optimization
     training_group.add_argument(
         "--learning_rate",
         type=float,
         nargs="?",
-        default=0.001,
+        default=0.0009913638603687327,
         help="Starting learning rate for training",
     )  # Default identified with hp optimization
     training_group.add_argument(
@@ -280,7 +298,7 @@ def create_argparser():
         "--warmup_epoch",
         type=int,
         nargs="?",
-        default=100,
+        default=36,
         help="Number of epoch to warmup DANN",
     )
     epoch_group.add_argument(
@@ -311,15 +329,15 @@ def create_argparser():
         "--balance_classes",
         type=str2bool.str2bool,
         nargs="?",
-        default=False,
+        default=True,
         help="Add balance to weight to the loss",
     )
     loss_group.add_argument(
         "--clas_loss_name",
         type=str,
         nargs="?",
-        choices=["MSE", "categorical_crossentropy"],
-        default="categorical_crossentropy",
+        choices=["MSE", "categorical_crossentropy", "categorical_focal_crossentropy"],
+        default="categorical_focal_crossentropy",
         help="Loss of the classification branch",
     )
     loss_group.add_argument(
@@ -342,21 +360,21 @@ def create_argparser():
         "--clas_w",
         type=float,
         nargs="?",
-        default=0.1,
+        default=0.3066763716843436,
         help="Weight of the classification loss",
     )
     loss_group.add_argument(
         "--dann_w",
         type=float,
         nargs="?",
-        default=0.1,
+        default=0.01865515471175812,
         help="Weight of the DANN loss",
     )
     loss_group.add_argument(
         "--rec_w",
         type=float,
         nargs="?",
-        default=0.8,
+        default=0.013070252184855429,
         help="Weight of the reconstruction loss",
     )
 
@@ -366,28 +384,28 @@ def create_argparser():
         "--dropout",
         type=int,
         nargs="?",
-        default=None,
+        default=0.27058450953709307,
         help="dropout applied to every layers of the model. If specified, overwrites other dropout arguments",
     )
     architecture_group.add_argument(
         "--layer1",
         type=int,
         nargs="?",
-        default=None,
+        default=1151,
         help="size of the first layer for a 2-layers model. If specified, overwrites ae_hidden_size",
     )
     architecture_group.add_argument(
         "--layer2",
         type=int,
         nargs="?",
-        default=None,
+        default=235,
         help="size of the second layer for a 2-layers model. If specified, overwrites ae_hidden_size",
     )
     architecture_group.add_argument(
         "--bottleneck",
         type=int,
         nargs="?",
-        default=None,
+        default=84,
         help="size of the bottleneck layer. If specified, overwrites ae_hidden_size",
     )
 
