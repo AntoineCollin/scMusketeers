@@ -1,4 +1,4 @@
-import str2bool
+from scmusketeers.tools.utils import str2bool
 
 class CLASS_PARAM:
 
