@@ -4,6 +4,20 @@ Changelog
 
 (unreleased)
 ------------
+- Put scheme_13. [Christophe Bécavin]
+- Release: version 0.3.6 🚀 [Christophe Bécavin]
+- Release: version 0.3.5 🚀 [Christophe Bécavin]
+- Release: version  🚀 [Christophe Bécavin]
+- Fix str2bool erros. [Christophe Bécavin]
+- Release: version 0.3.4 🚀 [Christophe Bécavin]
+- Formatcode for linting. [Christophe Bécavin]
+- Fix many dependencies. [Christophe Bécavin]
+- Release: version 0.3.3 🚀 [Christophe Bécavin]
+- Fix str2bool import. [Christophe Bécavin]
+- Release: version 0.3.2 🚀 [Christophe Bécavin]
+- Release: version 0.3.1 🚀 [Christophe Bécavin]
+- Fix dependencies for bioconda. [Christophe Bécavin]
+- Release: version 0.3.0 🚀 [Christophe Bécavin]
 - Add default hyperparameters. [Christophe Bécavin]
 - Move run.py and run_hp.py to experiment_script.obsolete. [Christophe
   Bécavin]

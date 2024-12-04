@@ -1,30 +1,25 @@
 #!/usr/bin/python
 import anndata as ad
-import celltypist
 import pandas as pd
 import scanpy as sc
-import scanpy.external as sce
 from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
 
 try:
+    import celltypist
+    import scanpy.external as sce
+    import scBalance as sb
+    import scBalance.scbalance_IO as ss
+    import scvi
     from scmappy import common_genes, scmap_annotate
 except:
     pass
-import anndata
 import numpy as np
 
-try:
-    import scvi
-except:
-    pass
 try:
     from ..tools.utils import densify
 except ImportError:
     from scmusketeers.tools.utils import densify
-
-import scBalance as sb
-import scBalance.scbalance_IO as ss
 
 # from tools.utils import densify
 

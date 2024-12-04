@@ -1,11 +1,8 @@
 import neptune
 import pandas as pd
 
-from ..arguments.neptune_log import (
-    add_custom_log,
-    start_neptune_log,
-    stop_neptune_log,
-)
+from ..arguments.neptune_log import (add_custom_log, start_neptune_log,
+                                     stop_neptune_log)
 from ..arguments.runfile import set_hyperparameters
 from . import dataset_tf
 from .optimize_model import Workflow

@@ -1,19 +1,12 @@
 import json
 import os
-import pickle
 
 from ax.service.ax_client import AxClient, ObjectiveProperties
 
-from scmusketeers.arguments.neptune_log import (
-    start_neptune_log,
-    stop_neptune_log,
-)
-from scmusketeers.arguments.runfile import (
-    PROCESS_TYPE,
-    create_argparser,
-    get_runfile,
-    get_default_param
-)
+from scmusketeers.arguments.neptune_log import (start_neptune_log,
+                                                stop_neptune_log)
+from scmusketeers.arguments.runfile import (PROCESS_TYPE, create_argparser,
+                                            get_default_param, get_runfile)
 from scmusketeers.transfer.experiment import MakeExperiment
 from scmusketeers.transfer.optimize_model import Workflow
 

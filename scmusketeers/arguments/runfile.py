@@ -1,6 +1,6 @@
 import argparse
+from scmusketeers.tools.utils import str2bool
 
-import str2bool
 
 """Parses command-line arguments for a workflow involving model training and hyperparameter optimization."""
 
@@ -108,7 +108,7 @@ def create_argparser():
     )
     workflow_group.add_argument(
         "--log_neptune",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         const=True,
         default=False,
@@ -131,7 +131,7 @@ def create_argparser():
         help="The metric top optimize in hp search as it appears in neptune (split-metricname)",
     )
     workflow_group.add_argument(
-        "--verbose", type=str2bool.str2bool, default=True, help=""
+        "--verbose", type=bool, default=True, help=""
     )
 
     # Dataset arguments
@@ -145,7 +145,7 @@ def create_argparser():
     )
     dataset_group.add_argument(
         "--filter_min_counts",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         const=True,
         default=True,
@@ -153,7 +153,7 @@ def create_argparser():
     )  # TODO :remove, we always want to do that
     dataset_group.add_argument(
         "--normalize_size_factors",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         const=True,
         default=True,
@@ -169,7 +169,7 @@ def create_argparser():
     )
     dataset_group.add_argument(
         "--scale_input",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         const=False,
         default=False,
@@ -177,7 +177,7 @@ def create_argparser():
     )
     dataset_group.add_argument(
         "--logtrans_input",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         const=True,
         default=True,
@@ -254,7 +254,7 @@ def create_argparser():
     )
     training_group.add_argument(
         "--make_fake",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         const=False,
         default=False,
@@ -327,7 +327,7 @@ def create_argparser():
     loss_group = parser.add_argument_group("Loss function Parameters")
     loss_group.add_argument(
         "--balance_classes",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         default=True,
         help="Add balance to weight to the loss",
@@ -439,7 +439,7 @@ def create_argparser():
     )
     ae_group.add_argument(
         "--ae_batchnorm",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         const=True,
         default=True,
@@ -466,7 +466,7 @@ def create_argparser():
     )
     class_group.add_argument(
         "--class_batchnorm",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         const=True,
         default=True,
@@ -493,7 +493,7 @@ def create_argparser():
     )
     dann_group.add_argument(
         "--dann_batchnorm",
-        type=str2bool.str2bool,
+        type=bool,
         nargs="?",
         const=True,
         default=True,
