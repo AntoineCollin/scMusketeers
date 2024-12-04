@@ -36,7 +36,7 @@ fmt:              ## Format code using black & isort.
 lint:             ## Run pep8, black, mypy linters.
 	@echo "Run scMusketeers linting"
 	$(ENV_PREFIX)poetry run flake8 scmusketeers/
-	$(ENV_PREFIX)poetry run black -l 79 --check scmusketeers/ tests/
+	$(ENV_PREFIX)poetry run black -l 100 --check scmusketeers/ tests/
 	$(ENV_PREFIX)poetry run mypy --ignore-missing-imports scmusketeers/ tests/
 
 .PHONY: test

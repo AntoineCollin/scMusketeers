@@ -6,12 +6,12 @@ from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
 
 try:
+    import celltypist
     import scanpy.external as sce
-    from scmappy import common_genes, scmap_annotate
     import scBalance as sb
     import scBalance.scbalance_IO as ss
-    import celltypist
     import scvi
+    from scmappy import common_genes, scmap_annotate
 except:
     pass
 import numpy as np

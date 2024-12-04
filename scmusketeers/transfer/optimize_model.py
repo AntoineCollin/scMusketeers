@@ -24,18 +24,11 @@ except ImportError:
     from . import freeze
 
 import keras
-from sklearn.metrics import (
-    accuracy_score,
-    adjusted_mutual_info_score,
-    adjusted_rand_score,
-    balanced_accuracy_score,
-    cohen_kappa_score,
-    confusion_matrix,
-    davies_bouldin_score,
-    f1_score,
-    matthews_corrcoef,
-    normalized_mutual_info_score,
-)
+from sklearn.metrics import (accuracy_score, adjusted_mutual_info_score,
+                             adjusted_rand_score, balanced_accuracy_score,
+                             cohen_kappa_score, confusion_matrix,
+                             davies_bouldin_score, f1_score, matthews_corrcoef,
+                             normalized_mutual_info_score)
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.utils import compute_class_weight
 
@@ -53,32 +46,22 @@ except ImportError:
     from transfer.dataset_tf import Dataset, load_dataset
 
 try:
-    from ..tools.clust_compute import (
-        balanced_cohen_kappa_score,
-        balanced_f1_score,
-        balanced_matthews_corrcoef,
-        batch_entropy_mixing_score,
-        lisi_avg,
-        nn_overlap,
-    )
+    from ..tools.clust_compute import (balanced_cohen_kappa_score,
+                                       balanced_f1_score,
+                                       balanced_matthews_corrcoef,
+                                       batch_entropy_mixing_score, lisi_avg,
+                                       nn_overlap)
     from ..tools.models import DANN_AE
     from ..tools.permutation import batch_generator_training_permuted
-    from ..tools.utils import (
-        default_value,
-        nan_to_0,
-        scanpy_to_input,
-        str2bool,
-    )
+    from ..tools.utils import (default_value, nan_to_0, scanpy_to_input,
+                               str2bool)
 
 except ImportError:
-    from tools.clust_compute import (
-        balanced_cohen_kappa_score,
-        balanced_f1_score,
-        balanced_matthews_corrcoef,
-        batch_entropy_mixing_score,
-        lisi_avg,
-        nn_overlap,
-    )
+    from tools.clust_compute import (balanced_cohen_kappa_score,
+                                     balanced_f1_score,
+                                     balanced_matthews_corrcoef,
+                                     batch_entropy_mixing_score, lisi_avg,
+                                     nn_overlap)
     from tools.models import DANN_AE
     from tools.permutation import batch_generator_training_permuted
     from tools.utils import default_value, nan_to_0, scanpy_to_input, str2bool
@@ -100,7 +83,6 @@ import scanpy as sc
 import seaborn as sns
 import tensorflow as tf
 from ax.service.managed_loop import optimize
-
 # from numba import cuda
 from neptune.utils import stringify_unsupported
 

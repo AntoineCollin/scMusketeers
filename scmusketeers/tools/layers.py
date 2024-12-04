@@ -6,7 +6,6 @@
 # from keras.engine.base_layer import InputSpec
 import keras.backend as K
 import tensorflow as tf
-
 # from keras.engine.topology import Layer
 from keras.layers import Dense, Lambda
 
