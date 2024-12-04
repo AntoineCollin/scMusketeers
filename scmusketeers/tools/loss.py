@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.compat.v1.keras import backend as K
 
 
 class ContrastiveLoss(tf.keras.losses.Loss):

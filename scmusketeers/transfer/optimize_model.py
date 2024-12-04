@@ -20,7 +20,7 @@ except ImportError:
     from ..arguments.ae_param import AE_PARAM
     from ..arguments.class_param import CLASS_PARAM
     from ..arguments.dann_param import DANN_PARAM
-    from ..workflow.dataset import Dataset, load_dataset
+    from ..transfer.dataset_tf import Dataset, load_dataset
     from . import freeze
 
 import keras
@@ -965,27 +965,27 @@ class Workflow:
 
     def get_scheme(self):
         print(
-            f"Training scheme : {self.training_scheme}, warmup {self.warmup_epoch}"
+            f"Training scheme : {self.training_scheme}, warmup {self.run_file.warmup_epoch}"
         )
         if self.training_scheme == "training_scheme_1":
             training_scheme = [
-                ("warmup_dann", self.warmup_epoch, False),
+                ("warmup_dann", self.run_file.warmup_epoch, False),
                 ("full_model", self.run_file.fullmodel_epoch, True),
             ]  # This will end with a callback
         if self.training_scheme == "training_scheme_2":
             training_scheme = [
-                ("warmup_dann_no_rec", self.warmup_epoch, False),
+                ("warmup_dann_no_rec", self.run_file.warmup_epoch, False),
                 ("full_model", self.run_file.fullmodel_epoch, True),
             ]  # This will end with a callback
         if self.training_scheme == "training_scheme_3":
             training_scheme = [
-                ("warmup_dann", self.warmup_epoch, False),
+                ("warmup_dann", self.run_file.warmup_epoch, False),
                 ("full_model", self.run_file.fullmodel_epoch, True),
                 ("classifier_branch", self.run_file.classifier_epoch, False),
             ]  # This will end with a callback
         if self.training_scheme == "training_scheme_4":
             training_scheme = [
-                ("warmup_dann", self.warmup_epoch, False),
+                ("warmup_dann", self.run_file.warmup_epoch, False),
                 (
                     "permutation_only",
                     100,
@@ -995,14 +995,14 @@ class Workflow:
             ]  # This will end with a callback
         if self.training_scheme == "training_scheme_5":
             training_scheme = [
-                ("warmup_dann", self.warmup_epoch, False),
+                ("warmup_dann", self.run_file.warmup_epoch, False),
                 ("full_model", self.run_file.fullmodel_epoch, False),
             ]  # This will end with a callback, NO PERMUTATION HERE
         if self.training_scheme == "training_scheme_6":
             training_scheme = [
                 (
                     "warmup_dann",
-                    self.warmup_epoch,
+                    self.run_file.warmup_epoch,
                     True,
                 ),  # Permutating with pseudo labels during warmup
                 ("full_model", self.run_file.fullmodel_epoch, True),
@@ -1012,7 +1012,7 @@ class Workflow:
             training_scheme = [
                 (
                     "warmup_dann",
-                    self.warmup_epoch,
+                    self.run_file.warmup_epoch,
                     True,
                 ),  # Permutating with pseudo labels during warmup
                 ("full_model", self.run_file.fullmodel_epoch, False),
@@ -1022,8 +1022,8 @@ class Workflow:
             training_scheme = [
                 (
                     "warmup_dann",
-                    self.warmup_epoch,
-                    False,
+                    self.run_file.warmup_epoch,
+                    True,
                 ),  # Permutating with pseudo labels during warmup
                 ("full_model", self.run_file.fullmodel_epoch, False),
                 ("classifier_branch", self.run_file.classifier_epoch, False),
@@ -1031,7 +1031,7 @@ class Workflow:
 
         if self.training_scheme == "training_scheme_9":
             training_scheme = [
-                ("warmup_dann", self.warmup_epoch, False),
+                ("warmup_dann", self.run_file.warmup_epoch, False),
                 ("full_model", self.run_file.fullmodel_epoch, True),
                 ("classifier_branch", self.run_file.classifier_epoch, False),
             ]  # This will end with a callback]
@@ -1040,14 +1040,14 @@ class Workflow:
             training_scheme = [
                 (
                     "warmup_dann",
-                    self.warmup_epoch,
+                    self.run_file.warmup_epoch,
                     True,
                 ),  # Permutating with pseudo labels during warmup
                 ("full_model", self.run_file.fullmodel_epoch, False),
                 ("classifier_branch", self.run_file.classifier_epoch, False),
                 (
                     "warmup_dann_pseudolabels",
-                    self.warmup_epoch,
+                    self.run_file.warmup_epoch,
                     True,
                 ),  # Permutating with pseudo labels from the current model state
                 ("full_model", self.run_file.fullmodel_epoch, False),
@@ -1058,7 +1058,7 @@ class Workflow:
             training_scheme = [
                 (
                     "warmup_dann",
-                    self.warmup_epoch,
+                    self.run_file.warmup_epoch,
                     True,
                 ),  # Permutating with pseudo labels during warmup
                 ("full_model", self.run_file.fullmodel_epoch, False),
@@ -1075,7 +1075,7 @@ class Workflow:
             training_scheme = [
                 (
                     "permutation_only",
-                    self.warmup_epoch,
+                    self.run_file.warmup_epoch,
                     True,
                 ),  # Permutating with pseudo labels during warmup
                 ("classifier_branch", self.run_file.classifier_epoch, False),
@@ -1095,14 +1095,14 @@ class Workflow:
 
         if self.training_scheme == "training_scheme_15":
             training_scheme = [
-                ("warmup_dann_train", self.warmup_epoch, True),
+                ("warmup_dann_train", self.run_file.warmup_epoch, True),
                 ("full_model", self.run_file.fullmodel_epoch, False),
                 ("classifier_branch", self.run_file.classifier_epoch, False),
             ]
 
         if self.training_scheme == "training_scheme_16":
             training_scheme = [
-                ("warmup_dann", self.warmup_epoch, True),
+                ("warmup_dann", self.run_file.warmup_epoch, True),
                 ("full_model", self.run_file.fullmodel_epoch, True),
                 ("classifier_branch", self.run_file.classifier_epoch, False),
             ]
@@ -1123,7 +1123,7 @@ class Workflow:
             training_scheme = [
                 (
                     "warmup_dann",
-                    self.warmup_epoch,
+                    self.run_file.warmup_epoch,
                     False,
                 ),  # Permutating with pseudo labels during warmup
                 ("full_model", self.run_file.fullmodel_epoch, False),
@@ -1134,7 +1134,7 @@ class Workflow:
             training_scheme = [
                 (
                     "warmup_dann_semisup",
-                    self.warmup_epoch,
+                    self.run_file.warmup_epoch,
                     True,
                 ),  # Permutating in semisup fashion ie unknown cells reconstruc themselves
                 ("full_model", self.run_file.fullmodel_epoch, False),
@@ -1143,15 +1143,15 @@ class Workflow:
 
         if self.training_scheme == "training_scheme_21":
             training_scheme = [
-                ("warmup_dann", self.warmup_epoch, False),
+                ("warmup_dann", self.run_file.warmup_epoch, False),
                 ("no_dann", 100, False),
                 ("classifier_branch", self.run_file.classifier_epoch, False),
             ]
 
         if self.training_scheme == "training_scheme_22":
             training_scheme = [
-                ("permutation_only", self.warmup_epoch, True),
-                ("warmup_dann", self.warmup_epoch, True),
+                ("permutation_only", self.run_file.warmup_epoch, True),
+                ("warmup_dann", self.run_file.warmup_epoch, True),
                 ("full_model", self.run_file.fullmodel_epoch, False),
                 ("classifier_branch", self.run_file.classifier_epoch, False),
             ]
