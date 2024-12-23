@@ -3,13 +3,11 @@
 ![PyPI](https://img.shields.io/pypi/v/sc-musketeers)
 ![PyPI - Downloads](https://img.shields.io/pypi/dw/sc-musketeers)
 ![PyPI - License](https://img.shields.io/pypi/l/sc-musketeers)
+
 [![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://anaconda.org/bioconda/sc-musketeers)
 [![install with Docker](https://img.shields.io/badge/install%20with-docker-important.svg?style=flat-square&logo=docker)](https://biocontainers.pro/tools/sc-musketeers)
 [![install with Singularity](https://img.shields.io/badge/install%20with-singularity-blue.svg?style=flat-square)](https://biocontainers.pro/tools/sc-musketeers)
 
-
-[![codecov](https://codecov.io/gh/becavin-lab/scMusketeers/branch/main/graph/badge.svg?token=checkatlas_token_here)](https://codecov.io/gh/becavin-lab/scMusketeers)
-[![CI](https://github.com/becavin-lab/scMusketeers/actions/workflows/tests.yml/badge.svg)](https://github.com/becavin-lab/scMusketeers/actions/workflows/tests.yml)
 [![Documentation Status](https://readthedocs.org/projects/sc-musketeers/badge/?version=latest)](https://sc-musketeers.readthedocs.io/en/latest/?badge=latest)
 
 ![Static Badge](https://img.shields.io/badge/Packaging-Poetry-blue)
