@@ -1,5 +1,7 @@
 # scMusketeers : A tri-partite modular autoencoder for addressing imbalanced cell type annotation and batch effect reduction
 
+ ![scMusketeers](docs/tripartite-autoencod.png) 
+ 
 [![PyPI](https://img.shields.io/pypi/v/sc-musketeers)](https://pypi.org/project/sc-musketeers/)
 [![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://anaconda.org/bioconda/sc-musketeers)
 [![install with Docker](https://img.shields.io/badge/install%20with-docker-important.svg?style=flat-square&logo=docker)](https://biocontainers.pro/tools/sc-musketeers)
