@@ -82,9 +82,7 @@ import pandas as pd
 import scanpy as sc
 import seaborn as sns
 import tensorflow as tf
-from ax.service.managed_loop import optimize
 # from numba import cuda
-from neptune.utils import stringify_unsupported
 
 # from ax import RangeParameter, SearchSpace, ParameterType, FixedParameter, ChoiceParameter
 

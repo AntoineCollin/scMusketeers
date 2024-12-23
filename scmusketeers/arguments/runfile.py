@@ -1,6 +1,6 @@
 import argparse
-from scmusketeers.tools.utils import str2bool
 
+from scmusketeers.tools.utils import str2bool
 
 """Parses command-line arguments for a workflow involving model training and hyperparameter optimization."""
 
