@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import scipy
-from PIL import ImageColor
 from sklearn.model_selection import train_test_split
 
 

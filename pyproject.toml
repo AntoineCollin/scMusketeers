@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sc-musketeers"
-version = "0.3.7"
+version = "0.4.1"
 description = "A tri-partite modular autoencoder for addressing imbalanced cell type annotation and batch effect reduction"
 license = "MIT"
 authors = ["AntoineCollin","Christophe Becavin"]
@@ -14,10 +14,8 @@ repository = "https://github.com/AntoineCollin/scMusketeers/"
 python = "^3.10"
 poetry = "^1.8.1"
 numpy = "^1.23"
-torch = "^2.3.1"
 keras = "^3.3.3"
 scanpy = "^1.10.1"
-ax-platform = "^0.4.0"
 neptune = "^1.10.4"
 pympler = "^1.0.1"
 tensorflow = "^2.10.0"
@@ -45,10 +43,17 @@ no-implicit-optional = "^1.4"
 types-pyyaml = "^6.0.12.12"
 mkdocs = "^1.6.1"
 twine = "^5.1.1"
+
+
+[tool.poetry.group.workflow]
+optional = true
+
+[tool.poetry.group.workflow.dependencies]
+ax-platform = "^0.4.3"
 scbalance = "^1.2.0"
-celltypist = "^1.6.3"
 scmappy = "^0.2"
 scvi = "^0.6.8"
+celltypist = "^1.6.3"
 
 [build-system]
 requires = ["poetry-core"]
