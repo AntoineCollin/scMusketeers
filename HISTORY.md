@@ -4,6 +4,17 @@ Changelog
 
 (unreleased)
 ------------
+- Moved all sc tools for workflow and benchmark to poetry.workflow.
+  [Christophe Bécavin]
+- Fix poetry.lock. [Christophe Bécavin]
+- Remove torch and ax-platform from normal dependencies. axPlatofrm has
+  been moved to poetry.workflow. [Christophe Bécavin]
+- Merge branch 'AntoineCollin:main' into main. [Christophe Becavin]
+- Merge pull request #17 from becavin-lab/main. [Christophe Becavin]
+
+  Big package cleaning and hyperparameters settings
+- Fix tutorial. [Christophe Bécavin]
+- Release: version 0.3.7 🚀 [Christophe Bécavin]
 - Put scheme_13. [Christophe Bécavin]
 - Release: version 0.3.6 🚀 [Christophe Bécavin]
 - Release: version 0.3.5 🚀 [Christophe Bécavin]
