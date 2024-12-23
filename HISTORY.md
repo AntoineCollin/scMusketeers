@@ -4,6 +4,7 @@ Changelog
 
 (unreleased)
 ------------
+- Release: version 0.4.0 🚀 [Christophe Bécavin]
 - Moved all sc tools for workflow and benchmark to poetry.workflow.
   [Christophe Bécavin]
 - Fix poetry.lock. [Christophe Bécavin]

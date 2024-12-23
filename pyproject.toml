@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sc-musketeers"
-version = "0.4.0"
+version = "0.4.1"
 description = "A tri-partite modular autoencoder for addressing imbalanced cell type annotation and batch effect reduction"
 license = "MIT"
 authors = ["AntoineCollin","Christophe Becavin"]
