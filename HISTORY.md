@@ -4,6 +4,16 @@ Changelog
 
 (unreleased)
 ------------
+- Update the documentation. [Christophe Bécavin]
+- Update README.md. [Christophe Becavin]
+- Fix __init__ and add figure. [Christophe Bécavin]
+- Update README.md. [Christophe Becavin]
+- Update README.md. [Christophe Becavin]
+- Update README.md. [Christophe Becavin]
+- Update README.md. [Christophe Becavin]
+- Update README.md. [Christophe Becavin]
+- Update README.md. [Christophe Becavin]
+- Release: version 0.4.1 🚀 [Christophe Bécavin]
 - Release: version 0.4.0 🚀 [Christophe Bécavin]
 - Moved all sc tools for workflow and benchmark to poetry.workflow.
   [Christophe Bécavin]
