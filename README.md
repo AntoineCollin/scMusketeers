@@ -5,9 +5,8 @@
 [![install with Docker](https://img.shields.io/badge/install%20with-docker-important.svg?style=flat-square&logo=docker)](https://biocontainers.pro/tools/sc-musketeers)
 [![install with Singularity](https://img.shields.io/badge/install%20with-singularity-blue.svg?style=flat-square)](https://biocontainers.pro/tools/sc-musketeers)
 
-[![Documentation Status](https://readthedocs.org/projects/sc-musketeers/badge/?version=latest)](https://sc-musketeers.readthedocs.io/en/latest/?badge=latest)
-
 ![Static Badge](https://img.shields.io/badge/Packaging-Poetry-blue)
+[![Documentation Status](https://readthedocs.org/projects/sc-musketeers/badge/?version=latest)](https://sc-musketeers.readthedocs.io/en/latest/?badge=latest)
 ![Static Badge](https://img.shields.io/badge/Docs-Mkdocs-red)
 ![Static Badge](https://img.shields.io/badge/Linting-flake8%20black%20mypy-yellow)
 
