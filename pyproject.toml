@@ -49,12 +49,12 @@ scmappy = "^0.2"
 scvi = "^0.6.8"
 
 
-[tool.poetry.group.optim.dependencies]
-scvi = "^0.6.8"
-
+[tool.poetry.group.workflow]
+optional = true
 
 [tool.poetry.group.workflow.dependencies]
 scvi = "^0.6.8"
+ax-platform = "^0.4.3"
 
 [build-system]
 requires = ["poetry-core"]
