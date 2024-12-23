@@ -1,5 +1,16 @@
 # scMusketeers : A tri-partite modular autoencoder for addressing imbalanced cell type annotation and batch effect reduction
 
+ ![scMusketeers](docs/tripartite-autoencod.png) 
+ 
+[![PyPI](https://img.shields.io/pypi/v/sc-musketeers)](https://pypi.org/project/sc-musketeers/)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://anaconda.org/bioconda/sc-musketeers)
+[![install with Docker](https://img.shields.io/badge/install%20with-docker-important.svg?style=flat-square&logo=docker)](https://biocontainers.pro/tools/sc-musketeers)
+[![install with Singularity](https://img.shields.io/badge/install%20with-singularity-blue.svg?style=flat-square)](https://biocontainers.pro/tools/sc-musketeers)
+
+![Static Badge](https://img.shields.io/badge/Packaging-Poetry-blue)
+[![Documentation Status](https://readthedocs.org/projects/sc-musketeers/badge/?version=latest)](https://sc-musketeers.readthedocs.io/en/latest/?badge=latest)
+![Static Badge](https://img.shields.io/badge/Docs-Mkdocs-red)
+![Static Badge](https://img.shields.io/badge/Linting-flake8%20black%20mypy-yellow)
 
 ## Summary
 
@@ -35,6 +46,15 @@ $ conda -c bioconda sc-musketeers
 
 with docker
 
+```bash
+$ docker pull quay.io/biocontainers/sc-musketeers:0.3.7--pyhdfd78af_0
+```
+
+with singularity
+
+```bash
+$ singularity run https://depot.galaxyproject.org/singularity/sc-musketeers:0.3.7--pyhdfd78af_0
+```
 
 ## Examples
 
@@ -56,5 +76,4 @@ $ sc-musketeers transfer ref_dataset --query_path query_dataset --class_key=cell
 
 
 
-
-Read the [CONTRIBUTING.md](contributing.md) file.
+Read the [CONTRIBUTING.md](docs/contributing.md) file.
