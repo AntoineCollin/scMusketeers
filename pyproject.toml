@@ -43,18 +43,17 @@ no-implicit-optional = "^1.4"
 types-pyyaml = "^6.0.12.12"
 mkdocs = "^1.6.1"
 twine = "^5.1.1"
-scbalance = "^1.2.0"
-celltypist = "^1.6.3"
-scmappy = "^0.2"
-scvi = "^0.6.8"
 
 
 [tool.poetry.group.workflow]
 optional = true
 
 [tool.poetry.group.workflow.dependencies]
-scvi = "^0.6.8"
 ax-platform = "^0.4.3"
+scbalance = "^1.2.0"
+scmappy = "^0.2"
+scvi = "^0.6.8"
+celltypist = "^1.6.3"
 
 [build-system]
 requires = ["poetry-core"]

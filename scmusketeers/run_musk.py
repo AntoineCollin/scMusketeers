@@ -9,9 +9,8 @@ from scmusketeers.transfer.optimize_model import Workflow
 from scmusketeers.workflow.run_workflow import run_workflow
 
 
-
 def run_sc_musketeers(run_file):
-
+    # Run transfer
     if run_file.process == PROCESS_TYPE[0]:
         # Transfer data
         workflow = Workflow(run_file=run_file)
@@ -29,8 +28,8 @@ def run_sc_musketeers(run_file):
         print((f"Save adata_pred to {adata_pred_path}"))
         adata_pred.write_h5ad(adata_pred_path)
 
+    # Run hyperparameters optimization
     elif run_file.process == PROCESS_TYPE[1]:
-        # Hyperparameter optimization
         run_workflow(run_file)
     else:
         # No process

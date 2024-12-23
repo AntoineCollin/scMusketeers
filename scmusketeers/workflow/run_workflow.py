@@ -5,13 +5,13 @@ from scmusketeers.arguments.neptune_log import (start_neptune_log,
                                                 stop_neptune_log)
 from scmusketeers.arguments.runfile import (PROCESS_TYPE, create_argparser,
                                             get_default_param, get_runfile)
-from scmusketeers.workflow.benchmark import Workflow
 from scmusketeers.transfer.experiment import MakeExperiment
+from scmusketeers.workflow.benchmark import Workflow
 
 try:
     from ax.service.ax_client import AxClient, ObjectiveProperties
 except ImportError:
-    print("Import scmusketeers.workflow - AX Platform not installed")
+    print("Tried import scmusketeers.workflow but AX Platform not installed")
     print("Please consider installing AxPlatform for hyperparameters optimization")
     print("poetry install --with workflow")
     
