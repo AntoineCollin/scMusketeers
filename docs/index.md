@@ -47,7 +47,7 @@ $ conda -c bioconda sc-musketeers
 with docker
 
 ```bash
-$ docker pull quay.io/biocontainers/sc-musketeers:0.3.7--pyhdfd78af_0
+$ docker pull quay.io/biocontainers/sc-musketeers:0.4.1--pyhdfd78af_0
 ```
 
 with singularity
