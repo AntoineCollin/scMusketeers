@@ -23,10 +23,8 @@ Our tripartite modular autoencoder demonstrates versatile capabilities while add
 
 ## Publication
 
-scMusketeers: Addressing imbalanced cell type annotation and batch effect reduction with a modular autoencoder
-
-Antoine C., Pelletier S., Fierville M., Droit A., Precioso F., Bécavin C., Barbry P.
-
+*scMusketeers: Addressing imbalanced cell type annotation and batch effect reduction with a modular autoencoder.*
+Collin A., Pelletier S., Fierville M., Droit A., Precioso F., Bécavin C., Barbry P.
 [BioRXiv](https://www.biorxiv.org/content/10.1101/2024.12.15.628538v1)
 
 
