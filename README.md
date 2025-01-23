@@ -21,6 +21,11 @@ scMusketeers performance was optimized after conducting a precise ablation study
 Our tripartite modular autoencoder demonstrates versatile capabilities while addressing key challenges in single-cell atlas reconstruction. We noticed in particular that the generic modular framework of scMusketeers should be easily generalized to other large-scale biology projects that require deep learning models.
 
 
+## Publication
+
+scMusketeers: Addressing imbalanced cell type annotation and batch effect reduction with a modular autoencoder
+Antoine C., Pelletier S., Fierville M., Droit A., Precioso F., Bécavin C., Barbry P.
+[BioRXiv](https://www.biorxiv.org/content/10.1101/2024.12.15.628538v1)
 
 
 ## Tutorial
