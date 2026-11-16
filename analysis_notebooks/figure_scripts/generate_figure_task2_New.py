@@ -1,0 +1,262 @@
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from statannotations.Annotator import Annotator
+import logging
+
+logger = logging.getLogger(__name__)
+
+NEW_DATASETS = [
+    "TS-Neural",
+    "TS-Skin",
+    "SmallIntestine-20k",
+    "TS-Liver",
+    "TS-BoneMarrow",
+    "PBMC-Lee",
+    "TS-Blood",
+    "Ageing-Mouse-All",
+    "SmallIntestine-All",
+    "CellCards-Lung",
+]
+
+CATEGORY_TITLES = {
+    "small":  "Small (≤ 20k cells)",
+    "medium": "Medium (20k – 100k cells)",
+    "large":  "Large (> 100k cells)",
+}
+
+# Datasets ordered by cell count within each size group
+DIFF_DICT = {
+    "small":  ["TS-Neural", "TS-Skin", "SmallIntestine-20k"],
+    "medium": ["TS-Liver", "TS-BoneMarrow", "PBMC-Lee", "TS-Blood"],
+    "large":  ["Ageing-Mouse-All", "SmallIntestine-All", "CellCards-Lung"],
+}
+
+AESTHETIC_DATA_NAME = {
+    "Ageing-Mouse-All":    "Ageing Mouse All",
+    "CellCards-Lung":      "CellCards Lung",
+    "PBMC-Lee":            "PBMC Lee",
+    "SmallIntestine-20k":  "Small Intestine 20k",
+    "SmallIntestine-All":  "Small Intestine All",
+    "TS-Blood":            "TS - Blood",
+    "TS-BoneMarrow":       "TS - Bone Marrow",
+    "TS-Liver":            "TS - Liver",
+    "TS-Neural":           "TS - Neural",
+    "TS-Skin":             "TS - Skin",
+}
+
+MODEL_NAMES = {
+    "scPermut":         "1-scMusketeers",
+    "scPermut_default": "1-scMusketeers",
+    "scanvi":           "2-scANVI",
+    "uce":              "3-UCE",
+    "harmony_svm":      "4-Harmony",
+    "pca_svm":          "5-PCA",
+    "celltypist":       "6-CellTypist",
+    "scmap_cells":      "7-scmap-cells",
+    "scmap_cluster":    "8-scmap-cluster",
+}
+
+MODEL_COLORS = {
+    "scPermut_default": "#B15240",
+    "scanvi":           "#C78C3B",
+    "uce":              "#D3A53C",
+    "harmony_svm":      "#5B9DC7",
+    "pca_svm":          "#264D74",
+    "celltypist":       "#75BAD3",
+    "scmap_cells":      "#607F6A",
+    "scmap_cluster":    "#707C45",
+}
+
+MODEL_ORDER = list(dict.fromkeys(MODEL_NAMES.values()))
+
+ENTROPY_EXCLUDED_MODELS = {"6-CellTypist", "7-scmap-cells", "8-scmap-cluster"}
+
+MODEL_COLORS_AESTHETIC = {
+    aesthetic: MODEL_COLORS[orig]
+    for orig, aesthetic in MODEL_NAMES.items()
+    if orig in MODEL_COLORS
+}
+
+METRICS = [
+    ("test_acc",                 "Accuracy"),
+    ("test_balanced_acc",        "Balanced accuracy"),
+    ("full_batch_mixing_entropy", "Batch mixing entropy"),
+]
+
+
+def _extract_pct(parameter):
+    """Extract pct split value from parameter string.
+    scMusketeers: pct_seed (2 parts)
+    others:       fold_pct_seed (3 parts)
+    """
+    parts = str(parameter).split("_")
+    return float(parts[0] if len(parts) == 2 else parts[1])
+
+
+def produce_fig_task2_New(checkpoint_base_path, working_dir, run_stats=False):
+    task2_new_checkpoint_path = checkpoint_base_path.replace(".csv", "_task_2_New.csv")
+    if not os.path.exists(task2_new_checkpoint_path):
+        logger.error(f"Checkpoint file not found at {task2_new_checkpoint_path}. Run csv_process first!")
+        return
+
+    logger.info(f"Loading checkpoint from {task2_new_checkpoint_path}...")
+    runs_table_df = pd.read_csv(task2_new_checkpoint_path)
+
+    if runs_table_df.empty:
+        logger.error("No valid task 2 New runs found in checkpoint. Cannot plot figures.")
+        return
+
+    logger.info("Building DataFrames for Task 2 New plots...")
+    task_dict_acc = {}
+
+    for key, ds_list in DIFF_DICT.items():
+        df_acc = pd.DataFrame()
+        for ds in ds_list:
+            ds_df = runs_table_df[runs_table_df["dataset_name"] == ds].copy()
+            if ds_df.empty:
+                logger.warning(f"No data found for dataset '{ds}', skipping.")
+                continue
+            for model in ds_df["model"].unique():
+                if model == "pca_knn":  # PCA-kNN excluded from all figures
+                    continue
+                sub = ds_df[ds_df["model"] == model].copy()
+                if not sub.empty:
+                    sub["aestetic_data_name"] = AESTHETIC_DATA_NAME.get(ds, ds)
+                    sub["aestetic_model_name"] = MODEL_NAMES.get(model, model)
+                    sub["pct"] = sub["parameter"].apply(_extract_pct)
+                    df_acc = pd.concat([df_acc, sub])
+        task_dict_acc[key] = df_acc
+
+    figures_dir = os.path.join(working_dir, "analysis_notebooks", "figure_review", "task_2_New")
+    os.makedirs(figures_dir, exist_ok=True)
+
+    combined_df = pd.concat(
+        [df.assign(category=key) for key, df in task_dict_acc.items()],
+        ignore_index=True,
+    )
+    combined_path = os.path.join(figures_dir, "task_dict_acc.csv")
+    combined_df.to_csv(combined_path, index=False)
+    logger.info(f"Saved task_dict_acc to {combined_path}")
+
+    logger.info("Generating Task 2 New sub-figures...")
+
+    def generate_subfigures(metric_col, ylabel, output_prefix, exclude_models=None):
+        for key, title_name in CATEGORY_TITLES.items():
+            df_plot = task_dict_acc.get(key, pd.DataFrame())
+            if df_plot.empty:
+                logger.warning(f"No data for category '{key}', skipping.")
+                continue
+
+            datasets = df_plot["aestetic_data_name"].unique()
+            n_rows = len(datasets)
+            order = [m for m in MODEL_ORDER if m in df_plot["aestetic_model_name"].unique()]
+            if exclude_models:
+                order = [m for m in order if m not in exclude_models]
+            pct_order = sorted(df_plot["pct"].unique())
+
+            fig, axes = plt.subplots(n_rows, 1, figsize=(14, n_rows * 3.5))
+            if n_rows == 1:
+                axes = [axes]
+
+            fig.suptitle(title_name, fontsize=16)
+
+            for row_idx, dataset in enumerate(datasets):
+                ax = axes[row_idx]
+                ds_df = df_plot[df_plot["aestetic_data_name"] == dataset]
+
+                sns.boxplot(
+                    data=ds_df,
+                    x="pct",
+                    y=metric_col,
+                    hue="aestetic_model_name",
+                    order=pct_order,
+                    hue_order=order,
+                    palette=MODEL_COLORS_AESTHETIC,
+                    showfliers=False,
+                    ax=ax,
+                )
+                sns.stripplot(
+                    data=ds_df,
+                    x="pct",
+                    y=metric_col,
+                    hue="aestetic_model_name",
+                    order=pct_order,
+                    hue_order=order,
+                    size=3,
+                    color="black",
+                    dodge=True,
+                    legend=False,
+                    ax=ax,
+                )
+
+                ax.set_ylabel(ylabel)
+                ax.set_xlabel("Training split (pct)")
+                ax.annotate(
+                    dataset, xy=(1.02, 0.5), xycoords="axes fraction",
+                    va="center", ha="left", fontsize=9, rotation=270,
+                )
+
+                if row_idx < n_rows - 1:
+                    ax.get_legend().remove()
+                else:
+                    ax.legend(
+                        bbox_to_anchor=(1.12, 1), loc="upper left",
+                        borderaxespad=0.0, fontsize=7, title="Model", title_fontsize=8,
+                    )
+
+                if run_stats:
+                    baseline_name = "1-scMusketeers"
+                    pairs = []
+                    if baseline_name in order:
+                        for pct in pct_order:
+                            pct_df = ds_df[ds_df["pct"] == pct]
+                            for m in order:
+                                if m == baseline_name:
+                                    continue
+                                has_baseline = not pct_df[pct_df["aestetic_model_name"] == baseline_name].empty
+                                has_model = not pct_df[pct_df["aestetic_model_name"] == m].empty
+                                if has_baseline and has_model:
+                                    pairs.append(((pct, baseline_name), (pct, m)))
+                    if pairs:
+                        annot = Annotator(
+                            ax, pairs, data=ds_df,
+                            x="pct", y=metric_col,
+                            hue="aestetic_model_name",
+                            order=pct_order, hue_order=order,
+                        )
+                        try:
+                            annot.configure(
+                                test="Wilcoxon", text_format="star", loc="inside",
+                                comparisons_correction="Benjamini-Hochberg",
+                            )
+                            annot.apply_test().annotate()
+                        except Exception as e:
+                            logger.debug(f"Stats error on '{dataset}' for {metric_col}: {e}")
+
+            plt.tight_layout()
+            output_path = os.path.join(figures_dir, f"{output_prefix}_{key}.png")
+            plt.savefig(output_path, bbox_inches="tight", dpi=300)
+            plt.savefig(output_path.replace(".png", ".svg"), bbox_inches="tight")
+            logger.info(f"Saved {output_path}")
+            plt.close()
+
+    generate_subfigures(
+        metric_col="test_acc",
+        ylabel="Accuracy",
+        output_prefix="Figure_task2_New_Accuracy",
+    )
+
+    generate_subfigures(
+        metric_col="test_balanced_acc",
+        ylabel="Balanced accuracy",
+        output_prefix="Figure_task2_New_Balanced_Accuracy",
+    )
+
+    generate_subfigures(
+        metric_col="full_batch_mixing_entropy",
+        ylabel="Batch mixing entropy",
+        output_prefix="Figure_task2_New_Entropy",
+        exclude_models=ENTROPY_EXCLUDED_MODELS,
+    )

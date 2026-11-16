@@ -8,11 +8,13 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import scipy
-import sklearn
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.utils import shuffle
+import logging
+
+logger = logging.getLogger("Sc-Musketeers")
 
 
 def get_gpu_memory(txt):
@@ -59,7 +61,7 @@ def make_training_pairs(ind_classes, n_perm):
     X_1 = ind_classes * n_perm
     # X_1 = [x for sublist in X_1 for x in sublist]
     X_perm = [
-        sklearn.utils.shuffle(ind_classes, random_state=make_random_seed())
+        shuffle(ind_classes, random_state=make_random_seed())
         for i in range(n_perm)
     ]  # The corresponding permuted value
     X_perm = [x for sublist in X_perm for x in sublist]
@@ -74,8 +76,7 @@ def make_training_set(
     same_class_pct : When using contrastive loss, indicates the pct of samples to permute within their class. set to None when not using contrastive loss
     """
     permutations = [[], []]
-    print("switching perm")
-
+    
     # y = np.array(y).astype(str) If passing labels as string
 
     y_cl = np.asarray(y.argmax(axis=1)).flatten()  # convert one_hot to classes
@@ -120,7 +121,6 @@ def make_training_set_tf(
     same_class_pct : When using contrastive loss, indicates the pct of samples to permute within their class. set to None when not using contrastive loss
     """
     permutations = [[], []]
-    print("switching perm")
     # y = np.array(y).astype(str) If passing labels as string
     y_cl = tf.math.argmax(y, axis=1)
     classes = tf.unique(y_cl)
@@ -198,13 +198,12 @@ def batch_generator_training_permuted(
         unlabeled_category=unlabeled_category,
     )
     # perm_indices = make_training_set_tf(y = y, n_perm = n_perm,same_class_pct=same_class_pct, unlabeled_category = unlabeled_category)
-
     samples_per_epoch = len(perm_indices)
     number_of_batches = samples_per_epoch / batch_size
     counter = 0
-    perm_indices = sklearn.utils.shuffle(
+    perm_indices = shuffle(
         perm_indices, random_state=make_random_seed()
-    )  # Change to sklearn.utils.shuffle
+    )  # Change to shuffle
     ind_in = [ind[0] for ind in perm_indices]
     if use_perm:
         ind_out = [ind[1] for ind in perm_indices]
@@ -216,6 +215,7 @@ def batch_generator_training_permuted(
         sim = y[ind_in].values == y[ind_out].values
     # X =  X[shuffle_index, :]
     # y =  y[shuffle_index]
+
     i = 0
     while 1:
         if counter == samples_per_epoch // batch_size:
@@ -289,6 +289,7 @@ def batch_generator_training_permuted(
                     {"counts": X_in_batch, "size_factors": sf_in_batch},
                     X_out_batch,
                 )  # first dim is the number of batches, next dims are the shape of input
+        
         if (
             counter == samples_per_epoch // batch_size
             and samples_per_epoch % batch_size == 0
@@ -304,7 +305,7 @@ def batch_generator_training_permuted(
                 )
                 gc.collect()
             random_seed = make_random_seed()
-            perm_indices = sklearn.utils.shuffle(
+            perm_indices = shuffle(
                 perm_indices, random_state=random_seed
             )  # Shuffles the orders of observations
             ind_in = [ind[0] for ind in perm_indices]
@@ -312,6 +313,7 @@ def batch_generator_training_permuted(
                 ind_out = [ind[1] for ind in perm_indices]
             else:
                 ind_out = ind_in  # Here, we're not using permutations
+            
             if same_class_pct:
                 sim = y[ind_in].values == y[ind_out].values
             debug = pd.DataFrame({"in": ind_in, "out": ind_out})

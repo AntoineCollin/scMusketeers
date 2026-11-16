@@ -20,8 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.10" ]
-        poetry-version: [ "1.8.1" ]
+        python-version: [ "3.12" ]
+        poetry-version: [ "1.8.5" ]
         os: [ ubuntu-latest ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -43,9 +43,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.10" ]
-        poetry-version: [ "1.8.1" ]
-        poetry-version-pip: [ "==1.8.1" ]
+        python-version: [ "3.12" ]
+        poetry-version: [ "1.8.5" ]
+        poetry-version-pip: [ "==1.8.5" ]
         os: [ ubuntu-latest ]
     runs-on: ${{ matrix.os }}
     steps:

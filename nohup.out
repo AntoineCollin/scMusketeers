@@ -1,0 +1,487 @@
+2026-03-08 22:43:31.540490: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-03-08 22:43:31.556577: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773006211.575682 3853160 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773006211.582305 3853160 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-03-08 22:43:31.602092: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/cbecavin/.cache/pypoetry/virtualenvs/sc-musketeers-voskaBul-py3.12/lib/python3.12/site-packages/scvi/__init__.py:31: DeprecationWarning: scvi is deprecated, please uninstall scvi via `pip uninstall scvi` and install the new scvi-tools package at github.com/YosefLab/scvi-tools
+  warnings.warn(deprecation_msg, DeprecationWarning)
+Sc-Musketeers 0.6.3 started
+Sc-Musketeers 0.6.3 started
+sc-musketeers 0.6.3
+2026-03-08 22:43:40.024806: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-03-08 22:43:40.040079: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773006220.059125 3853166 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773006220.065933 3853166 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-03-08 22:43:40.086219: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/cbecavin/.cache/pypoetry/virtualenvs/sc-musketeers-voskaBul-py3.12/lib/python3.12/site-packages/scvi/__init__.py:31: DeprecationWarning: scvi is deprecated, please uninstall scvi via `pip uninstall scvi` and install the new scvi-tools package at github.com/YosefLab/scvi-tools
+  warnings.warn(deprecation_msg, DeprecationWarning)
+Sc-Musketeers 0.6.3 started
+Sc-Musketeers 0.6.3 started
+Program arguments: Namespace(debug=True, process='transfer', ref_path='/workspace/cell/scMusketeers/data/Deprez-Lung-unknown-0.2.h5ad', class_key='celltype', batch_key='donor', query_path=None, out_dir='/workspace/cell/scMusketeers', out_name='Deprez-Lung-unknown-0.2-pred', training_scheme='training_scheme_8', log_neptune=False, neptune_name=None, hparam_path=None, opt_metric='val-balanced_mcc', verbose=True, unlabeled_category='Unknown', filter_min_counts=True, normalize_size_factors=True, size_factor='default', scale_input=False, logtrans_input=True, use_hvg=None, batch_size=430, test_split_key='TRAIN_TEST_split', test_obs=None, test_index_name=None, mode='percentage', pct_split=0.9, obs_key='manip', n_keep=None, split_strategy=None, keep_obs=None, train_test_random_seed=0, obs_subsample=None, make_fake=False, true_celltype=None, false_celltype=None, pct_false=None, weight_decay=9.447375593939065e-07, learning_rate=0.0009913638603687327, optimizer_type='adam', warmup_epoch=20, fullmodel_epoch=50, permonly_epoch=50, classifier_epoch=50, balance_classes=True, clas_loss_name='categorical_focal_crossentropy', dann_loss_name='categorical_crossentropy', rec_loss_name='MSE', clas_w=0.3066763716843436, dann_w=0.01865515471175812, rec_w=0.013070252184855429, dropout=0.27058450953709307, layer1=1151, layer2=235, bottleneck=84, ae_hidden_size=[128, 64, 128], ae_hidden_dropout=None, ae_activation='relu', ae_bottleneck_activation='linear', ae_output_activation='relu', ae_init='glorot_uniform', ae_batchnorm=True, ae_l1_enc_coef=None, ae_l2_enc_coef=None, class_hidden_size=[64], class_hidden_dropout=None, class_batchnorm=True, class_activation='relu', class_output_activation='softmax', dann_hidden_size=[64], dann_hidden_dropout=None, dann_batchnorm=True, dann_activation='relu', dann_output_activation='softmax')
+I0000 00:00:1773006224.127131 3853166 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 31132 MB memory:  -> device: 0, name: Tesla V100-SXM2-32GB, pci bus id: 0000:af:00.0, compute capability: 7.0
+Set optimizer to adam
+Training scheme : training_scheme_8, warmup 20
+Set optimizer to adam
+##-- WARMUP_DANN - Step 0, running warmup_dann strategy with permutation = True for 20 epochs
+Epoch 1/120, Current strat Epoch 1/20
+Unfreezing layer: <Encoder name=Encoder, built=False>
+Unfreezing layer: <Decoder name=Decoder, built=False>
+Unfreezing layer: <Classifier name=Classifier, built=False>
+Unfreezing layer: <Classifier name=Dann_Discriminator, built=False>
+Unfreezing layer: <GradReverse name=grad_reverse, built=False>
+Unfreezing dann-discri layer: <Dense name=dann_discriminator_0, built=False>
+Unfreezing dann-discri layer: <BatchNormalization name=batch_normalization_6, built=False>
+Unfreezing dann-discri layer: <Activation name=dann_discriminator_0_act, built=True>
+Unfreezing dann-discri layer: <Dropout name=dann_discriminator_0_drop, built=True>
+Unfreezing dann-discri layer: <Dense name=dann_discriminator_output, built=False>
+Unfreezing classifier layer: <Dense name=classifier_0, built=False>
+Unfreezing classifier layer: <BatchNormalization name=batch_normalization_5, built=False>
+Unfreezing classifier layer: <Activation name=classifier_0_act, built=True>
+Unfreezing classifier layer: <Dropout name=classifier_0_drop, built=True>
+Unfreezing classifier layer: <Dense name=classifier_output, built=False>
+Permutation - use_perm = True
+Terminated
+2026-03-08 22:45:06.100780: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-03-08 22:45:06.115905: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773006306.134921 3853259 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773006306.141619 3853259 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-03-08 22:45:06.161571: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/cbecavin/.cache/pypoetry/virtualenvs/sc-musketeers-voskaBul-py3.12/lib/python3.12/site-packages/scvi/__init__.py:31: DeprecationWarning: scvi is deprecated, please uninstall scvi via `pip uninstall scvi` and install the new scvi-tools package at github.com/YosefLab/scvi-tools
+  warnings.warn(deprecation_msg, DeprecationWarning)
+Sc-Musketeers 0.6.3 started
+Sc-Musketeers 0.6.3 started
+sc-musketeers 0.6.3
+2026-03-08 22:45:14.565329: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-03-08 22:45:14.580494: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773006314.599695 3853266 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773006314.606425 3853266 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-03-08 22:45:14.626449: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/cbecavin/.cache/pypoetry/virtualenvs/sc-musketeers-voskaBul-py3.12/lib/python3.12/site-packages/scvi/__init__.py:31: DeprecationWarning: scvi is deprecated, please uninstall scvi via `pip uninstall scvi` and install the new scvi-tools package at github.com/YosefLab/scvi-tools
+  warnings.warn(deprecation_msg, DeprecationWarning)
+Sc-Musketeers 0.6.3 started
+Sc-Musketeers 0.6.3 started
+Program arguments: Namespace(debug=True, process='transfer', ref_path='/workspace/cell/scMusketeers/data/Deprez-Lung-unknown-0.2.h5ad', class_key='celltype', batch_key='donor', query_path=None, out_dir='/workspace/cell/scMusketeers', out_name='Deprez-Lung-unknown-0.2-pred', training_scheme='training_scheme_8', log_neptune=False, neptune_name=None, hparam_path=None, opt_metric='val-balanced_mcc', verbose=True, unlabeled_category='Unknown', filter_min_counts=True, normalize_size_factors=True, size_factor='default', scale_input=False, logtrans_input=True, use_hvg=None, batch_size=430, test_split_key='TRAIN_TEST_split', test_obs=None, test_index_name=None, mode='percentage', pct_split=0.9, obs_key='manip', n_keep=None, split_strategy=None, keep_obs=None, train_test_random_seed=0, obs_subsample=None, make_fake=False, true_celltype=None, false_celltype=None, pct_false=None, weight_decay=9.447375593939065e-07, learning_rate=0.0009913638603687327, optimizer_type='adam', warmup_epoch=20, fullmodel_epoch=50, permonly_epoch=50, classifier_epoch=50, balance_classes=True, clas_loss_name='categorical_focal_crossentropy', dann_loss_name='categorical_crossentropy', rec_loss_name='MSE', clas_w=0.3066763716843436, dann_w=0.01865515471175812, rec_w=0.013070252184855429, dropout=0.27058450953709307, layer1=1151, layer2=235, bottleneck=84, ae_hidden_size=[128, 64, 128], ae_hidden_dropout=None, ae_activation='relu', ae_bottleneck_activation='linear', ae_output_activation='relu', ae_init='glorot_uniform', ae_batchnorm=True, ae_l1_enc_coef=None, ae_l2_enc_coef=None, class_hidden_size=[64], class_hidden_dropout=None, class_batchnorm=True, class_activation='relu', class_output_activation='softmax', dann_hidden_size=[64], dann_hidden_dropout=None, dann_batchnorm=True, dann_activation='relu', dann_output_activation='softmax')
+I0000 00:00:1773006318.673184 3853266 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 31132 MB memory:  -> device: 0, name: Tesla V100-SXM2-32GB, pci bus id: 0000:af:00.0, compute capability: 7.0
+Set optimizer to adam
+Training scheme : training_scheme_8, warmup 20
+Set optimizer to adam
+##-- WARMUP_DANN - Step 0, running warmup_dann strategy with permutation = True for 20 epochs
+Epoch 1/120, Current strat Epoch 1/20
+Permutation - use_perm = True
+Epoch 2/120, Current strat Epoch 2/20
+Permutation - use_perm = True
+Epoch 3/120, Current strat Epoch 3/20
+Permutation - use_perm = True
+Epoch 4/120, Current strat Epoch 4/20
+Permutation - use_perm = True
+Epoch 5/120, Current strat Epoch 5/20
+Permutation - use_perm = True
+Epoch 6/120, Current strat Epoch 6/20
+Permutation - use_perm = True
+Epoch 7/120, Current strat Epoch 7/20
+Permutation - use_perm = True
+Epoch 8/120, Current strat Epoch 8/20
+Permutation - use_perm = True
+Epoch 9/120, Current strat Epoch 9/20
+Permutation - use_perm = True
+Epoch 10/120, Current strat Epoch 10/20
+Permutation - use_perm = True
+Epoch 11/120, Current strat Epoch 11/20
+Permutation - use_perm = True
+Epoch 12/120, Current strat Epoch 12/20
+Permutation - use_perm = True
+Epoch 13/120, Current strat Epoch 13/20
+Permutation - use_perm = True
+Epoch 14/120, Current strat Epoch 14/20
+Permutation - use_perm = True
+Terminated
+2026-03-08 23:13:37.220599: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-03-08 23:13:37.235323: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773008017.254559 3853821 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773008017.260968 3853821 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-03-08 23:13:37.280516: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/cbecavin/.cache/pypoetry/virtualenvs/sc-musketeers-voskaBul-py3.12/lib/python3.12/site-packages/scvi/__init__.py:31: DeprecationWarning: scvi is deprecated, please uninstall scvi via `pip uninstall scvi` and install the new scvi-tools package at github.com/YosefLab/scvi-tools
+  warnings.warn(deprecation_msg, DeprecationWarning)
+Sc-Musketeers 0.6.3 started
+Sc-Musketeers 0.6.3 started
+sc-musketeers 0.6.3
+2026-03-08 23:13:45.872244: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-03-08 23:13:45.886940: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773008025.905827 3853828 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773008025.912120 3853828 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-03-08 23:13:45.931738: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/cbecavin/.cache/pypoetry/virtualenvs/sc-musketeers-voskaBul-py3.12/lib/python3.12/site-packages/scvi/__init__.py:31: DeprecationWarning: scvi is deprecated, please uninstall scvi via `pip uninstall scvi` and install the new scvi-tools package at github.com/YosefLab/scvi-tools
+  warnings.warn(deprecation_msg, DeprecationWarning)
+Sc-Musketeers 0.6.3 started
+Sc-Musketeers 0.6.3 started
+Program arguments: Namespace(debug=True, process='transfer', ref_path='/workspace/cell/scMusketeers/data/Deprez-Lung-unknown-0.2.h5ad', class_key='celltype', batch_key='donor', query_path=None, out_dir='/workspace/cell/scMusketeers', out_name='Deprez-Lung-unknown-0.2-pred', training_scheme='training_scheme_8', log_neptune=False, neptune_name=None, hparam_path=None, opt_metric='val-balanced_mcc', verbose=True, unlabeled_category='Unknown', filter_min_counts=True, normalize_size_factors=True, size_factor='default', scale_input=False, logtrans_input=True, use_hvg=None, batch_size=430, test_split_key='TRAIN_TEST_split', test_obs=None, test_index_name=None, mode='percentage', pct_split=0.9, obs_key='manip', n_keep=None, split_strategy=None, keep_obs=None, train_test_random_seed=0, obs_subsample=None, make_fake=False, true_celltype=None, false_celltype=None, pct_false=None, weight_decay=9.447375593939065e-07, learning_rate=0.0009913638603687327, optimizer_type='adam', warmup_epoch=20, fullmodel_epoch=50, permonly_epoch=50, classifier_epoch=50, balance_classes=True, clas_loss_name='categorical_focal_crossentropy', dann_loss_name='categorical_crossentropy', rec_loss_name='MSE', clas_w=0.3066763716843436, dann_w=0.01865515471175812, rec_w=0.013070252184855429, dropout=0.27058450953709307, layer1=1151, layer2=235, bottleneck=84, ae_hidden_size=[128, 64, 128], ae_hidden_dropout=None, ae_activation='relu', ae_bottleneck_activation='linear', ae_output_activation='relu', ae_init='glorot_uniform', ae_batchnorm=True, ae_l1_enc_coef=None, ae_l2_enc_coef=None, class_hidden_size=[64], class_hidden_dropout=None, class_batchnorm=True, class_activation='relu', class_output_activation='softmax', dann_hidden_size=[64], dann_hidden_dropout=None, dann_batchnorm=True, dann_activation='relu', dann_output_activation='softmax')
+I0000 00:00:1773008030.034390 3853828 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 31132 MB memory:  -> device: 0, name: Tesla V100-SXM2-32GB, pci bus id: 0000:af:00.0, compute capability: 7.0
+Set optimizer to adam
+Training scheme : training_scheme_8, warmup 20
+Set optimizer to adam
+##-- WARMUP_DANN - Step 0, running warmup_dann strategy with permutation = True for 20 epochs
+Epoch 1/120, Current strategy warmup_dann, Epoch 1/20
+Permutation - use_perm = True
+Epoch 2/120, Current strategy warmup_dann, Epoch 2/20
+Permutation - use_perm = True
+Epoch 3/120, Current strategy warmup_dann, Epoch 3/20
+Permutation - use_perm = True
+Epoch 4/120, Current strategy warmup_dann, Epoch 4/20
+Permutation - use_perm = True
+Epoch 5/120, Current strategy warmup_dann, Epoch 5/20
+Permutation - use_perm = True
+Epoch 6/120, Current strategy warmup_dann, Epoch 6/20
+Permutation - use_perm = True
+Epoch 7/120, Current strategy warmup_dann, Epoch 7/20
+Permutation - use_perm = True
+Epoch 8/120, Current strategy warmup_dann, Epoch 8/20
+Permutation - use_perm = True
+Epoch 9/120, Current strategy warmup_dann, Epoch 9/20
+Permutation - use_perm = True
+Epoch 10/120, Current strategy warmup_dann, Epoch 10/20
+Permutation - use_perm = True
+Epoch 11/120, Current strategy warmup_dann, Epoch 11/20
+Permutation - use_perm = True
+Epoch 12/120, Current strategy warmup_dann, Epoch 12/20
+Permutation - use_perm = True
+Epoch 13/120, Current strategy warmup_dann, Epoch 13/20
+Permutation - use_perm = True
+Epoch 14/120, Current strategy warmup_dann, Epoch 14/20
+Permutation - use_perm = True
+Epoch 15/120, Current strategy warmup_dann, Epoch 15/20
+Permutation - use_perm = True
+Epoch 16/120, Current strategy warmup_dann, Epoch 16/20
+Permutation - use_perm = True
+Epoch 17/120, Current strategy warmup_dann, Epoch 17/20
+Permutation - use_perm = True
+Epoch 18/120, Current strategy warmup_dann, Epoch 18/20
+Permutation - use_perm = True
+Epoch 19/120, Current strategy warmup_dann, Epoch 19/20
+Permutation - use_perm = True
+Epoch 20/120, Current strategy warmup_dann, Epoch 20/20
+Permutation - use_perm = True
+Set optimizer to adam
+##-- FULL_MODEL - Step 1, running full_model strategy with permutation = False for 50 epochs
+Epoch 21/120, Current strategy full_model, Epoch 1/50
+Permutation - use_perm = False
+Epoch 22/120, Current strategy full_model, Epoch 2/50
+Permutation - use_perm = False
+Epoch 23/120, Current strategy full_model, Epoch 3/50
+Permutation - use_perm = False
+Epoch 24/120, Current strategy full_model, Epoch 4/50
+Permutation - use_perm = False
+Epoch 25/120, Current strategy full_model, Epoch 5/50
+Permutation - use_perm = False
+Epoch 26/120, Current strategy full_model, Epoch 6/50
+Permutation - use_perm = False
+Epoch 27/120, Current strategy full_model, Epoch 7/50
+Permutation - use_perm = False
+Epoch 28/120, Current strategy full_model, Epoch 8/50
+Permutation - use_perm = False
+Epoch 29/120, Current strategy full_model, Epoch 9/50
+Permutation - use_perm = False
+Epoch 30/120, Current strategy full_model, Epoch 10/50
+Permutation - use_perm = False
+Epoch 31/120, Current strategy full_model, Epoch 11/50
+Permutation - use_perm = False
+Epoch 32/120, Current strategy full_model, Epoch 12/50
+Permutation - use_perm = False
+Epoch 33/120, Current strategy full_model, Epoch 13/50
+Permutation - use_perm = False
+Epoch 34/120, Current strategy full_model, Epoch 14/50
+Permutation - use_perm = False
+Epoch 35/120, Current strategy full_model, Epoch 15/50
+Permutation - use_perm = False
+Epoch 36/120, Current strategy full_model, Epoch 16/50
+Permutation - use_perm = False
+Epoch 37/120, Current strategy full_model, Epoch 17/50
+Permutation - use_perm = False
+Epoch 38/120, Current strategy full_model, Epoch 18/50
+Permutation - use_perm = False
+Epoch 39/120, Current strategy full_model, Epoch 19/50
+Permutation - use_perm = False
+Epoch 40/120, Current strategy full_model, Epoch 20/50
+Permutation - use_perm = False
+Epoch 41/120, Current strategy full_model, Epoch 21/50
+Permutation - use_perm = False
+Epoch 42/120, Current strategy full_model, Epoch 22/50
+Permutation - use_perm = False
+Epoch 43/120, Current strategy full_model, Epoch 23/50
+Permutation - use_perm = False
+Epoch 44/120, Current strategy full_model, Epoch 24/50
+Permutation - use_perm = False
+Epoch 45/120, Current strategy full_model, Epoch 25/50
+Permutation - use_perm = False
+Epoch 46/120, Current strategy full_model, Epoch 26/50
+Permutation - use_perm = False
+Epoch 47/120, Current strategy full_model, Epoch 27/50
+Permutation - use_perm = False
+Epoch 48/120, Current strategy full_model, Epoch 28/50
+Permutation - use_perm = False
+Epoch 49/120, Current strategy full_model, Epoch 29/50
+Permutation - use_perm = False
+Epoch 50/120, Current strategy full_model, Epoch 30/50
+Permutation - use_perm = False
+Epoch 51/120, Current strategy full_model, Epoch 31/50
+Permutation - use_perm = False
+Epoch 52/120, Current strategy full_model, Epoch 32/50
+Permutation - use_perm = False
+Epoch 53/120, Current strategy full_model, Epoch 33/50
+Permutation - use_perm = False
+Epoch 54/120, Current strategy full_model, Epoch 34/50
+Permutation - use_perm = False
+Epoch 55/120, Current strategy full_model, Epoch 35/50
+Permutation - use_perm = False
+Epoch 56/120, Current strategy full_model, Epoch 36/50
+Permutation - use_perm = False
+Epoch 57/120, Current strategy full_model, Epoch 37/50
+Permutation - use_perm = False
+Epoch 58/120, Current strategy full_model, Epoch 38/50
+Permutation - use_perm = False
+Epoch 59/120, Current strategy full_model, Epoch 39/50
+Permutation - use_perm = False
+Epoch 60/120, Current strategy full_model, Epoch 40/50
+Permutation - use_perm = False
+Epoch 61/120, Current strategy full_model, Epoch 41/50
+Permutation - use_perm = False
+Epoch 62/120, Current strategy full_model, Epoch 42/50
+Permutation - use_perm = False
+Epoch 63/120, Current strategy full_model, Epoch 43/50
+Permutation - use_perm = False
+Epoch 64/120, Current strategy full_model, Epoch 44/50
+Permutation - use_perm = False
+Epoch 65/120, Current strategy full_model, Epoch 45/50
+Permutation - use_perm = False
+Epoch 66/120, Current strategy full_model, Epoch 46/50
+Permutation - use_perm = False
+Epoch 67/120, Current strategy full_model, Epoch 47/50
+Permutation - use_perm = False
+Epoch 68/120, Current strategy full_model, Epoch 48/50
+Permutation - use_perm = False
+Epoch 69/120, Current strategy full_model, Epoch 49/50
+Permutation - use_perm = False
+Epoch 70/120, Current strategy full_model, Epoch 50/50
+Permutation - use_perm = False
+Set optimizer to adam
+##-- CLASSIFIER_BRANCH - Step 2, running classifier_branch strategy with permutation = False for 50 epochs
+Epoch 71/120, Current strategy classifier_branch, Epoch 1/50
+Permutation - use_perm = False
+Epoch 72/120, Current strategy classifier_branch, Epoch 2/50
+Permutation - use_perm = False
+Epoch 73/120, Current strategy classifier_branch, Epoch 3/50
+Permutation - use_perm = False
+Epoch 74/120, Current strategy classifier_branch, Epoch 4/50
+Permutation - use_perm = False
+Epoch 75/120, Current strategy classifier_branch, Epoch 5/50
+Permutation - use_perm = False
+Epoch 76/120, Current strategy classifier_branch, Epoch 6/50
+Permutation - use_perm = False
+Epoch 77/120, Current strategy classifier_branch, Epoch 7/50
+Permutation - use_perm = False
+Epoch 78/120, Current strategy classifier_branch, Epoch 8/50
+Permutation - use_perm = False
+Epoch 79/120, Current strategy classifier_branch, Epoch 9/50
+Permutation - use_perm = False
+Epoch 80/120, Current strategy classifier_branch, Epoch 10/50
+Permutation - use_perm = False
+Epoch 81/120, Current strategy classifier_branch, Epoch 11/50
+Permutation - use_perm = False
+Epoch 82/120, Current strategy classifier_branch, Epoch 12/50
+Permutation - use_perm = False
+Epoch 83/120, Current strategy classifier_branch, Epoch 13/50
+Permutation - use_perm = False
+Epoch 84/120, Current strategy classifier_branch, Epoch 14/50
+Permutation - use_perm = False
+Epoch 85/120, Current strategy classifier_branch, Epoch 15/50
+Permutation - use_perm = False
+Epoch 86/120, Current strategy classifier_branch, Epoch 16/50
+Permutation - use_perm = False
+Epoch 87/120, Current strategy classifier_branch, Epoch 17/50
+Permutation - use_perm = False
+Epoch 88/120, Current strategy classifier_branch, Epoch 18/50
+Permutation - use_perm = False
+Epoch 89/120, Current strategy classifier_branch, Epoch 19/50
+Permutation - use_perm = False
+Epoch 90/120, Current strategy classifier_branch, Epoch 20/50
+Permutation - use_perm = False
+Epoch 91/120, Current strategy classifier_branch, Epoch 21/50
+Permutation - use_perm = False
+Epoch 92/120, Current strategy classifier_branch, Epoch 22/50
+Permutation - use_perm = False
+Epoch 93/120, Current strategy classifier_branch, Epoch 23/50
+Permutation - use_perm = False
+Epoch 94/120, Current strategy classifier_branch, Epoch 24/50
+Permutation - use_perm = False
+Epoch 95/120, Current strategy classifier_branch, Epoch 25/50
+Permutation - use_perm = False
+Epoch 96/120, Current strategy classifier_branch, Epoch 26/50
+Permutation - use_perm = False
+Epoch 97/120, Current strategy classifier_branch, Epoch 27/50
+Permutation - use_perm = False
+Epoch 98/120, Current strategy classifier_branch, Epoch 28/50
+Permutation - use_perm = False
+Epoch 99/120, Current strategy classifier_branch, Epoch 29/50
+Permutation - use_perm = False
+Epoch 100/120, Current strategy classifier_branch, Epoch 30/50
+Permutation - use_perm = False
+Epoch 101/120, Current strategy classifier_branch, Epoch 31/50
+Permutation - use_perm = False
+Epoch 102/120, Current strategy classifier_branch, Epoch 32/50
+Permutation - use_perm = False
+Epoch 103/120, Current strategy classifier_branch, Epoch 33/50
+Permutation - use_perm = False
+Epoch 104/120, Current strategy classifier_branch, Epoch 34/50
+Permutation - use_perm = False
+Epoch 105/120, Current strategy classifier_branch, Epoch 35/50
+Permutation - use_perm = False
+Epoch 106/120, Current strategy classifier_branch, Epoch 36/50
+Permutation - use_perm = False
+Epoch 107/120, Current strategy classifier_branch, Epoch 37/50
+Permutation - use_perm = False
+Epoch 108/120, Current strategy classifier_branch, Epoch 38/50
+Permutation - use_perm = False
+Epoch 109/120, Current strategy classifier_branch, Epoch 39/50
+Permutation - use_perm = False
+Epoch 110/120, Current strategy classifier_branch, Epoch 40/50
+Permutation - use_perm = False
+Epoch 111/120, Current strategy classifier_branch, Epoch 41/50
+Permutation - use_perm = False
+Epoch 112/120, Current strategy classifier_branch, Epoch 42/50
+Permutation - use_perm = False
+Early stopping at epoch 22, restoring model parameters from this epoch
+... storing 'train_split' as categorical
+... storing 'celltype_pred' as categorical
+Use Neptune.ai log : False
+Unknown
+['Multiciliated N', 'Secretory N', 'Suprabasal N', 'Unknown', 'Multiciliated', ..., 'Precursor', 'Ionocyte', 'Brush cells', 'AT1', 'AT2']
+Length: 29
+Categories (29, object): ['AT1', 'AT2', 'B cells', 'Basal', ..., 'Smooth muscle', 'Suprabasal',
+                          'Suprabasal N', 'Unknown']
+4678
+Switching permutation in make_training_set()
+0/23391 - total loss: 0.0657 - classification loss: 2.1109 - dann loss: 3.4842 - reconstruction loss: 0.0567Switching permutation in make_training_set()
+0/23391 - total loss: 0.0508 - classification loss: 2.0913 - dann loss: 2.6935 - reconstruction loss: 0.0427Switching permutation in make_training_set()
+0/23391 - total loss: 0.0485 - classification loss: 2.1326 - dann loss: 2.5717 - reconstruction loss: 0.0414Switching permutation in make_training_set()
+0/23391 - total loss: 0.0474 - classification loss: 2.1818 - dann loss: 2.5111 - reconstruction loss: 0.0409Switching permutation in make_training_set()
+0/23391 - total loss: 0.0467 - classification loss: 2.1212 - dann loss: 2.4742 - reconstruction loss: 0.0403Switching permutation in make_training_set()
+0/23391 - total loss: 0.0463 - classification loss: 2.1653 - dann loss: 2.4561 - reconstruction loss: 0.0399Switching permutation in make_training_set()
+0/23391 - total loss: 0.0448 - classification loss: 2.0970 - dann loss: 2.3758 - reconstruction loss: 0.0398Switching permutation in make_training_set()
+0/23391 - total loss: 0.0442 - classification loss: 2.1858 - dann loss: 2.3419 - reconstruction loss: 0.0392Switching permutation in make_training_set()
+0/23391 - total loss: 0.0440 - classification loss: 2.1351 - dann loss: 2.3330 - reconstruction loss: 0.0390Switching permutation in make_training_set()
+0/23391 - total loss: 0.0431 - classification loss: 2.1285 - dann loss: 2.2823 - reconstruction loss: 0.0391Switching permutation in make_training_set()
+0/23391 - total loss: 0.0431 - classification loss: 2.0520 - dann loss: 2.2846 - reconstruction loss: 0.0389Switching permutation in make_training_set()
+0/23391 - total loss: 0.0431 - classification loss: 2.0526 - dann loss: 2.2838 - reconstruction loss: 0.0386Switching permutation in make_training_set()
+0/23391 - total loss: 0.0426 - classification loss: 2.0759 - dann loss: 2.2549 - reconstruction loss: 0.0384Switching permutation in make_training_set()
+0/23391 - total loss: 0.0425 - classification loss: 2.0826 - dann loss: 2.2490 - reconstruction loss: 0.0383Switching permutation in make_training_set()
+0/23391 - total loss: 0.0420 - classification loss: 2.1599 - dann loss: 2.2220 - reconstruction loss: 0.0384Switching permutation in make_training_set()
+0/23391 - total loss: 0.0425 - classification loss: 2.1468 - dann loss: 2.2526 - reconstruction loss: 0.0384Switching permutation in make_training_set()
+0/23391 - total loss: 0.0423 - classification loss: 2.0782 - dann loss: 2.2405 - reconstruction loss: 0.0383Switching permutation in make_training_set()
+0/23391 - total loss: 0.0420 - classification loss: 2.1318 - dann loss: 2.2225 - reconstruction loss: 0.0382Switching permutation in make_training_set()
+0/23391 - total loss: 0.0417 - classification loss: 2.0802 - dann loss: 2.2064 - reconstruction loss: 0.0383Switching permutation in make_training_set()
+0/23391 - total loss: 0.0421 - classification loss: 2.1232 - dann loss: 2.2324 - reconstruction loss: 0.0384Switching permutation in make_training_set()
+0/3742 - total loss: 1.0339 - classification loss: 3.2355 - dann loss: 2.2098 - reconstruction loss: 0.0371Switching permutation in make_training_set()
+0/3742 - total loss: 0.7963 - classification loss: 2.4641 - dann loss: 2.1511 - reconstruction loss: 0.0373Switching permutation in make_training_set()
+0/3742 - total loss: 0.6699 - classification loss: 2.0545 - dann loss: 2.1068 - reconstruction loss: 0.0369Switching permutation in make_training_set()
+0/3742 - total loss: 0.5702 - classification loss: 1.7323 - dann loss: 2.0622 - reconstruction loss: 0.0368Switching permutation in make_training_set()
+0/3742 - total loss: 0.4521 - classification loss: 1.3493 - dann loss: 2.0256 - reconstruction loss: 0.0366Switching permutation in make_training_set()
+0/3742 - total loss: 0.4607 - classification loss: 1.3799 - dann loss: 1.9846 - reconstruction loss: 0.0365Switching permutation in make_training_set()
+0/3742 - total loss: 0.4008 - classification loss: 1.1866 - dann loss: 1.9527 - reconstruction loss: 0.0363Switching permutation in make_training_set()
+0/3742 - total loss: 0.2887 - classification loss: 0.8226 - dann loss: 1.9288 - reconstruction loss: 0.0362Switching permutation in make_training_set()
+0/3742 - total loss: 0.2299 - classification loss: 0.6322 - dann loss: 1.9067 - reconstruction loss: 0.0361Switching permutation in make_training_set()
+0/3742 - total loss: 0.2659 - classification loss: 0.7495 - dann loss: 1.9049 - reconstruction loss: 0.0360Switching permutation in make_training_set()
+0/3742 - total loss: 0.1731 - classification loss: 0.4473 - dann loss: 1.8986 - reconstruction loss: 0.0359Switching permutation in make_training_set()
+0/3742 - total loss: 0.2367 - classification loss: 0.6561 - dann loss: 1.8799 - reconstruction loss: 0.0358Switching permutation in make_training_set()
+0/3742 - total loss: 0.1601 - classification loss: 0.4055 - dann loss: 1.8893 - reconstruction loss: 0.0356Switching permutation in make_training_set()
+0/3742 - total loss: 0.1366 - classification loss: 0.3292 - dann loss: 1.8860 - reconstruction loss: 0.0356Switching permutation in make_training_set()
+0/3742 - total loss: 0.1739 - classification loss: 0.4510 - dann loss: 1.8847 - reconstruction loss: 0.0355Switching permutation in make_training_set()
+0/3742 - total loss: 0.1109 - classification loss: 0.2452 - dann loss: 1.8909 - reconstruction loss: 0.0355Switching permutation in make_training_set()
+0/3742 - total loss: 0.1409 - classification loss: 0.3435 - dann loss: 1.8803 - reconstruction loss: 0.0355Switching permutation in make_training_set()
+0/3742 - total loss: 0.1617 - classification loss: 0.4107 - dann loss: 1.8896 - reconstruction loss: 0.0354Switching permutation in make_training_set()
+0/3742 - total loss: 0.1980 - classification loss: 0.5295 - dann loss: 1.8837 - reconstruction loss: 0.0353Switching permutation in make_training_set()
+0/3742 - total loss: 0.1188 - classification loss: 0.2706 - dann loss: 1.8945 - reconstruction loss: 0.0353Switching permutation in make_training_set()
+0/3742 - total loss: 0.1119 - classification loss: 0.2473 - dann loss: 1.9083 - reconstruction loss: 0.0352Switching permutation in make_training_set()
+0/3742 - total loss: 0.1761 - classification loss: 0.4566 - dann loss: 1.9115 - reconstruction loss: 0.0351Switching permutation in make_training_set()
+0/3742 - total loss: 0.1244 - classification loss: 0.2881 - dann loss: 1.9069 - reconstruction loss: 0.0351Switching permutation in make_training_set()
+0/3742 - total loss: 0.0966 - classification loss: 0.1969 - dann loss: 1.9165 - reconstruction loss: 0.0350Switching permutation in make_training_set()
+0/3742 - total loss: 0.0846 - classification loss: 0.1580 - dann loss: 1.9148 - reconstruction loss: 0.0350Switching permutation in make_training_set()
+0/3742 - total loss: 0.0871 - classification loss: 0.1664 - dann loss: 1.9098 - reconstruction loss: 0.0350Switching permutation in make_training_set()
+0/3742 - total loss: 0.0743 - classification loss: 0.1249 - dann loss: 1.9063 - reconstruction loss: 0.0349Switching permutation in make_training_set()
+0/3742 - total loss: 0.1024 - classification loss: 0.2154 - dann loss: 1.9221 - reconstruction loss: 0.0349Switching permutation in make_training_set()
+0/3742 - total loss: 0.0705 - classification loss: 0.1115 - dann loss: 1.9224 - reconstruction loss: 0.0349Switching permutation in make_training_set()
+0/3742 - total loss: 0.0711 - classification loss: 0.1137 - dann loss: 1.9171 - reconstruction loss: 0.0349Switching permutation in make_training_set()
+0/3742 - total loss: 0.0679 - classification loss: 0.1029 - dann loss: 1.9222 - reconstruction loss: 0.0348Switching permutation in make_training_set()
+0/3742 - total loss: 0.0763 - classification loss: 0.1305 - dann loss: 1.9194 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0707 - classification loss: 0.1122 - dann loss: 1.9231 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0740 - classification loss: 0.1223 - dann loss: 1.9310 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0822 - classification loss: 0.1495 - dann loss: 1.9230 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0773 - classification loss: 0.1329 - dann loss: 1.9333 - reconstruction loss: 0.0348Switching permutation in make_training_set()
+0/3742 - total loss: 0.0807 - classification loss: 0.1444 - dann loss: 1.9301 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0779 - classification loss: 0.1352 - dann loss: 1.9264 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0617 - classification loss: 0.0824 - dann loss: 1.9278 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0671 - classification loss: 0.1003 - dann loss: 1.9232 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0578 - classification loss: 0.0697 - dann loss: 1.9279 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0593 - classification loss: 0.0746 - dann loss: 1.9267 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0645 - classification loss: 0.0916 - dann loss: 1.9296 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0588 - classification loss: 0.0732 - dann loss: 1.9243 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0958 - classification loss: 0.1937 - dann loss: 1.9256 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0537 - classification loss: 0.0557 - dann loss: 1.9358 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0901 - classification loss: 0.1750 - dann loss: 1.9285 - reconstruction loss: 0.0345Switching permutation in make_training_set()
+0/3742 - total loss: 0.0562 - classification loss: 0.0639 - dann loss: 1.9353 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0561 - classification loss: 0.0640 - dann loss: 1.9317 - reconstruction loss: 0.0345Switching permutation in make_training_set()
+0/3742 - total loss: 0.0789 - classification loss: 0.1381 - dann loss: 1.9331 - reconstruction loss: 0.0345Switching permutation in make_training_set()
+0/3742 - total loss: 0.0183 - classification loss: 0.0597 - dann loss: 1.9379 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0152 - classification loss: 0.0496 - dann loss: 1.9378 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0114 - classification loss: 0.0371 - dann loss: 1.9275 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0139 - classification loss: 0.0455 - dann loss: 1.9329 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0124 - classification loss: 0.0406 - dann loss: 1.9256 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0878 - classification loss: 0.2863 - dann loss: 1.9404 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0109 - classification loss: 0.0357 - dann loss: 1.9291 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0077 - classification loss: 0.0252 - dann loss: 1.9442 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0076 - classification loss: 0.0248 - dann loss: 1.9299 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0432 - classification loss: 0.1408 - dann loss: 1.9283 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0121 - classification loss: 0.0394 - dann loss: 1.9329 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0075 - classification loss: 0.0243 - dann loss: 1.9366 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0093 - classification loss: 0.0304 - dann loss: 1.9341 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0088 - classification loss: 0.0286 - dann loss: 1.9396 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0076 - classification loss: 0.0249 - dann loss: 1.9304 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0291 - classification loss: 0.0948 - dann loss: 1.9252 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0195 - classification loss: 0.0637 - dann loss: 1.9321 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0287 - classification loss: 0.0936 - dann loss: 1.9318 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0063 - classification loss: 0.0204 - dann loss: 1.9302 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0129 - classification loss: 0.0420 - dann loss: 1.9329 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0386 - classification loss: 0.1258 - dann loss: 1.9264 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0076 - classification loss: 0.0247 - dann loss: 1.9246 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0056 - classification loss: 0.0182 - dann loss: 1.9304 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0104 - classification loss: 0.0339 - dann loss: 1.9276 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0237 - classification loss: 0.0774 - dann loss: 1.9386 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0066 - classification loss: 0.0216 - dann loss: 1.9380 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0055 - classification loss: 0.0180 - dann loss: 1.9299 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0113 - classification loss: 0.0368 - dann loss: 1.9252 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0065 - classification loss: 0.0214 - dann loss: 1.9340 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0056 - classification loss: 0.0183 - dann loss: 1.9358 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0061 - classification loss: 0.0198 - dann loss: 1.9392 - reconstruction loss: 0.0347Switching permutation in make_training_set()
+0/3742 - total loss: 0.0044 - classification loss: 0.0145 - dann loss: 1.9296 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0060 - classification loss: 0.0197 - dann loss: 1.9356 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0043 - classification loss: 0.0141 - dann loss: 1.9464 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0061 - classification loss: 0.0200 - dann loss: 1.9384 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0235 - classification loss: 0.0765 - dann loss: 1.9381 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0064 - classification loss: 0.0208 - dann loss: 1.9410 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0043 - classification loss: 0.0141 - dann loss: 1.9288 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0048 - classification loss: 0.0156 - dann loss: 1.9407 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0063 - classification loss: 0.0206 - dann loss: 1.9369 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0069 - classification loss: 0.0224 - dann loss: 1.9198 - reconstruction loss: 0.0346Switching permutation in make_training_set()
+0/3742 - total loss: 0.0067 - classification loss: 0.0219 - dann loss: 1.9353 - reconstruction loss: 0.0346['Multiciliated N' 'Secretory N' 'Secretory N' ... 'Secretory'
+ 'Suprabasal' 'Multiciliated N']
+Save adata_pred to /workspace/cell/scMusketeers/Deprez-Lung-unknown-0.2-pred.h5ad

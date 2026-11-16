@@ -1,12 +1,17 @@
 
 srun -A cell -p gpu -t 10:00:00 --gres=gpu:1 --pty bash -i
-export myport=1600
+source ~/.cache/pypoetry/virtualenvs/sc-musketeers-voskaBul-py3.12/bin/activate
+conda activate scmusk_old
+export myport=8888
 # Run locally in your terminal
 echo "ssh -NL $myport:$(hostname):$myport $USER@login-hpc.univ-cotedazur.fr"
 
 
 ### On scmusk conda env
 jupyter lab --no-browser --port=$myport --ip='0.0.0.0' 
+
+## Open on computer
+http://localhost:8888/lab 
 
 ### With singularity
 # Run locally in your terminal

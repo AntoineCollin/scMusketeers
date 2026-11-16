@@ -8,6 +8,7 @@ import argparse
 import functools
 import os
 import sys
+import logging
 
 # try :
 #     from .dataset import Dataset, load_dataset
@@ -60,18 +61,18 @@ import sys
 import time
 
 import matplotlib.pyplot as plt
-import neptune
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
 # from numba import cuda
-from neptune.utils import stringify_unsupported
+from importlib.metadata import version
 
+logger = logging.getLogger("Sc-Musketeers")
 
 def train_dummy(X_list, y_list, batch_list, train_plit, **kwargs):
     latent_list = {k: X[:, :2] for k, X in X_list.items()}
-    print(kwargs)
+    logger.debug(kwargs)
     return latent_list, y_list
 
 
@@ -81,10 +82,13 @@ class Workflow:
         run_file : a dictionary outputed by the function load_runfile
         """
         self.run_file = run_file
+        self.task=self.run_file.task
+        
         self.working_dir = working_dir
         self.data_dir = working_dir + "/data"
         # dataset identifiers
         self.dataset_name = self.run_file.dataset_name
+        self.model = self.run_file.model
         self.class_key = self.run_file.class_key
         self.batch_key = self.run_file.batch_key
         # normalization parameters
@@ -161,7 +165,7 @@ class Workflow:
         }
         self.metrics = []
 
-        self.log_neptune = self.run_file.log_neptune
+        self.log_neptune = False  # neptune logging removed
         self.gpu_models = self.run_file.gpu_models
 
         self.run = None
@@ -171,27 +175,17 @@ class Workflow:
 
     def start_neptune_log(self):
         self.start_time = time.time()
-        if self.log_neptune:
-            self.run = neptune.init_run(
-                project="becavin-lab/benchmark",
-                api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
-            )
-
-            for par, val in self.run_file.__dict__.items():
-                self.run[f"parameters/{par}"] = stringify_unsupported(
-                    getattr(self, par)
-                )  # getattr(self, par) in case the parameter changed somehow
 
     def add_custom_log(self, name, value):
-        self.run[f"parameters/{name}"] = stringify_unsupported(value)
+        pass
 
     def stop_neptune_log(self):
-        self.run.stop()
+        pass
 
     def process_dataset(self):
         # Loading dataset
         adata = load_dataset(
-            dataset_dir=self.data_dir, dataset_name=self.dataset_name
+            dataset_dir=self.data_dir, dataset_name=self.dataset_name, model=self.model
         )
 
         self.dataset = Dataset(
@@ -206,6 +200,7 @@ class Workflow:
             use_hvg=self.use_hvg,
             test_split_key=self.test_split_key,
             unlabeled_category=self.unlabeled_category,
+            model=self.model,
         )
 
         # Processing dataset.
@@ -229,7 +224,7 @@ class Workflow:
             train_test_random_seed=self.train_test_random_seed,
         )
 
-        print("dataset has been preprocessed")
+        logger.debug("dataset has been preprocessed")
         self.dataset.create_inputs()
 
         self.adata_list = {
@@ -260,12 +255,12 @@ class Workflow:
             "test": self.dataset.batch_test,
         }
 
-        print({i: self.adata_list[i] for i in self.adata_list})
-        print({i: len(self.y_list[i]) for i in self.y_list})
-        print(
+        logger.debug({i: self.adata_list[i] for i in self.adata_list})
+        logger.debug({i: len(self.y_list[i]) for i in self.y_list})
+        logger.debug(
             f"sum : {len(self.y_list['train']) + len(self.y_list['test']) + len(self.y_list['val'])}"
         )
-        print(f"full: {len(self.y_list['full'])}")
+        logger.debug(f"full: {len(self.y_list['full'])}")
 
     def train_model(self, model, **kwds):
         if self.log_neptune:
@@ -279,13 +274,13 @@ class Workflow:
             **kwds,
         )  # include the self.run object
         self.stop_time = time.time()
-        print(
+        logger.debug(
             f"latent shapes : {{i:self.latent_space_list[i].shape for i in self.latent_space_list}}"
         )
-        print(
+        logger.debug(
             f"pred shapes : {{i:self.y_pred_list[i].shape for i in self.y_pred_list}}"
         )
-        print(
+        logger.debug(
             f"adata shapes : {{i:self.adata_list[i] for i in self.adata_list}}"
         )
         if self.log_neptune:
@@ -294,109 +289,145 @@ class Workflow:
             )
 
     def compute_metrics(self):
+        dict_metrics = {}
+        dict_metrics[f"evaluation/training_time"] = self.stop_time - self.start_time
         if self.log_neptune:
             neptune_run_id = self.run["sys/id"].fetch()
-            save_dir = (
-                self.working_dir
-                + "experiment_script/results/"
-                + str(neptune_run_id)
-                + "/"
+        else:
+            neptune_run_id = f"{self.dataset_name}_{self.task}"
+
+        save_dir = (
+            self.working_dir
+            + "experiment_script/results/"
+            + str(neptune_run_id)
+            + "/"
+        )
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        y_true_full = self.adata_list["full"].obs[f"true_{self.class_key}"]
+        ct_prop = (
+            pd.Series(y_true_full).value_counts()
+            / pd.Series(y_true_full).value_counts().sum()
+        )
+        sizes = {
+            "xxsmall": list(ct_prop[ct_prop < 0.001].index),
+            "small": list(
+                ct_prop[(ct_prop >= 0.001) & (ct_prop < 0.01)].index
+            ),
+            "medium": list(
+                ct_prop[(ct_prop >= 0.01) & (ct_prop < 0.1)].index
+            ),
+            "large": list(ct_prop[ct_prop >= 0.1].index),
+        }
+
+        for group in ["full", "train", "val", "test"]:
+
+            y_pred = self.y_pred_list[group]
+            y_true = self.adata_list[group].obs[f"true_{self.class_key}"]
+            latent = self.latent_space_list[group]
+            batches = self.batch_list[group]
+            split = self.adata_list[group].obs["train_split"]
+
+            logger.debug(f"{group} : {self.adata_list[group]}")
+            labels = list(
+                set(np.unique(y_true)).union(set(np.unique(y_pred)))
             )
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-
-            y_true_full = self.adata_list["full"].obs[f"true_{self.class_key}"]
-            ct_prop = (
-                pd.Series(y_true_full).value_counts()
-                / pd.Series(y_true_full).value_counts().sum()
+            cm_no_label = confusion_matrix(y_true, y_pred)
+            logger.debug(f"no label : {cm_no_label.shape}")
+            cm = confusion_matrix(y_true, y_pred, labels=labels)
+            cm_norm = cm / cm.sum(axis=1, keepdims=True)
+            logger.debug(f"label : {cm.shape}")
+            cm_to_plot = pd.DataFrame(
+                cm_norm, index=labels, columns=labels
             )
-            sizes = {
-                "xxsmall": list(ct_prop[ct_prop < 0.001].index),
-                "small": list(
-                    ct_prop[(ct_prop >= 0.001) & (ct_prop < 0.01)].index
-                ),
-                "medium": list(
-                    ct_prop[(ct_prop >= 0.01) & (ct_prop < 0.1)].index
-                ),
-                "large": list(ct_prop[ct_prop >= 0.1].index),
-            }
-
-            for group in ["full", "train", "val", "test"]:
-
-                y_pred = self.y_pred_list[group]
-                y_true = self.adata_list[group].obs[f"true_{self.class_key}"]
-                latent = self.latent_space_list[group]
-                batches = self.batch_list[group]
-                split = self.adata_list[group].obs["train_split"]
-
-                print(f"{group} : {self.adata_list[group]}")
-                labels = list(
-                    set(np.unique(y_true)).union(set(np.unique(y_pred)))
-                )
-                cm_no_label = confusion_matrix(y_true, y_pred)
-                print(f"no label : {cm_no_label.shape}")
-                cm = confusion_matrix(y_true, y_pred, labels=labels)
-                cm_norm = cm / cm.sum(axis=1, keepdims=True)
-                print(f"label : {cm.shape}")
-                cm_to_plot = pd.DataFrame(
-                    cm_norm, index=labels, columns=labels
-                )
-                cm_to_save = pd.DataFrame(cm, index=labels, columns=labels)
-                cm_to_plot = cm_to_plot.fillna(value=0)
-                cm_to_save = cm_to_save.fillna(value=0)
-                cm_to_save.to_csv(save_dir + f"confusion_matrix_{group}.csv")
+            cm_to_save = pd.DataFrame(cm, index=labels, columns=labels)
+            cm_to_plot = cm_to_plot.fillna(value=0)
+            cm_to_save = cm_to_save.fillna(value=0)
+            cm_to_save.to_csv(save_dir + f"confusion_matrix_{group}.csv")
+            if self.log_neptune:
                 self.run[
                     f"evaluation/{group}/confusion_matrix_file"
                 ].track_files(save_dir + f"confusion_matrix_{group}.csv")
-                size = len(labels)
-                f, ax = plt.subplots(figsize=(size / 1.5, size / 1.5))
-                sns.heatmap(cm_to_plot, annot=True, ax=ax, fmt=".2f")
-                show_mask = np.asarray(cm_to_plot > 0.01)
-                print(f"label df : {cm_to_plot.shape}")
-                for text, show_annot in zip(
-                    ax.texts, (element for row in show_mask for element in row)
-                ):
-                    text.set_visible(show_annot)
-
+            size = len(labels)
+            f, ax = plt.subplots(figsize=(size / 1.5, size / 1.5))
+            sns.heatmap(cm_to_plot, annot=True, ax=ax, fmt=".2f")
+            show_mask = np.asarray(cm_to_plot > 0.01)
+            logger.debug(f"label df : {cm_to_plot.shape}")
+            for text, show_annot in zip(
+                ax.texts, (element for row in show_mask for element in row)
+            ):
+                text.set_visible(show_annot)
+            if self.log_neptune:
                 self.run[f"evaluation/{group}/confusion_matrix"].upload(f)
 
-                # Computing batch mixing metrics
-                if (
-                    len(np.unique(self.batch_list[group])) >= 2
-                ):  # If there are more than 2 batches in this group
-                    for metric in self.batch_metrics_list:
+            # Computing batch mixing metrics
+            if (
+                len(np.unique(self.batch_list[group])) >= 2
+            ):  # If there are more than 2 batches in this group
+                for metric in self.batch_metrics_list:
+                    dict_metrics[f"evaluation/{group}/{metric}"] = (
+                        self.batch_metrics_list[metric](latent, batches)
+                    )
+                
+                for metric in self.batch_metrics_list:
+                    if self.log_neptune:
                         self.run[f"evaluation/{group}/{metric}"] = (
                             self.batch_metrics_list[metric](latent, batches)
                         )
 
-                # Computing classification metrics
-                for metric in self.pred_metrics_list:
+            # Computing classification metrics
+            for metric in self.pred_metrics_list:
+                dict_metrics[f"evaluation/{group}/{metric}"] = (
+                        self.pred_metrics_list[metric](y_true, y_pred)
+                    )
+                if self.log_neptune:
                     self.run[f"evaluation/{group}/{metric}"] = (
                         self.pred_metrics_list[metric](y_true, y_pred)
                     )
 
-                for metric in self.pred_metrics_list_balanced:
+            for metric in self.pred_metrics_list_balanced:
+                dict_metrics[f"evaluation/{group}/{metric}"] = (
+                        self.pred_metrics_list_balanced[metric](y_true, y_pred)
+                    )
+                if self.log_neptune:
                     self.run[f"evaluation/{group}/{metric}"] = (
                         self.pred_metrics_list_balanced[metric](y_true, y_pred)
                     )
 
-                # Metrics by size of ct
+            # Metrics by size of ct
 
-                for s in sizes:
-                    idx_s = np.isin(y_true, sizes[s])
-                    y_true_sub = y_true[idx_s]
-                    y_pred_sub = y_pred[idx_s]
-                    print(s)
-                    for metric in self.pred_metrics_list:
+            for s in sizes:
+                idx_s = np.isin(y_true, sizes[s])
+                y_true_sub = y_true[idx_s]
+                y_pred_sub = y_pred[idx_s]
+                logger.debug(s)
+                for metric in self.pred_metrics_list:
+                    dict_metrics[f"evaluation/{group}/{s}/{metric}"] = (
+                        nan_to_0(
+                            self.pred_metrics_list[metric](
+                                y_true_sub, y_pred_sub
+                            )
+                        )
+                    )
+                    if self.log_neptune:
                         self.run[f"evaluation/{group}/{s}/{metric}"] = (
                             nan_to_0(
                                 self.pred_metrics_list[metric](
                                     y_true_sub, y_pred_sub
                                 )
                             )
-                        )
+                    )
 
-                    for metric in self.pred_metrics_list_balanced:
+                for metric in self.pred_metrics_list_balanced:
+                    dict_metrics[f"evaluation/{group}/{s}/{metric}"] = (
+                        nan_to_0(
+                            self.pred_metrics_list_balanced[metric](
+                                y_true_sub, y_pred_sub
+                            )
+                        )
+                    )
+                    if self.log_neptune:
                         self.run[f"evaluation/{group}/{s}/{metric}"] = (
                             nan_to_0(
                                 self.pred_metrics_list_balanced[metric](
@@ -405,31 +436,44 @@ class Workflow:
                             )
                         )
 
-                # Computing clustering metrics
-                if len(np.unique(y_pred)) >= 2:
-                    for metric in self.clustering_metrics_list:
+            # Computing clustering metrics
+            if len(np.unique(y_pred)) >= 2:
+                for metric in self.clustering_metrics_list:
+                    dict_metrics[f"evaluation/{group}/{metric}"] = (
+                        self.clustering_metrics_list[metric](
+                            latent, y_pred
+                        )
+                    )
+                    if self.log_neptune:
                         self.run[f"evaluation/{group}/{metric}"] = (
                             self.clustering_metrics_list[metric](
                                 latent, y_pred
                             )
                         )
 
-                if group == "full":
+            # Save list of metrics to savedir
+            save_path = os.path.join(save_dir, "all_metrics.csv")
+            pd.DataFrame.from_dict(dict_metrics, orient='index', columns=['Value']).to_csv(save_path)
+        
 
-                    # Saving latent space and predictions
-                    y_pred_df = pd.DataFrame(
-                        {"pred": y_pred, "true": y_true, "split": split},
-                        index=self.adata_list[group].obs_names,
-                    )
-                    split = pd.DataFrame(
-                        split, index=self.adata_list[group].obs_names
-                    )
-                    np.save(
-                        save_dir + f"latent_space_{group}.npy",
-                        self.latent_space_list[group],
-                    )
-                    y_pred_df.to_csv(save_dir + f"predictions_{group}.csv")
-                    split.to_csv(save_dir + f"split_{group}.csv")
+
+            if group == "full":
+
+                # Saving latent space and predictions
+                y_pred_df = pd.DataFrame(
+                    {"pred": y_pred, "true": y_true, "split": split},
+                    index=self.adata_list[group].obs_names,
+                )
+                split = pd.DataFrame(
+                    split, index=self.adata_list[group].obs_names
+                )
+                np.save(
+                    save_dir + f"latent_space_{group}.npy",
+                    self.latent_space_list[group],
+                )
+                y_pred_df.to_csv(save_dir + f"predictions_{group}.csv")
+                split.to_csv(save_dir + f"split_{group}.csv")
+                if self.log_neptune:
                     self.run[f"evaluation/{group}/latent_space"].track_files(
                         save_dir + f"latent_space_{group}.npy"
                     )
@@ -437,67 +481,71 @@ class Workflow:
                         save_dir + f"predictions_{group}.csv"
                     )
 
-                    # Saving umap representation
-                    pred_adata = sc.AnnData(
-                        X=self.adata_list[group].X,
-                        obs=self.adata_list[group].obs,
-                        var=self.adata_list[group].var,
-                    )
-                    pred_adata.obs[f"{self.class_key}_pred"] = y_pred
-                    pred_adata.obsm["latent_space"] = self.latent_space_list[
-                        group
-                    ]
-                    sc.pp.neighbors(pred_adata, use_rep="latent_space")
-                    sc.tl.umap(pred_adata)
-                    np.save(
-                        save_dir + f"umap_{group}.npy",
-                        pred_adata.obsm["X_umap"],
-                    )
+                # Saving umap representation
+                pred_adata = sc.AnnData(
+                    X=self.adata_list[group].X,
+                    obs=self.adata_list[group].obs,
+                    var=self.adata_list[group].var,
+                )
+                pred_adata.obs[f"{self.class_key}_pred"] = y_pred
+                pred_adata.obsm["latent_space"] = self.latent_space_list[
+                    group
+                ]
+                sc.pp.neighbors(pred_adata, use_rep="latent_space")
+                sc.tl.umap(pred_adata)
+                np.save(
+                    save_dir + f"umap_{group}.npy",
+                    pred_adata.obsm["X_umap"],
+                )
+                if self.log_neptune:
                     self.run[f"evaluation/{group}/umap"].track_files(
                         save_dir + f"umap_{group}.npy"
                     )
-                    sc.set_figure_params(figsize=(15, 10), dpi=300)
-                    fig_class = sc.pl.umap(
+                sc.set_figure_params(figsize=(15, 10), dpi=300)
+                fig_class = sc.pl.umap(
+                    pred_adata,
+                    color=f"true_{self.class_key}",
+                    size=10,
+                    return_fig=True,
+                )
+                fig_pred = sc.pl.umap(
+                    pred_adata,
+                    color=f"{self.class_key}_pred",
+                    size=10,
+                    return_fig=True,
+                )
+                fig_batch = sc.pl.umap(
+                    pred_adata,
+                    color=self.batch_key,
+                    size=10,
+                    return_fig=True,
+                )
+                fig_split = sc.pl.umap(
+                    pred_adata,
+                    color="train_split",
+                    size=10,
+                    return_fig=True,
+                )
+                if "suspension_type" in pred_adata.obs.columns:
+                    fig_sus = sc.pl.umap(
                         pred_adata,
-                        color=f"true_{self.class_key}",
+                        color="suspension_type",
                         size=10,
                         return_fig=True,
                     )
-                    fig_pred = sc.pl.umap(
-                        pred_adata,
-                        color=f"{self.class_key}_pred",
-                        size=10,
-                        return_fig=True,
-                    )
-                    fig_batch = sc.pl.umap(
-                        pred_adata,
-                        color=self.batch_key,
-                        size=10,
-                        return_fig=True,
-                    )
-                    fig_split = sc.pl.umap(
-                        pred_adata,
-                        color="train_split",
-                        size=10,
-                        return_fig=True,
-                    )
-                    if "suspension_type" in pred_adata.obs.columns:
-                        fig_sus = sc.pl.umap(
-                            pred_adata,
-                            color="suspension_type",
-                            size=10,
-                            return_fig=True,
-                        )
+                    if self.log_neptune:
                         self.run[f"evaluation/{group}/suspension_umap"].upload(
                             fig_sus
                         )
-                    if "assay" in pred_adata.obs.columns:
-                        fig_ass = sc.pl.umap(
-                            pred_adata, color="assay", size=10, return_fig=True
-                        )
+                if "assay" in pred_adata.obs.columns:
+                    fig_ass = sc.pl.umap(
+                        pred_adata, color="assay", size=10, return_fig=True
+                    )
+                    if self.log_neptune:
                         self.run[f"evaluation/{group}/assay_umap"].upload(
                             fig_ass
                         )
+                if self.log_neptune:
                     self.run[f"evaluation/{group}/true_umap"].upload(fig_class)
                     self.run[f"evaluation/{group}/pred_umap"].upload(fig_pred)
                     self.run[f"evaluation/{group}/batch_umap"].upload(
@@ -611,7 +659,7 @@ if __name__ == "__main__":
     )
 
     run_file = parser.parse_args()
-    print(run_file.class_key, run_file.batch_key)
+    logger.debug(run_file.class_key, run_file.batch_key)
     working_dir = "/home/acollin/dca_permuted_workflow/"
     experiment = Workflow(run_file=run_file, working_dir=working_dir)
 
@@ -626,7 +674,7 @@ if __name__ == "__main__":
         )
     ):
         for model in ["pca_svm", "harmony_svm", "scanvi", "scmap", "uce"]:
-            print(i)
+            logger.debug(i)
             experiment.keep_obs = list(
                 experiment.dataset.adata_train_extended.obs[
                     experiment.batch_key

@@ -1,8 +1,7 @@
 import json
 import os
+import logging
 
-from scmusketeers.arguments.neptune_log import (start_neptune_log,
-                                                stop_neptune_log)
 from scmusketeers.arguments.runfile import (PROCESS_TYPE, create_argparser,
                                             get_default_param, get_runfile)
 from scmusketeers.transfer.experiment import MakeExperiment
@@ -15,6 +14,7 @@ except ImportError:
     print("Please consider installing AxPlatform for hyperparameters optimization")
     print("poetry install --with workflow")
     
+logger = logging.getLogger("Sc-Musketeers")
 
 # JSON_PATH_DEFAULT = '/home/acollin/scMusketeers/experiment_script/hp_ranges/'
 JSON_PATH_DEFAULT = "/home/becavin/scMusketeers/experiment_script/hp_ranges/"

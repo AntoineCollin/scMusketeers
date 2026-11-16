@@ -1,0 +1,8 @@
+In analysis_notebook/Expe_1_Label_transfer_between_batches_light.ipynb there are the code to produce the figures for my paper.
+It uses NeptuneAI to retrieve the jobs and result for balanced accuracy and entropy.
+NeptuneAI is not working anymore so i have replace it by saving the results in a folder for eachtraining of the model, each dataset, and each task.
+This folder is experiment_script/benchmark/results/ and all folders are named as follow : dataset_task_model_parameter
+within each folder you will find all_metrics.csv in which you will have the metrics.
+
+Create a python script (which you save in analysis_notebooks) that will produce the same figure 2 as the notebook Expe_1_Label_transfer_between_batches_light.ipynb but using the new way of saving the results.
+Focus only on figure 2. 

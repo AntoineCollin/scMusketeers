@@ -1,0 +1,27 @@
+\begin{table}[h!]
+\caption{Statistical comparison of batch mixing entropy. Values represent the log2-fold change in median entropy, with Mann-Whitney U test p-values in parentheses. A positive LFC indicates better batch integration by scMusketeers.}
+\label{tab:supp_entropy}
+\begin{tabular}{lllllll}
+\toprule
+ & Competitor & 2.scANVI & 3.UCE & 4.Harmony & 5.PCA & pca_knn \\
+Group & Dataset &  &  &  &  &  \\
+\midrule
+\multirow[t]{3}{*}{assays} & dominguez_2022_lymph & +0.04 (0.310) & +1.82 (0.008)** & -0.08 (0.056) & +1.91 (3.8e-05)**** & +2.21 (0.008)** \\
+ & dominguez_2022_spleen & -0.16 (0.151) & +1.72 (0.008)** & -0.28 (0.008)** & +1.80 (3.8e-05)**** & +2.04 (0.008)** \\
+ & tabula_2022_spleen & -0.06 (0.222) & +0.99 (0.008)** & -0.08 (0.151) & +0.91 (3.8e-05)**** & +0.82 (0.008)** \\
+\cline{1-7}
+\multirow[t]{2}{*}{datasets} & hlca_par_dataset_harmonized & -0.08 (0.151) & +1.52 (0.008)** & -0.08 (0.091) & +1.53 (0.001)*** & +1.64 (0.008)** \\
+ & hlca_trac_dataset_harmonized & +0.10 (0.690) & +2.45 (0.008)** & -0.41 (0.008)** & +2.77 (3.8e-05)**** & +2.61 (0.008)** \\
+\cline{1-7}
+\multirow[t]{4}{*}{homo} & ajrccm_by_batch & -0.11 (0.008)** & +0.46 (0.008)** & -0.13 (0.008)** & +0.97 (3.8e-05)**** & +1.06 (0.008)** \\
+ & htap & -0.06 (0.151) & +0.48 (0.008)** & -0.03 (0.151) & +1.27 (3.8e-05)**** & +1.19 (0.008)** \\
+ & tosti_2021 & +0.02 (0.222) & +0.12 (0.151) & -0.03 (0.690) & +0.41 (3.8e-05)**** & +0.48 (0.008)** \\
+ & yoshida_2021 & -0.05 (0.222) & +0.16 (0.008)** & -0.11 (0.008)** & +0.32 (3.8e-05)**** & +0.43 (0.008)** \\
+\cline{1-7}
+\multirow[t]{3}{*}{suspension} & koenig_2022 & -0.15 (0.008)** & +0.11 (0.008)** & -0.17 (0.008)** & +0.36 (3.8e-05)**** & +0.34 (0.008)** \\
+ & lake_2021 & -0.01 (0.310) & +0.55 (0.008)** & -0.11 (0.012)* & +0.69 (0.001)*** & +0.70 (0.008)** \\
+ & litvinukova_2020 & +0.12 (0.008)** & +1.19 (0.008)** & +0.13 (0.008)** & - & +1.37 (0.008)** \\
+\cline{1-7}
+\bottomrule
+\end{tabular}
+\end{table}

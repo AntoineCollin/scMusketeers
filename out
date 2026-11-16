@@ -1,0 +1,25 @@
+Env activated :/home/cbecavin/.cache/pypoetry/virtualenvs/sc-musketeers-voskaBul-py3.12/bin/python
+test_obs=D322_Biop_Nas1 D354_Brus_Dis1 D326_Brus_Dis1 D353_Biop_Pro1 D337_Brus_Dis1 D354_Biop_Int2 D367_Brus_Dis1
+2026-03-11 12:41:36.114686: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-03-11 12:41:36.219374: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773229296.269626 3446609 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773229296.287836 3446609 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-03-11 12:41:36.395006: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/cbecavin/.cache/pypoetry/virtualenvs/sc-musketeers-voskaBul-py3.12/lib/python3.12/site-packages/scvi/__init__.py:31: DeprecationWarning: scvi is deprecated, please uninstall scvi via `pip uninstall scvi` and install the new scvi-tools package at github.com/YosefLab/scvi-tools
+  warnings.warn(deprecation_msg, DeprecationWarning)
+Sc-Musketeers 0.6.3 started
+Sc-Musketeers 0.6.3 started
+class_key : celltype, batch_key : manip
+working directory : /workspace/cell/scMusketeers/
+I0000 00:00:1773229301.308242 3446609 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 31132 MB memory:  -> device: 0, name: Tesla V100-SXM2-32GB, pci bus id: 0000:1d:00.0, compute capability: 7.0
+dataset loaded at /workspace/cell/scMusketeers//data/ajrccm_by_batch.h5ad
+AnnData object with n_obs × n_vars = 77969 × 33540
+    obs: 'donor', 'manip', 'method', 'position', 'Sex', 'Age', 'celltype', 'phenotype', 'celltype_phenotype', 'celltype_position', 'TRAIN_TEST_split'
+    var: 'gene_ids', 'feature_types', 'genome'
+    uns: 'pca'
+    obsm: 'X_uce', 'tsne_hg19', 'umap_hg19', 'umap_uncorrected_hg19'
+Did not find existing PCA, computing it
+Selecting 3000 HVG
+slurmstepd-gpu01: error: *** JOB 11202678 ON gpu01 CANCELLED AT 2026-03-11T12:43:21 ***
