@@ -2,13 +2,15 @@ import argparse
 import json
 import os
 
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import scipy
 from sklearn.model_selection import train_test_split
+
+# matplotlib is only needed by the plotting helpers below; it belongs to the
+# optional "workflow" dependency group and is imported lazily inside them so the
+# core package can be imported without it.
 
 
 def check_dir(p):
@@ -251,6 +253,8 @@ def plot_umap_proba(adata, celltype, **kwargs):
 
 
 def plot_size_conf_correlation(adata):
+    import matplotlib.pyplot as plt
+
     proba_pred = adata.obsm["proba_pred"]
     class_df_dict = {
         ct: proba_pred.loc[adata.obs["true"] == ct, :]
@@ -272,6 +276,8 @@ def plot_class_accuracy(adata, layout=True, **kwargs):
     """
     mode is either bar (average) or box (boxplot)
     """
+    import matplotlib.pyplot as plt
+
     adata = self.latent_spaces[ID]
     workflow = self.workflow_list[ID]
     true_key = f"true_{workflow.class_key}"

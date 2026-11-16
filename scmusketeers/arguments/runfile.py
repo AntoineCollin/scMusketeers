@@ -61,20 +61,20 @@ def create_argparser():
         prog="sc-musketeers",
         usage="sc-musketeers transfer ref_path [OPTIONS]",
         description="Single-cell gene expression atlases are now central in biology. "
-                    "Their integration and annotation currently face two challenges : "
+                    "Their integration and annotation currently face two challenges: "
                     "unbalanced proportions of cell types and large batch effects. scMusketeers, "
-                    "a deep learning model, optimizes the latent data representation and solves all "
-                    "at once these challenges. scMusketeers features three neural modules: " 
-                    "(1) an autoencoder for noise and dimensionality reductions;"
-                    "(2) a focal loss classifier to enhance rare cell type predictions;"
-                    " and (3) an adversarial domain adaptation (DANN) module for batch "
-                    "effect correc- tion. Benchmarking against state-of-the-art tools, "
+                    "a deep learning model, optimizes the latent data representation and solves "
+                    "both challenges at once. scMusketeers features three neural modules: "
+                    "(1) an autoencoder for noise and dimensionality reduction; "
+                    "(2) a focal loss classifier to enhance rare cell type predictions; "
+                    "and (3) an adversarial domain adaptation (DANN) module for batch "
+                    "effect correction. Benchmarking against state-of-the-art tools, "
                     "including the UCE foundation model, showed that scMusketeers performs "
-                    "on par or better, particularly in iden- tifying rare cell types. "
-                    "It also allows to transfer cell labels from single-cell RNA sequencing"
-                    " to spatial transcriptomics. With its modular and adaptable design, "
+                    "on par or better, particularly in identifying rare cell types. "
+                    "It also allows to transfer cell labels from single-cell RNA sequencing "
+                    "to spatial transcriptomics. With its modular and adaptable design, "
                     "scMusketeers offers a versatile framework that can be generalized to "
-                    "other large- scale biological projects requiring deep learning approaches, "
+                    "other large-scale biological projects requiring deep learning approaches, "
                     "establishing itself as a valuable tool for single-cell data "
                     "integration and analysis.",
         epilog="Enjoy scMusketeers!",
@@ -97,29 +97,31 @@ def create_argparser():
     parser.add_argument(
         "process",
         type=str,
-        help="Type of process to run : Training, Hyperparameter optimization"
-        f" among {PROCESS_TYPE}",
-        default="",
+        choices=PROCESS_TYPE,
+        help="Process to run: 'transfer' to train the model and predict cell "
+        "types, 'optim' to run hyperparameter optimization.",
     )
 
     parser.add_argument(
         "ref_path",
         type=str,
-        help="Path of the referent adata file (example : data/ajrccm.h5ad",
-        default="",
+        help="Path to the reference .h5ad file holding the annotated cells "
+        "(example: data/Deprez-Lung-unknown-0.2.h5ad).",
     )
 
     parser.add_argument(
         "--class_key",
         type=str,
-        help="Key of the celltype to classify",
+        help="Column in adata.obs holding the cell type labels to classify "
+        "(default: %(default)s).",
         default="celltype",
     )
 
     parser.add_argument(
         "--batch_key",
         type=str,
-        help="Key of the batches",
+        help="Column in adata.obs holding the batch/donor labels to correct "
+        "for (default: %(default)s).",
         default="manip",
     )
 
@@ -130,42 +132,32 @@ def create_argparser():
         type=str,
         nargs="?",
         default=None,
-        help="Optional query dataset",
+        help="Optional path to a query .h5ad file. Its cells are treated as "
+        "unlabeled and get their cell types predicted from the reference.",
     )
     workflow_group.add_argument(
         "--out_dir",
         type=str,
         nargs="?",
         default=".",
-        help="The output directory",
+        help="Directory where the output .h5ad is written (default: current "
+        "directory).",
     )
     workflow_group.add_argument(
         "--out_name",
         type=str,
         nargs="?",
-        default=".",
-        help="The output naming",
+        default="scmusketeers_pred",
+        help="Base name (without extension) of the output .h5ad file "
+        "(default: %(default)s).",
     )
     workflow_group.add_argument(
         "--training_scheme",
         type=str,
         nargs="?",
         default="training_scheme_13",
-        help="",
-    )
-    workflow_group.add_argument(
-        "--log_neptune",
-        type=bool,
-        nargs="?",
-        const=True,
-        default=False,
-        help="",
-    )
-    workflow_group.add_argument(
-        "--neptune_name",
-        type=str,
-        nargs="?",
-        help="Name of the neptune project : Exemple sc-permut-packaging",
+        help="Name of the predefined sequence of training stages to run "
+        "(default: %(default)s).",
     )
     workflow_group.add_argument(
         "--hparam_path", type=str, nargs="?", default=None, help=""
@@ -175,7 +167,7 @@ def create_argparser():
         type=str,
         nargs="?",
         default="val-balanced_mcc",
-        help="The metric top optimize in hp search as it appears in neptune (split-metricname)",
+        help="The metric to optimize in hyperparameter search, as 'split-metricname'",
     )
     workflow_group.add_argument(
         "--verbose", type=bool, default=True, help=""
@@ -204,7 +196,7 @@ def create_argparser():
         nargs="?",
         const=True,
         default=True,
-        help="Weither to normalize dataset or not",
+        help="Whether to normalize the dataset",
     )
     dataset_group.add_argument(
         "--size_factor",
@@ -220,7 +212,7 @@ def create_argparser():
         nargs="?",
         const=False,
         default=False,
-        help="Weither to scale input the count values",
+        help="Whether to scale the input count values",
     )
     dataset_group.add_argument(
         "--logtrans_input",
@@ -228,7 +220,7 @@ def create_argparser():
         nargs="?",
         const=True,
         default=True,
-        help="Weither to log transform count values",
+        help="Whether to log-transform the count values",
     )
     dataset_group.add_argument(
         "--use_hvg",
@@ -321,7 +313,7 @@ def create_argparser():
         type=float,
         nargs="?",
         default=9.447375593939065e-07,
-        help="Weight decay applied by th optimizer",
+        help="Weight decay applied by the optimizer",
     )  # Default identified with hp optimization
     training_group.add_argument(
         "--learning_rate",
@@ -346,28 +338,28 @@ def create_argparser():
         type=int,
         nargs="?",
         default=36,
-        help="Number of epoch to warmup DANN",
+        help="Number of epochs to warm up the DANN module",
     )
     epoch_group.add_argument(
         "--fullmodel_epoch",
         type=int,
         nargs="?",
         default=100,
-        help="Number of epoch to train full model",
+        help="Number of epochs to train the full model",
     )
     epoch_group.add_argument(
         "--permonly_epoch",
         type=int,
         nargs="?",
         default=100,
-        help="Number of epoch to train in permutation only mode",
+        help="Number of epochs to train in permutation-only mode",
     )
     epoch_group.add_argument(
         "--classifier_epoch",
         type=int,
         nargs="?",
         default=50,
-        help="Number of epoch to train te classifier only",
+        help="Number of epochs to train the classifier only",
     )
 
     # Loss function Arguments

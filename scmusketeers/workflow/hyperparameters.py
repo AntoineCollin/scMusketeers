@@ -58,7 +58,6 @@ import sys
 import time
 
 import matplotlib.pyplot as plt
-import neptune
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -66,7 +65,6 @@ import seaborn as sns
 import tensorflow as tf
 from ax.service.managed_loop import optimize
 # from numba import cuda
-from neptune.utils import stringify_unsupported
 from importlib.metadata import version
 
 # from ax import RangeParameter, SearchSpace, ParameterType, FixedParameter, ChoiceParameter
@@ -76,9 +74,6 @@ for gpu_instance in physical_devices:
     tf.config.experimental.set_memory_growth(gpu_instance, True)
 
 logger = logging.getLogger("Sc-Musketeers")
-logging.basicConfig(format="|--- %(levelname)-8s    %(message)s")
-logger.info(f"Sc-Musketeers {version('sc-musketeers')} started")
-logger.setLevel(getattr(logging, "DEBUG"))
 
 
 # Reset Keras Session
@@ -299,7 +294,7 @@ class Workflow:
 
         self.training_scheme = self.run_file.training_scheme
 
-        self.log_neptune = self.run_file.log_neptune
+        self.log_neptune = False  # neptune logging removed
         self.run = None
 
         self.hparam_path = self.run_file.hparam_path
@@ -328,27 +323,13 @@ class Workflow:
         self.hp_params = params
 
     def start_neptune_log(self):
-        if self.log_neptune:
-            self.run = neptune.init_run(
-                project="becavin-lab/benchmark",
-                api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
-            )
-            self.run[f"parameters/model"] = "scPermut"
-            for par, val in self.run_file.__dict__.items():
-                self.run[f"parameters/{par}"] = stringify_unsupported(
-                    getattr(self, par)
-                )
-            if (
-                self.hp_params
-            ):  # Overwrites the defaults arguments contained in the runfile
-                for par, val in self.hp_params.items():
-                    self.run[f"parameters/{par}"] = stringify_unsupported(val)
+        pass
 
     def add_custom_log(self, name, value):
-            self.run[f"parameters/{name}"] = stringify_unsupported(value)
+        pass
 
     def stop_neptune_log(self):
-            self.run.stop()
+        pass
 
     def process_dataset(self):
         # Loading dataset

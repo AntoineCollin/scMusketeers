@@ -23,7 +23,6 @@ workflow_jobs/log_debug
 results/
 results_semi_sup/
 results_semi_sup_n_perm_5/
-task*
 
 # Misc / one-off scripts and outputs
 Results_analysis.ipynb
@@ -61,6 +60,7 @@ experiment_script/benchmark/zzlaunch_size_metrics.sh
 analysis_notebooks/figure_review/
 analysis_notebooks/000-banovich23/
 analysis_notebooks/spatial_loc/
+analysis_notebooks/figures_review_old/
 
 ############################
 # CheckAtlas
@@ -236,3 +236,9 @@ LCA_scarches_reference/
 
 .DS_Store
 .github/templates/*
+
+############################
+# SLURM job outputs
+############################
+
+tutorial/sbatch_tutoriel_*.out

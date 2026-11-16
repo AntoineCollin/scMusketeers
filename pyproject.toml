@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sc-musketeers"
-version = "0.6.3"
+version = "0.7.0"
 description = "A tri-partite modular autoencoder for addressing imbalanced cell type annotation and batch effect reduction"
 license = "MIT"
 authors = ["AntoineCollin","Christophe Becavin"]
@@ -12,18 +12,14 @@ repository = "https://github.com/AntoineCollin/scMusketeers/"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-poetry = "^1.8.1"
-numpy = "^1.23"
 keras = "^3.3.3"
 scanpy = "^1.10.1"
-neptune = "^1.10.4"
-pympler = "^1.0.1"
-tensorflow = "^2.10.0"
-pillow = "^11.0.0"
-matplotlib = "^3.9.3"
-pandas = "^2.2.3"
-scikit-learn = "^1.5.2"
-seaborn = "^0.13.2"
+# TensorFlow backend. Install exactly one build variant via an extra:
+#   pip install sc-musketeers[gpu]   -> GPU-capable "tensorflow"
+#   pip install sc-musketeers[cpu]   -> CPU-only "tensorflow-cpu"
+# Both expose the same `import tensorflow`, so only one must be installed.
+tensorflow = {version = "^2.16", optional = true}
+tensorflow-cpu = {version = "^2.16", optional = true}
 
 
 [tool.poetry.group.dev]
@@ -56,6 +52,15 @@ scmappy = "^0.2"
 scvi = "^0.6.8"
 celltypist = "^1.6.3"
 harmonypy = "^0.2.0"
+matplotlib = "^3.9.3"
+seaborn = "^0.13.2"
+
+# Pick the TensorFlow build at install time:
+#   pip install sc-musketeers[gpu]   (GPU-capable)
+#   pip install sc-musketeers[cpu]   (CPU-only)
+[tool.poetry.extras]
+gpu = ["tensorflow"]
+cpu = ["tensorflow-cpu"]
 
 [build-system]
 requires = ["poetry-core"]

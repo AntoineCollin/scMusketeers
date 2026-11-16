@@ -42,7 +42,7 @@ def get_hvg_common(
         adata.var["highly_variable_nbatches"] == n_batches
     ]  # Starts with genes hvg for every batches
     dispersion_nbatches = dispersion_nbatches.sort_values(ascending=False)
-    print(f"Searching for highly variable genes in {n_batches} batches")
+    logger.debug(f"Searching for highly variable genes in {n_batches} batches")
     if (
         len(dispersion_nbatches) >= n_hvg
     ):  # If there are already enough hvg in every batch, returns them
@@ -51,7 +51,7 @@ def get_hvg_common(
             return adata[:, top_genes]
         else:
             return top_genes
-    print(
+    logger.debug(
         f"Found {len(dispersion_nbatches)} highly variable genes using {n_batches} batches"
     )
     top_genes = list(
@@ -64,7 +64,7 @@ def get_hvg_common(
         n_batches = (
             n_batches - 1
         )  # Looks for genes hvg for one fewer batch at each iteration
-        print(f"Searching for highly variable genes in {n_batches} batches")
+        logger.debug(f"Searching for highly variable genes in {n_batches} batches")
         remaining_genes = n_hvg - len(top_genes)  # nb of genes left to find
         dispersion_nbatches = adata.var["dispersions_norm"][
             adata.var["highly_variable_nbatches"] == n_batches
@@ -73,7 +73,7 @@ def get_hvg_common(
         if (
             len(dispersion_nbatches) > remaining_genes
         ):  # Enough genes to fill in the rest
-            print(
+            logger.debug(
                 f"Found {len(dispersion_nbatches)} highly variable genes using {n_batches} batches. Selecting top {remaining_genes}"
             )
             # print(dispersion_nbatches)
@@ -239,12 +239,13 @@ class Dataset:
         )
         spl.iloc[val_idx] = "val"
         self.adata_train_extended.obs["train_split"] = spl.values
-        print(self.unlabeled_category)
         test_idx = (
             self.adata.obs[self.class_key] == self.unlabeled_category
         )  # boolean
-        print(self.adata.obs[self.class_key].unique())
-        print(test_idx.sum())
+        logger.debug(
+            f"{test_idx.sum()} cells labelled '{self.unlabeled_category}' "
+            f"will be predicted (query set)"
+        )
         split = pd.Series(
             ["train"] * self.adata.n_obs, index=self.adata.obs.index
         )
@@ -389,5 +390,5 @@ def split_train_val(workflow):
         train_test_random_seed=workflow.run_file.train_test_random_seed,
     )
 
-    print("dataset has been preprocessed")
+    logger.debug("dataset has been preprocessed")
     workflow.dataset.create_inputs()

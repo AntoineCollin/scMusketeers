@@ -61,19 +61,14 @@ import sys
 import time
 
 import matplotlib.pyplot as plt
-import neptune
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
 # from numba import cuda
-from neptune.utils import stringify_unsupported
 from importlib.metadata import version
 
 logger = logging.getLogger("Sc-Musketeers")
-logging.basicConfig(format="|--- %(levelname)-8s    %(message)s")
-logger.info(f"Sc-Musketeers {version('sc-musketeers')} started")
-logger.setLevel(getattr(logging, "DEBUG"))
 
 def train_dummy(X_list, y_list, batch_list, train_plit, **kwargs):
     latent_list = {k: X[:, :2] for k, X in X_list.items()}
@@ -170,7 +165,7 @@ class Workflow:
         }
         self.metrics = []
 
-        self.log_neptune = self.run_file.log_neptune
+        self.log_neptune = False  # neptune logging removed
         self.gpu_models = self.run_file.gpu_models
 
         self.run = None
@@ -180,22 +175,12 @@ class Workflow:
 
     def start_neptune_log(self):
         self.start_time = time.time()
-        if self.log_neptune:
-            self.run = neptune.init_run(
-                project="becavin-lab/benchmark",
-                api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiMmRkMWRjNS03ZGUwLTQ1MzQtYTViOS0yNTQ3MThlY2Q5NzUifQ==",
-            )
-
-            for par, val in self.run_file.__dict__.items():
-                self.run[f"parameters/{par}"] = stringify_unsupported(
-                    getattr(self, par)
-                )  # getattr(self, par) in case the parameter changed somehow
 
     def add_custom_log(self, name, value):
-            self.run[f"parameters/{name}"] = stringify_unsupported(value)
+        pass
 
     def stop_neptune_log(self):
-            self.run.stop()
+        pass
 
     def process_dataset(self):
         # Loading dataset

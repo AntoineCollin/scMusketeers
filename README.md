@@ -38,11 +38,27 @@ We will see in this tutorial two use-cases:
 
 ## Install
 
-You can install sc_musketeers with Pypi:
+sc-musketeers needs a TensorFlow backend, and you choose which build to install
+through an extra:
 
-```bash
-$ pip install sc-musketeers
-```
+- **GPU** (GPU-capable TensorFlow):
+
+  ```bash
+  $ pip install "sc-musketeers[gpu]"
+  ```
+
+- **CPU only** (smaller, no CUDA):
+
+  ```bash
+  $ pip install "sc-musketeers[cpu]"
+  ```
+
+> **Note:** pick exactly one extra. `sc-musketeers[gpu]` pulls in `tensorflow`
+> while `sc-musketeers[cpu]` pulls in `tensorflow-cpu`; both provide the same
+> `import tensorflow`, so installing only one avoids a conflict. A bare
+> `pip install sc-musketeers` (no extra) installs **no** TensorFlow and the CLI
+> will fail to import — always specify `[gpu]` or `[cpu]`.
+
 with conda
 
 ```bash
